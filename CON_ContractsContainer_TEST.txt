@@ -1,0 +1,3493 @@
+/**
+ * @description       : 
+ * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+ * @group             : 
+ * @last modified on  : 08-06-2024
+ * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+**/
+
+@isTest
+public class CON_ContractsContainer_TEST {
+    static Final Id RT_MerchantAccount = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('RT_Afiliacion').getRecordTypeId();
+    static final Id EstablishmentRecordTypeTC = Schema.SObjectType.Establishment__c.getRecordTypeInfosByDeveloperName().get('TicketCar').getRecordTypeId();
+    static final Id OppRecordTypeVentaNueva = Schema.SObjectType.Opportunity.getRecordTypeInfosByDeveloperName().get('VentaNueva').getRecordTypeId();
+    static final Id OppRecordTypeMigracion = Schema.SObjectType.Opportunity.getRecordTypeInfosByDeveloperName().get('Migracion').getRecordTypeId();
+    static final Id ConceptoRT = Schema.SObjectType.Concepto__c.getRecordTypeInfosByDeveloperName().get('Conceptos').getRecordTypeId();
+    
+    @testSetup
+    static void setup(){
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        Account acc = TestDataFactory_TEST.createAccount();
+        //insert acc;
+        
+        Product2 p2 = new Product2(
+			Name = '33-Fleet Edenred', 
+			Es_OPAM__c = false, 
+			IsActive = true, 
+			ProductCode = '33', 
+			IDInterno__c = '33'
+		);
+        insert p2;
+        
+        Id p2Id = Test.getStandardPricebookId();
+
+        PricebookEntry pe = new PricebookEntry(
+			UnitPrice = 1000.00, 
+			Pricebook2Id = p2Id, 
+			Product2Id = p2.Id, 
+            UseStandardPrice = false, 
+			IsActive = true
+		);
+        insert pe;
+    }
+
+    
+    
+    
+    
+    @isTest
+    static void ADV2_Test3() {
+
+        Account acc = new Account(Name = 'AccountADV2Test3', NumeroEmpleados__c = '1-25', GLBAr_Country__c = 'México',GLB_ID_Corporativo__c='A0099',CodigoClienteAS400__c='93608',CodigoClienteOPAM__c='93608',RecordTypeId= RT_MerchantAccount);
+        insert acc;
+       /*  acc.GLB_ID_Corporativo__c = 'A0099';
+		acc.CodigoClienteAS400__c = '93608'; 
+        acc.CodigoClienteOPAM__c = '93608';
+                acc.RecordTypeId = RT_MerchantAccount;
+        update acc; */
+         
+        /*Account acc= TestDataFactory_TEST.createAccount();
+        acc.Name='Merchant';
+        acc.RecordTypeId = RT_MerchantAccount;
+        acc.CodigoClienteAS400__c = '93608'; 
+        acc.CodigoClienteOPAM__c = '93608';
+        update acc;
+        */
+      
+        
+       // insert acc;
+
+        EntidadLegal__c entidadLegalMerchant = new EntidadLegal__c();
+        entidadLegalMerchant.Name = 'RFCEDG07062023';
+        entidadLegalMerchant.CountryOrigin__c = 'MEXICO';
+        entidadLegalMerchant.Ticket__c = null;
+        insert entidadLegalMerchant; 
+        
+          EntidadCuenta__c ecMerchant = new EntidadCuenta__c(
+            EntidadLegal__c = entidadLegalMerchant.Id,
+            Cuenta__c = acc.Id
+        );
+        insert ecMerchant;
+        
+        
+        Product2 p2dr = new Product2(
+			Name = '33-Ticket Car Edenred', 
+			Es_OPAM__c = false, 
+			IsActive = true, 
+			ProductCode = '33', 
+			IDInterno__c = '33'
+		);
+        insert p2dr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+
+        PricebookEntry pebk = new PricebookEntry(
+			UnitPrice = 1000.00, 
+			Pricebook2Id = p2Id, 
+			Product2Id = p2dr.Id, 
+            UseStandardPrice = false, 
+			IsActive = true
+		);
+        insert pebk;
+        
+        Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '43');
+        insert p2;   
+        
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;    
+        
+        //Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1]; remove
+        List<Opportunity> listOpps = new List<Opportunity>();
+     /*   
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        opp.FechaFinADV__c = system.today();
+        opp.FechaInicioADV__c = system.today();
+        opp.NumeroAltaCliente__c = '1234567';
+        listOpps.add(opp);
+        */
+        Opportunity opp2 = TestDataFactory_TEST.createOpportunity();
+        opp2.FechaFinADV__c = system.today();
+        opp2.FechaInicioADV__c = system.today();
+        opp2.NumeroAltaCliente__c = '12345678';
+        opp2.AccountId = acc.Id;
+        listOpps.add(opp2);
+        
+        update listOpps;
+        
+       //Test.StartTest();  
+        List<Quote> listQuote = new List<Quote>();
+      //  Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        Quote quo2 = new Quote(Name = 'Quote - Test2', OpportunityId = opp2.Id, Pricebook2Id = p2Id);
+      //  listQuote.add(quo);
+        listQuote.add(quo2);
+        insert listQuote;
+        
+        listOpps[0].SyncedQuoteId = listQuote[0].Id;
+       // listOpps[1].SyncedQuoteId = listQuote[1].Id;
+        update listOpps;
+        
+        List<QuoteLineItem> listQuoteLI = new List<QuoteLineItem>();
+       // QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+       // listQuoteLI.add(qli); 
+        
+        QuoteLineItem qli2 = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2dr.Id, QuoteId = quo2.Id, Escalonamiento__c = null);
+        listQuoteLI.add(qli2);
+        insert listQuoteLI;
+        
+ List<String> jsonContrato = new List<String>();
+        List<String> jsonOportunidad = new List<String>();
+        List<String> extras = new List<String>();
+        String filialesEx = '[]';
+
+        //Calling updateContratoADV without a created instance of contract
+        jsonContrato.add('{}');
+        jsonOportunidad.add('{}');
+        extras.add('[{}]');
+		      
+		Product2 p33 = [SELECT Id FROM Product2 where Id =: p2dr.Id limit 1];
+        
+        QuoteLineItem qli = [SELECT Id FROM QuoteLineItem WHERE Product2Id =: p33.Id LIMIT 1];
+        
+        EntidadCuenta__c ec = [SELECT Id FROM EntidadCuenta__c where Id =: ecMerchant.id LIMIT 1];
+        
+        Test.StartTest();  
+        Contrato2__c c2 = new Contrato2__c(PartidaPresupuesto__c = qli.Id,EtapaContrato__c = 'Autorizado',CodigoAS400__c = '01-43-93608-001', Entidad_Cuenta__c = ec.Id);
+        insert c2;
+        
+       Contrato2__c c22 = [SELECT Id FROM Contrato2__c WHERE Entidad_Cuenta__c =: ec.Id];
+        
+        jsonContrato.add('{ "Id": "' + c2.Id + '", "EtapaContrato__c": "Autorizado" }');
+        Opportunity opp =  [SELECT Id FROM Opportunity WHERE NumeroAltaCliente__c = '12345678' LIMIT 1];
+        jsonOportunidad.add('{ "Id": "' + opp.Id + '" }');        
+        extras.add('{}');
+		
+        Test.setMock(HttpCalloutMock.class, new NTT_Get_Unique_Id_Mock(2));
+        
+        Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContratoADV2('{ "Id": "' + c2.Id + '", "EtapaContrato__c": "Autorizado" }', '{ "Id": "' + opp.Id + '" }', '[{}]', filialesEx, filialesEx);
+       
+        Test.stopTest();
+    }
+    
+    @isTest 
+    static void adv2() {
+        Test.StartTest();            
+            try {
+                CON_ContractsContainer_CTRL.updateRecord('Input Error');
+            } catch(System.Exception e) {}
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void managerNameTest() {
+        Test.StartTest();
+            CON_ContractsContainer_CTRL cc = new CON_ContractsContainer_CTRL();
+            String mnt = cc.managerName;
+            Opportunity c=TestDataFactory_TEST.createOpportunity();
+            Attachment att = TestDataFactory_TEST.createAttachment(c.Id);
+            CON_ContractsContainer_CTRL.getContactosAP(c.Id,'Opportunity');
+            CON_ContractsContainer_CTRL.getMotivosDeRechazo();
+            CON_ContractsContainer_CTRL.saveLayoutAttachment(att.Id, c.Id, 'pdf', 'cfvgh', 'test', false);
+            CON_ContractsContainer_CTRL.saveLayoutAttachment(att.Id, c.Id, 'pdf', 'cfvgh', 'test', true);
+        Test.StopTest();
+    }
+
+    @isTest
+    static void managerNameTest1() {
+        Test.StartTest();
+        try {
+            CON_ContractsContainer_CTRL.saveLayoutAttachment(null, null, null, null, null, null);
+        } catch(System.Exception e) {}
+        Test.StopTest();
+    }
+
+    @isTest
+    static void sendClientToMercedesTest1() {
+        Test.setMock(HttpCalloutMock.class, new WSUniqueIdGeneratorMock());
+        Test.StartTest();        
+            CON_ContractsContainer_CTRL.sendClientToMercedes('', 'create');                
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void sendClientToMercedesTest2() {
+        Test.setMock(HttpCalloutMock.class, new WSUniqueIdGeneratorMock());
+        Test.StartTest();        
+            CON_ContractsContainer_CTRL.sendClientToMercedes('', 'update');        
+        Test.StopTest();
+    }
+
+    @isTest
+    static void guardaContratoTest() {
+        Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+        QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+        //strData is empty
+        String strDataEmpty = '';
+        //strData hasn't qli
+        String strDataHasntQli = '{ }';
+        //strData has a valid qli
+        String strDataHasQli = '{ "qli": "' + qli.Id + '" }';                                
+        //strData has an invalid qli
+        String strDataInvalidQli = '{"qli": ""}';
+        //strData has the "finalizar" key
+        String strDataKey = '{"qli": "' + qli.Id + '", "finalizar": "finalizar"}';
+
+        //strData has the "oportunidad" key
+        Opportunity opp = (Opportunity)mapOppQuoP2PeQli.get('Opportunity');
+        String strDataOportunidad = '{ "qli": "' + qli.Id + '", "oportunidad": { "Id": "' + opp.Id + '" } }';
+
+        //With Contract - Subsidiaries to save and delete
+        List<ContratoFilial__c> contratoList = new List<ContratoFilial__c>{new ContratoFilial__c(), new ContratoFilial__c()};        
+        insert contratoList;
+        String strDataContratoFilial = '{ "qli": "' + qli.Id + '", "contratoFilial": { "paraGuardar": [{ "Id": "' + contratoList[0].Id + '" }], "paraEliminar": [{ "Id": "' + contratoList[1].Id + '" }] } }';
+
+        //The opportunity has a legal representative contact            
+        Contact con = TestDataFactory_TEST.createContact();
+        con.Funcion__c = 'Representante Legal';
+        con.Curp__c='AAPD940930HGRMNY09';
+        con.ProfessionName__c = 'ANALISTA';
+        con.Nationality__c = 'MEXICO';
+        con.BirthCountry__c = 'MEXICO';
+        con.BirthState__c = 'CAMPECHE';
+        con.Birthdate = Date.newInstance(1900, 01, 01);
+        con.MailingStreet = '23 Av. Victoria';
+        con.Colonia__c = 'Primero de Mayo';
+        con.MailingCity = 'En algún lugar';
+        con.MailingState = 'Campeche';
+        con.MailingPostalCode = '435261';
+        con.MailingCountry = 'México';
+        con.RFC__c = 'XIXX900101X01';
+        con.ElectorID__c = 'd3d3';
+        con.IDNumber__c = '123';        
+        con.FirstName ='test';
+        con.LastName ='Demo';
+        con.typeIdentification__c='INE';                
+        update con;
+        
+        opp.Contacto__c = con.Id;
+        update opp;
+                        
+        List<String> stringList = new List<String>{strDataEmpty, strDataHasntQli, strDataHasQli, strDataInvalidQli, strDataKey, strDataOportunidad, strDataContratoFilial};
+        
+        Test.StartTest();
+            for(Integer i = 0; i < stringList.size(); i++ ) {        
+                try {
+                    CON_ContractsContainer_CTRL.guardaContrato(stringList[i]);                                        
+                    if(stringList[i] == stringList[2]) {
+                        CON_ContractsContainer_CTRL.getDireccionesFiscales(opp.AccountId, opp.Id);
+                    }                        
+                } catch (CON_ContractsContainer_CTRL.CustomException ce) {}           
+            }   
+        Test.StopTest();    
+    }
+    
+    @isTest
+    static void executeQueryTest1() {
+        Test.StartTest();
+            String query = 'SELECT Id, Name FROM Opportunity LIMIT 1';
+            String nullString = null;
+            String invalidString = 'SELECT Id, Name, StageName FROM Contact LIMIT 1';
+
+            List<String> stringList = new List<String>{query, nullString, invalidString};
+
+            for(String queryString : stringList) {
+                try {
+                    Object listSo = CON_ContractsContainer_CTRL.executeQuery(queryString);
+                } catch(System.NullPointerException npe) {}        
+            }        
+        Test.StopTest();    
+    }
+    
+    @isTest
+    static void describeSObjectsTest() {
+        Test.StartTest();            
+            Map<String, Object> mapDso = CON_ContractsContainer_CTRL.describeSObjects(new List<String>());
+        Test.StopTest();
+    }
+            
+    @isTest
+    static void describeSObjectsTest2() {    
+        Test.StartTest();    
+            Map<String, Object> mapDso = CON_ContractsContainer_CTRL.describeSObjects(new List<String>{'Opportunity'});
+        Test.StopTest();
+    }
+        
+    // Calling guardaPDFBase64 with valid arguments and invalid arguments
+    @isTest
+    static void guardaPDFBase64Test1() { 
+        Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+        QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+        List<String> quoteList = new List<String>{'', qli.Id};
+        List<String> databaseList = new List<String>{'', 'strDataBase64'};
+
+        Test.StartTest();    
+            for(Integer i = 0; i < quoteList.size(); i++) {
+                Map<String, Object> mapGpdfb64 = CON_ContractsContainer_CTRL.guardaPDFBase64(quoteList[i], databaseList[i]);
+            }           
+        Test.StopTest();     
+    }    
+
+    // Calling guardaPDFBase64 with an unknown qli Id
+    @isTest
+    static void guardaPDFBase64Test2() { 
+        Test.StartTest();    
+            Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+            QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+            Id qliId = qli.Id;
+            delete qli;
+            Map<String, Object> mapGpdfb64 = CON_ContractsContainer_CTRL.guardaPDFBase64(qliId, 'strDataBase64');
+        Test.StopTest();
+    }
+    
+    // Calling guardaPDFBase64 with a contract record associated to the quote
+    @isTest
+    static void guardaPDFBase64Test3() { 
+        Test.StartTest();    
+            Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+            Opportunity opp = (Opportunity)mapOppQuoP2PeQli.get('Opportunity');
+            Attachment attach = TestDataFactory_TEST.createAttachment(opp.Id);
+            Quote quo = (Quote)mapOppQuoP2PeQli.get('Quote');
+            QuoteDocument qd = TestDataFactory_TEST.createQuoteDocument(quo.Id, 'attachmentBody');
+            quo.IdPDFContrato__c = qd.Id;
+            update quo;
+            QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+            Map<String, Object> mapGpdfb64 = CON_ContractsContainer_CTRL.guardaPDFBase64(qli.Id, 'strDataBase64');
+        Test.StopTest();
+    }    
+    
+    @isTest
+    static void executeQueryRATest() {
+        Test.StartTest();
+            String query = 'SELECT Id, Name FROM Opportunity LIMIT 1';
+            List<SObject> listSo = CON_ContractsContainer_CTRL.executeQueryRA(query);
+        Test.StopTest();
+    }
+        
+    @isTest
+    static void getContratoTicketCarDataTest() {
+        Test.StartTest();
+            Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+            QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+            List<QuoteLineItem> listQli = CON_ContractsContainer_CTRL.getContratoTicketCarData(qli.Id);
+        Test.StopTest();
+    }
+
+    @isTest
+    static void getListCamposTest() {
+        Test.StartTest();
+            List<String> listC = CON_ContractsContainer_CTRL.getListCampos(new Opportunity().getSObjectType());
+        Test.StopTest();
+    }
+        
+    @isTest
+    static void getStrCamposTest() {
+        Test.StartTest();
+            String sc = CON_ContractsContainer_CTRL.getStrCampos(new Opportunity().getSObjectType());
+        Test.StopTest();
+    }
+    
+    // Calling getContrato without a created instance of contract
+    @isTest
+    static void getContratoTest1() {
+        Test.StartTest();
+            Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+            QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+            Contrato2__c c2 = CON_ContractsContainer_CTRL.getContrato(qli.Id);
+        Test.StopTest();
+    }
+    
+    // Calling getContrato with a created instance of contract
+    @isTest
+    static void getContratoTest2() {
+        Test.StartTest();
+            Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+            QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+            Contrato2__c c2 = new Contrato2__c(PartidaPresupuesto__c = qli.Id);
+            insert c2;
+            Contrato2__c c = CON_ContractsContainer_CTRL.getContrato(qli.Id);
+        Test.StopTest();
+    }
+
+    @isTest
+    static void testGetMultiTemplate() {
+        String query = 'select Activo__c, AnexoA__c, AnexoB__c, AnexoC__c, AnexoD__c, AnexoE__c, AdditionalAnnexVP__c,AdditionalAnnexME__c, CamposAnexoA__c, CamposAnexoB__c, CamposAnexoC__c, CamposAnexoD__c, CodigosTYC__c, Contenido_del__c, Contratos_Ticket_Despensa__c, CreatedById, CreatedDate, Dias_habiles_para_entrega_de_tarjetas__c, Horas_de_anticipacion_para_dispersion_de__c, Horas_de_dispersion_de_saldos__c, Id, IsDeleted, LastModifiedById, LastModifiedDate, LastReferencedDate, LastViewedDate, Name, OwnerId, RecordTypeId, Seccion1__c, Seccion2__c, Seccion3__c, Seccion4__c, Seccion5__c, Seccion6__c, SystemModstamp, Tipo_Contrato__c, UsoMarcaLogotipo__c, UsoProgramaOrganismoGubernamental__c,Logocontrato__c from PlantillaContrato__c LIMIT 1';        
+        String queryMaquilas = 'SELECT AdditionalAnnexME__c FROM PlantillaContrato__c LIMIT 1';        
+        Test.StartTest();
+            Map<String, Object> getMultiTempleate = CON_ContractsContainer_CTRL.getMultiTempleate(query, queryMaquilas);            
+        Test.StopTest();
+    }
+
+    @isTest
+    static void upsertSobjectsTest() {
+        Test.StartTest();            
+            Opportunity opp = TestDataFactory_TEST.createOpportunity();
+            List<Opportunity> listOpp = new List<Opportunity>();
+            listOpp.add(opp);
+            List<Database.UpsertResult> listDur = CON_ContractsContainer_CTRL.upsertSobjects(listOpp);
+        Test.StopTest();
+    }
+
+    @isTest 
+    static void updateRecordTest() {
+        Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+        Opportunity opp = (Opportunity)mapOppQuoP2PeQli.get('Opportunity');        
+        String jsonData = '{"Id":"' + opp.Id + '","StageName":"Implementación"}'; 
+
+        Test.StartTest();
+            Map<String, String> response = CON_ContractsContainer_CTRL.updateRecord('Opportunity', jsonData);
+            jsonData = 'Input Error'; 
+            response = CON_ContractsContainer_CTRL.updateRecord('Oppo', jsonData);
+        Test.StopTest();
+    }
+
+    @isTest 
+    static void updateRecordTest2() {
+        Test.StartTest();            
+            try {
+                CON_ContractsContainer_CTRL.updateRecord('Input Error');
+            } catch(System.Exception e) {}
+        Test.StopTest();
+    }
+       
+    @isTest
+    static void updateContratoADVTest() {
+        List<String> contratoList = new List<String>();
+        List<String> oppList = new List<String>();
+
+        //Calling updateContratoADV without a created instance of contract
+        contratoList.add('{}');
+        oppList.add('{}');
+
+        //Calling updateContratoADV with a created instance of contract
+        Contrato2__c c2 = new Contrato2__c();
+        insert c2;        
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        contratoList.add('{ "Id": "' + c2.Id + '", "EtapaContrato__c": "Autorizado" }');        
+        oppList.add('{ "Id": "' + opp.Id + '" }');
+        
+        // Calling updateContratoADV with a created instance of contract
+        Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+        QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+        Contrato2__c contrato = new Contrato2__c(PartidaPresupuesto__c = qli.Id,EtapaContrato__c = 'Rechazado para corrección');
+        insert contrato;
+        contratoList.add(JSON.serialize(contrato));      
+        
+        opp.FechaFinADV__c = system.today();
+        opp.FechaInicioADV__c = system.today();
+        opp.NumeroAltaCliente__c = '1234567';
+        update opp;
+        oppList.add(JSON.serialize(opp));
+
+        Test.StartTest();
+            for(Integer i = 0; i < contratoList.size(); i++) {            
+                Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContratoADV(contratoList[i], oppList[i]);
+            }
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void updateContratoADV2Test1() {
+        List<String> jsonContrato = new List<String>();
+        List<String> jsonOportunidad = new List<String>();
+        List<String> extras = new List<String>();
+        String filialesEx = '[]';
+
+        //Calling updateContratoADV without a created instance of contract
+        jsonContrato.add('{}');
+        jsonOportunidad.add('{}');
+        extras.add('[{}]');
+
+        //Calling updateContratoADV with a created instance of contract
+        Contrato2__c c2 = new Contrato2__c();
+        insert c2;
+        jsonContrato.add('{ "Id": "' + c2.Id + '", "EtapaContrato__c": "Autorizado" }');
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        jsonOportunidad.add('{ "Id": "' + opp.Id + '" }');        
+        extras.add('{}');
+		
+        Test.StartTest();
+            for(Integer i = 0; i < jsonContrato.size() ; i++) {                                
+                Map<String, String> mapUcadv2 = CON_ContractsContainer_CTRL.updateContratoAfiliadoADV2(jsonContrato[i], jsonOportunidad[i], extras[i]);
+                if(jsonContrato[i] == '{}') {
+                    Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato[i], jsonOportunidad[i], extras[i], filialesEx, filialesEx);        
+                }
+            }
+        Test.StopTest();
+    }
+
+    //Calling updateContratoADV with a created instance of contract and a subsidiary
+    @isTest
+    static void updateContratoAD2VTest2() {
+        Contrato2__c c2 = new Contrato2__c();
+        insert c2;
+        String jsonContrato = '{ "Id": "' + c2.Id + '", "EtapaContrato__c": "Autorizado" }';
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        String jsonOportunidad = '{ "Id": "' + opp.Id + '" }';
+        String extras = '[{ "Name": "Sub Test", "CodigoAS400__c": "11-11-12345-124" }]';
+        Test.StartTest();
+            Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, extras);
+            CON_ContractsContainer_CTRL.generaXMLExtras( opp.Id, c2.Id, new List<ContratoFilial__c>(), extras );
+        Test.StopTest();
+    }
+
+    // Calling updateContratoADV with a created instance of contract
+    @isTest
+    static void updateContratoAD2VTest3() {
+        String jsonContrato = '{ "Id": "null", "CodigoAS400__c": "11-11-12345-126", "EtapaContrato__c": "Autorizado" }';
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        String jsonOportunidad = '{ "Id": "' + opp.Id + '" }';
+        String extras = '[{ "Name": "Sub Test", "CodigoAS400__c": "11-11-12345-125" }]';
+        Test.StartTest();
+            Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, extras);
+        Test.StopTest();
+    }
+             
+    @isTest
+    static void updateOportunidadADVTest1() {
+        List<String> jsonContrato = new List<String>();
+        jsonContrato.add('{}');//Calling updateOportunidadADV without a created instance of opportunity
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        jsonContrato.add('{ "Id": "' + opp.Id + '" }');//Calling updateOportunidadADV with a created instance of opportunity
+
+        Test.StartTest();
+            for(String op : jsonContrato) {
+                Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateOportunidadADV(op);
+            }            
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void validateOppAttachmentsTest() {
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        Map<String, Object> mapOppDocs = (Map<String, Object>)CON_ContractsContainer_CTRL.validateOppAttachments(opp.Id);
+    }
+
+    //With valid data
+    @isTest
+    static void saveLayoutTest1() {
+        Test.StartTest();
+            Opportunity opp = TestDataFactory_TEST.createOpportunity();
+            Map<String, Object> mapSl = (Map<String, Object>)CON_ContractsContainer_CTRL.saveLayout(null, opp.Id, 'attachName', 'attachBody', '.pdf');
+        Test.StopTest();
+    }
+    
+    //With an invalid attachBody String
+    @isTest
+    static void saveLayoutTest2() {
+        Test.StartTest();
+            Opportunity opp = TestDataFactory_TEST.createOpportunity();
+            try {
+                Map<String, Object> mapSl = (Map<String, Object>)CON_ContractsContainer_CTRL.saveLayout(null, opp.Id, 'attachName', null, '.pdf');
+            } catch(System.Exception e) {}
+        Test.StopTest();
+    }
+        
+    //With a valid attachId
+    @isTest
+    static void deleteLayoutFACTest1() {
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        Attachment attach = TestDataFactory_TEST.createAttachment(opp.Id);
+        Map<String, Object> mapSl = (Map<String, Object>)CON_ContractsContainer_CTRL.deleteLayoutFAC(attach.Id);
+    }
+    
+    //With an invalid attachId
+    @isTest
+    static void deleteLayoutFACTest2() {
+        try {
+            Map<String, Object> mapSl = (Map<String, Object>)CON_ContractsContainer_CTRL.deleteLayoutFAC(null);
+        } catch(System.Exception e) {}
+    }
+    
+    //With a valid accId
+    @isTest
+    static void getLegalEntitiesThroughAccTest1() {
+        Account acc = [
+			SELECT Id
+			FROM Account
+		];
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();                
+        try {
+            List<EntidadCuenta__c> listLeta = (List<EntidadCuenta__c>)CON_ContractsContainer_CTRL.getLegalEntitiesThroughAcc(acc.Id);
+            List<EntidadCuenta__c> listLeta1 = (List<EntidadCuenta__c>)CON_ContractsContainer_CTRL.getLegalEntitiesThroughAcc(opp.Id);
+        } catch(System.Exception e) {}        
+    }
+
+    //With a valid accId
+    @isTest
+    static void getLegalEntitiesThroughAccTest2() {
+        try {
+            List<EntidadCuenta__c> listLeta2 = (List<EntidadCuenta__c>)CON_ContractsContainer_CTRL.getLegalEntitiesThroughAcc(null);
+        } catch(System.Exception e) {}        
+    }
+    
+    //Calling with a valid Contract Id
+    @isTest
+    static void getAccountsStructureFromContractTest1() {
+        Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+        QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+        Contrato2__c c2 = new Contrato2__c(PartidaPresupuesto__c = qli.Id);
+        insert c2;
+        Contrato2__c newC2 = (Contrato2__c)CON_ContractsContainer_CTRL.getAccountsStructureFromContract(c2.Id);
+    }
+    
+    //Calling with an invalid Contract Id
+    @isTest
+    static void getAccountsStructureFromContractTest2() {
+        try {
+            Contrato2__c newC2 = (Contrato2__c)CON_ContractsContainer_CTRL.getAccountsStructureFromContract(null);
+        } catch(System.Exception e) {}
+    }
+    
+    // Calling with a valid Contract Id
+    @isTest
+    static void getContractSubsidiariesTest1() {
+        Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+        QuoteLineItem qli = (QuoteLineItem)mapOppQuoP2PeQli.get('QuoteLineItem');
+        Contrato2__c c2 = new Contrato2__c(PartidaPresupuesto__c = qli.Id);
+        insert c2;
+        List<ContratoFilial__c> cf = (List<ContratoFilial__c>)CON_ContractsContainer_CTRL.getContractSubsidiaries(c2.Id);
+    }
+    
+    // Calling with an invalid Contract Id
+    @isTest
+    static void getContractSubsidiariesTest2() {
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        try {
+            List<ContratoFilial__c> cf = (List<ContratoFilial__c>)CON_ContractsContainer_CTRL.getContractSubsidiaries(opp.Id);
+        } catch(System.Exception e) {}
+    }
+    
+    @isTest
+    static void getLimitsTest() {
+        Map<String, Object> mapGl = CON_ContractsContainer_CTRL.getLimits();
+    }
+
+    @isTest
+    static void saveS400FilialesTest1() {
+        ContratoFilial__c cf1 = new ContratoFilial__c();
+        cf1.CodigoAS400__c = '01-19-16677-001';
+        insert cf1;
+        ContratoFilial__c cf2 = new ContratoFilial__c();
+        cf2.CodigoAS400__c = '01-19-16677-002';
+        insert cf2;
+        String jsonFiliales = '[{ "Id": "' + cf1.Id + '" }, { "Id": "' + cf2.Id + '" }]';
+        String response = CON_ContractsContainer_CTRL.saveS400Filiales(jsonFiliales);
+        String responsew = CON_ContractsContainer_CTRL.saveS400FilialesAfiliados(jsonFiliales);
+    }
+        
+    @isTest
+    static void saveS400FilialesTest2() {        
+            Product2 p2 = new Product2(Name = 'Product2 - Test', IsActive = true, ProductCode = '60D');
+            insert p2;
+
+            Id p2Id = Test.getStandardPricebookId();
+            PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                                   UseStandardPrice = false, IsActive = true);
+            insert pe;        
+
+            Account acc = [SELECT Id, Name FROM Account LIMIT 1];
+            acc.Sector__c = null;
+            update acc;
+            
+            Opportunity opp = new Opportunity(AccountId= acc.Id,RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '');
+            insert opp;
+
+            Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+            insert quo;
+            opp.SyncedQuoteId = quo.Id;
+            update opp;
+
+            QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+            insert qli;
+
+            Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-29-93608-001');
+            insert contrato1;
+            
+            List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+            conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato1.CodigoAS400__c, Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+            conFil.add(new ContratoFilial__c(CodigoAS400__c='01-29-93608-002',        Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=false));
+            insert conFil;
+
+        String jsonFiliales = '[{ "Id": "' + conFil[0].Id + '" }, { "Id": "' + conFil[1].Id + '" }]';
+        String response = CON_ContractsContainer_CTRL.saveS400Filiales(jsonFiliales);
+    }
+
+    @isTest
+    static void saveS400FilialesTest3() {            
+        Test.startTest();    
+            try {
+                String jsonFiliales = '123';
+                String response = CON_ContractsContainer_CTRL.saveS400Filiales(jsonFiliales);
+                String responsew = CON_ContractsContainer_CTRL.saveS400FilialesAfiliados(jsonFiliales);
+            } catch(Exception e) {            
+                System.debug(e);
+            }    
+        Test.stopTest();
+    }
+
+    @isTest
+    static void saveS400FilialesTest4() {
+        String jsonFiliales = '[{ "Id": "" }]';
+        try {
+            String response = CON_ContractsContainer_CTRL.saveS400Filiales(jsonFiliales);
+        } catch(System.Exception e) {}
+    }
+    
+    @isTest
+    static void testUpdateContractADVRenegotiation() {
+        Product2 p2 = new Product2(Name = 'Product2 - Test', IsActive = true, ProductCode = '60D');
+        insert p2;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada');
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-29-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato1.CodigoAS400__c, Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-29-93608-002', Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=false));
+        insert conFil;
+        
+        RenegotiationProduct__c rp = new RenegotiationProduct__c();
+        rp.Name = '01-29-93608-002';
+        rp.SubsidiaryContractApproved__c = null;
+        rp.SubsidiaryContract__c = conFil[0].Id;
+        rp.QuoteProduct__c = qli.Id;
+        rp.isRenegotiation__c = false;
+        insert rp;
+        
+        String jsonContrato = JSON.serialize(contrato1);
+        String jsonOportunidad = JSON.serialize(opp);
+        
+        Test.startTest();
+            Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContractADVRenegotiation(jsonContrato, jsonOportunidad, '');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testUpdateContractADVRenegotiationError() {
+        Test.StartTest();        
+            try {
+                String jsonContrato = 'Esto no es JSON válido'; 
+                String jsonOportunidad = 'Esto no es JSON válido';
+                Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContractADVRenegotiation(jsonContrato, jsonOportunidad, null, null);                
+            } catch(System.Exception e) {}
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testUpdateContractADVRenegotiationApproved() {
+        Test.startTest();
+            Product2 p2 = new Product2(Name = 'Product2 - Test', IsActive = true, ProductCode = '60D');
+            insert p2;
+
+            Id p2Id = Test.getStandardPricebookId();
+            PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                                   UseStandardPrice = false, IsActive = true);
+            insert pe;        
+
+            Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '');
+            insert opp;
+
+            Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+            insert quo;
+            opp.SyncedQuoteId = quo.Id;
+            update opp;
+
+            QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+            insert qli;
+
+            Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-29-93608-001');
+            insert contrato1;
+
+            List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+            conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato1.CodigoAS400__c, Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+            conFil.add(new ContratoFilial__c(CodigoAS400__c='01-29-93608-002', Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=false));
+            insert conFil;
+
+            RenegotiationProduct__c rp = new RenegotiationProduct__c();
+            rp.Name = '01-29-93608-002';
+            rp.SubsidiaryContractApproved__c = conFil[0].Id;
+            rp.SubsidiaryContract__c = conFil[0].Id;
+            rp.QuoteProduct__c = qli.Id;
+            rp.isRenegotiation__c = false;
+            insert rp;
+
+            String jsonContrato = JSON.serialize(contrato1);
+            String jsonOportunidad = JSON.serialize(opp);
+            List<ContratoFilial__c> conFil0 = new List<ContratoFilial__c>();
+            conFil0.add(conFil[0]);
+            String jsonExtras = JSON.serialize(conFil0);
+        
+            Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContratoADV(jsonContrato, jsonOportunidad);
+            Map<String, String> mapUcadv1 = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, jsonExtras);
+            Map<String, String> mapUcadv2 = CON_ContractsContainer_CTRL.updateContratoAfiliadoADV2(jsonContrato, jsonOportunidad, jsonExtras);
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testUpdateContractADV2As400() {
+        Test.startTest();
+            Product2 p2 = new Product2(Name = 'Product2 - Test', IsActive = true, ProductCode = '19', IDInterno__c = '19');
+            insert p2;
+
+            Id p2Id = Test.getStandardPricebookId();
+            PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                                   UseStandardPrice = false, IsActive = true);
+            insert pe;
+
+            Account acc = [
+				SELECT Id
+				FROM Account
+			];
+
+            Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', AccountId= acc.Id, Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '');
+            insert opp;
+
+            Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+            insert quo;
+            opp.SyncedQuoteId = quo.Id;
+            update opp;
+
+            QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+            insert qli;
+
+            Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-19-16677-221');
+            insert contrato1;
+
+            List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+            conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+            insert conFil;
+
+            String jsonContrato = JSON.serialize(contrato1);
+            String jsonOportunidad = JSON.serialize(opp);
+            String jsonExtras = JSON.serialize(conFil);
+
+            Map<String, String> mapUcadv1 = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, jsonExtras);
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testUpdateContractADV2As400Imp() {
+        Test.startTest();
+
+            Product2 p2 = new Product2(Name = 'Product2 - Test', IsActive = true, ProductCode = '43', IDInterno__c = '43');
+            insert p2;                                  
+
+            Id p2Id = Test.getStandardPricebookId();
+            PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                                   UseStandardPrice = false, IsActive = true);
+            insert pe;
+
+            Account acc = [
+				SELECT Id
+				FROM Account
+			];
+
+            Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', AccountId= acc.Id, Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '');
+            insert opp;
+
+            Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+            insert quo;
+            opp.SyncedQuoteId = quo.Id;
+            update opp;
+
+            QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+            insert qli;
+
+            Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-19-16677-221');
+            insert contrato1;
+
+            List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+            conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+            insert conFil;
+
+            String jsonContrato = JSON.serialize(contrato1);
+            String jsonOportunidad = JSON.serialize(opp);
+            String jsonExtras = JSON.serialize(conFil);
+
+            Map<String, String> mapUcadv1 = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, jsonExtras);
+        Test.stopTest();
+    }
+    
+    /*@isTest
+    static void testUpdateContractADV2As400AnotherAcc() {
+        Test.startTest();
+            Product2 p2 = new Product2(Name = 'Product2 - Test', IsActive = true, ProductCode = '43-W', IDInterno__c = '43-W');
+            insert p2;
+
+            Id p2Id = Test.getStandardPricebookId();
+            PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                                   UseStandardPrice = false, IsActive = true);
+            insert pe;
+
+            Account acc = [
+				SELECT Id
+				FROM Account
+			];
+
+            Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', AccountId= acc.Id, Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '');
+            insert opp;
+
+            Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+            insert quo;
+            opp.SyncedQuoteId = quo.Id;
+            update opp;
+
+            QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+            insert qli;
+
+            Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-19-16677-221');
+            insert contrato1;
+
+            List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+            conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+            insert conFil;
+
+            String jsonContrato = JSON.serialize(contrato1);
+            String jsonOportunidad = JSON.serialize(opp);
+            String jsonExtras = JSON.serialize(conFil);
+
+            Map<String, String> mapUcadv1 = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, jsonExtras);
+        Test.stopTest();
+        Account acc2 = new Account(Name = 'Account - Test Daniel - uno', NumeroEmpleados__c = '1-25', GLBAr_Country__c = 'México');
+        insert acc2;
+        acc2.CodigoClienteAS400__c = '16677';
+        update acc2;
+    }*/
+    
+    @isTest
+    static void testUpdateContractADV2As400Acc() {
+        Test.startTest();
+
+            Product2 p2 = new Product2(Name = 'Product2 - Test', IsActive = true, ProductCode = '43-W', IDInterno__c = '43-W');
+            insert p2;
+
+            Id p2Id = Test.getStandardPricebookId();
+            PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                                   UseStandardPrice = false, IsActive = true);
+            insert pe;
+
+            Account acc = [SELECT Id, Name FROM Account LIMIT 1];
+            acc.CodigoClienteAS400__c = '16677';
+            update acc;
+
+            Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', AccountId= acc.Id, Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '');
+            insert opp;
+
+            Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+            insert quo;
+            opp.SyncedQuoteId = quo.Id;
+            update opp;
+
+            QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+            insert qli;
+
+            Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-19-16678-221');
+            insert contrato1;
+
+            List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+            conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16678-222', Name = '01-19-16678-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+            insert conFil;
+
+            String jsonContrato = JSON.serialize(contrato1);
+            String jsonOportunidad = JSON.serialize(opp);
+            String jsonExtras = JSON.serialize(conFil);
+
+            Map<String, String> mapUcadv1 = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, jsonExtras);
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testUpdateContractADV2As4002() {
+        Test.startTest();
+            Product2 p2 = new Product2(Name = 'Product2 - Test', Es_OPAM__c = true, IsActive = true, ProductCode = '43-W', IDInterno__c = '43-W');
+            insert p2;
+
+            Id p2Id = Test.getStandardPricebookId();
+            PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                                   UseStandardPrice = false, IsActive = true);
+            insert pe;
+
+            Account acc = [SELECT Id, Name FROM Account LIMIT 1];
+            acc.CodigoClienteAS400__c = '16';
+            update acc;
+
+
+            Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', AccountId= acc.Id, Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '');
+            insert opp;
+
+            Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+            insert quo;
+            opp.SyncedQuoteId = quo.Id;
+            update opp;
+
+            QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+            insert qli;
+
+            Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '00000-AAA');
+            insert contrato1;
+
+            List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+            conFil.add(new ContratoFilial__c(CodigoAS400__c='00000-AAB', Name = '00000-AAB' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+            insert conFil;
+
+            String jsonContrato = JSON.serialize(contrato1);
+            String jsonOportunidad = JSON.serialize(opp);
+            String jsonExtras = JSON.serialize(conFil);
+
+            Map<String, String> mapUcadv1 = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, jsonExtras);
+        Test.stopTest();
+    }
+
+	@isTest
+    static void testUpdateContractADV2WithProductoFleet33() {
+        Product2 p2 = new Product2(Name = '33-Fleet Edenred', Es_OPAM__c = false, IsActive = true, ProductCode = '33', IDInterno__c = '33');
+        insert p2;
+
+        Id p2Id = Test.getStandardPricebookId();
+
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, UseStandardPrice = false, IsActive = true);
+        insert pe;
+
+        Account acc = [SELECT Id, Name FROM Account LIMIT 1];
+
+		CatalogoDirecciones__c cdir = new CatalogoDirecciones__c(
+			Name = 'palmera chinchilla',
+			Calle_Tt__c = 'palmera',
+			Colonia_Tt__c = 'alamos',
+			CuentaID__c = acc.id,
+			NumeroExterior_Tt__c = '123');
+		insert cdir;
+
+		EntidadLegal__c el = new EntidadLegal__c(
+			Name= 'RFCEDG07062023',
+			ActaConstitutivaCliente__c= false,
+			AltaSHCP__c= true,
+			CURP__c= false,
+			Calle__c= 'palmera',
+			Colonia__c= 'alamos',
+			ComprobanteDomicilioCliente__c= true,
+			Cuenta__c= acc.Id,
+			Direccion_Cuenta__c= false,
+			Estatus__c= 'Completa',
+			FM3__c= false,
+			IdentificacionOficialCliente__c= true,
+			NumeroExterior__c= '123',
+			PoderNotarial__c= false,
+			RFC__c= null,
+			RazonSocial__c= 'Chinchilla anonima',
+			RegistroPatronal__c= false,
+			RFCDoc__c= false,
+			CargaInicial__c= false,
+			Address__c= cdir.id,
+			CountryOrigin__c= 'MEXICO',
+			Migrate__c= false,
+			Carga_Merchant__c= false,
+			NeedReport__c= false);
+		insert el;
+
+		EntidadCuenta__c ec = [
+			SELECT Name, Id
+			FROM EntidadCuenta__c
+			WHERE Cuenta__c =: acc.Id
+			AND EntidadLegal__c =: el.Id];
+
+        Opportunity opp = new Opportunity(
+			AccountId= acc.Id, 
+			Name = '01-Combustible-Fleet', 
+			StageName = 'Cotización', 
+			Familia__c = 'Combustible',
+			CloseDate = System.today().addMonths(1), 
+			Estatus__c = 'Iniciada', 
+			FechaInicioADV__c = system.today(), 
+			FechaFinADV__c = system.today(),
+			ComentariosADV__c = '', 
+			RejectionReasons__c ='', 
+			Comentarios_Ejecutivo__c = '',
+			NumeroAltaCliente__c = '');
+        insert opp;
+
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+
+        Test.startTest();
+
+        Contrato2__c contrato1 = new Contrato2__c(
+			Name= '125670 586854-Cuenta GLB 1-Combustible',
+			ComoFactura__c= 'Empresa',
+			CondicionesPagoPlazo__c= '0',
+			CorreoRecibeFactura__c= 'test@test.com',
+			Cuenta__c= acc.id,
+			CuotaLitrosLetra_Text__c= 'No Aplica',
+			CuotaMensualLetra_Text__c= 'No Aplica',
+			EmpresaPrincipal_PL__c= 'Prime',
+			Entidad_Cuenta__c= ec.id,
+			Entidad_Legal__c= el.id,
+			EtapaContrato__c= 'Finalizado',
+			FrecuenciaFacturacion__c= 'Mensual',
+			Frecuencia_de_Pedido__c= 'Mensual',
+			Item_Contratacion__c= 'Fleet Edenred',
+			ManejaAutoconsumoLetra_Text__c= 'NO',
+			ModoOffline__c= 'Cliente opera offline',
+			TipoPago__c= 'Prepago',
+			Tipo_de_Facturacion__c= 'Separada',
+			WayPay__c= 'Cheque Normal',
+			EstimatedEmissionVolume__c= 4.5,
+			Package__c= 'Premium',
+			isVirtualCard__c= true,
+			AmountContingency__c= 1000,
+			Monto_anualidad__c= 0,
+			Tasa_mensual_adicional_Text__c= 'Cero  punto cero  porciento',
+			Tasa_mensual_adicional__c= 0,
+			TransferenciaReembolsoValePapel_Text__c= 'Cero  punto cero  porciento',
+			TransferenciaReembolsoValePapel__c= 0,
+			GLB_Facturacion_dia_Especifico__c= 'Lunes',
+			PartidaPresupuesto__c = qli.Id
+		);
+        insert contrato1;
+
+        List<ContratoFilial__c> conFil = new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(
+			Name = '00000-AAB', 
+			Contrato_2__c = contrato1.Id, 
+			IsPrime__c=true
+		));
+        insert conFil;
+
+        String jsonContrato = JSON.serialize(contrato1);
+        String jsonOportunidad = JSON.serialize(opp);
+        String jsonExtras = JSON.serialize(conFil);
+
+        Test.setMock(HttpCalloutMock.class, new WSUniqueIdGeneratorMock());
+
+            Map<String, String> mapUcadv1 = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, jsonExtras);
+        Test.stopTest();
+    }
+
+	@isTest
+    static void testUpdateContractADV2WithProductoFleet33WithFiliales() {
+        
+        Test.setMock(HttpCalloutMock.class, new WSUniqueIdGeneratorMock());
+        
+		Product2 p2 = new Product2(Name = '33-Fleet Edenred', Es_OPAM__c = false, IsActive = true, ProductCode = '33', IDInterno__c = '33');
+        insert p2;
+
+        Id p2Id = Test.getStandardPricebookId();
+
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, UseStandardPrice = false, IsActive = true);
+        insert pe;
+
+        Account acc = [SELECT Id, Name FROM Account LIMIT 1];
+
+		CatalogoDirecciones__c cdir = new CatalogoDirecciones__c(
+			Name = 'palmera chinchilla',
+			Calle_Tt__c = 'palmera',
+			Colonia_Tt__c = 'alamos',
+			CuentaID__c = acc.id,
+			NumeroExterior_Tt__c = '123'
+		);
+		insert cdir;
+
+		EntidadLegal__c el = new EntidadLegal__c(
+			Name= 'RFCEDG07062024',
+			ActaConstitutivaCliente__c= false,
+			AltaSHCP__c= true,
+			CURP__c= false,
+			Calle__c= 'palmera',
+			Colonia__c= 'alamos',
+			ComprobanteDomicilioCliente__c= true,
+			Cuenta__c= acc.Id,
+			Direccion_Cuenta__c= false,
+			Estatus__c= 'Completa',
+			FM3__c= false,
+			IdentificacionOficialCliente__c= true,
+			NumeroExterior__c= '123',
+			PoderNotarial__c= false,
+			RFC__c= null,
+			RazonSocial__c= 'Chinchilla anonima',
+			RegistroPatronal__c= false,
+			RFCDoc__c= false,
+			CargaInicial__c= false,
+			Address__c= cdir.id,
+			CountryOrigin__c= 'MEXICO',
+			Migrate__c= false,
+			Carga_Merchant__c= false,
+			NeedReport__c= false
+		);
+		insert el;
+    
+		EntidadCuenta__c ec = [
+			SELECT Name, Id
+			FROM EntidadCuenta__c
+			WHERE Cuenta__c =: acc.Id
+			AND EntidadLegal__c =: el.Id
+		];
+
+		
+
+        Opportunity opp = new Opportunity(
+			AccountId= acc.Id, 
+			Name = '01-Combustible-Fleet', 
+			StageName = 'Cotización', 
+			Familia__c = 'Combustible',
+			CloseDate = System.today().addMonths(1), 
+			Estatus__c = 'Iniciada', 
+			FechaInicioADV__c = system.today(), 
+			FechaFinADV__c = system.today(),
+			ComentariosADV__c = '', 
+			RejectionReasons__c ='', 
+			Comentarios_Ejecutivo__c = '',
+			NumeroAltaCliente__c = ''
+		);
+        insert opp;
+
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+
+        Test.startTest();
+        Contrato2__c contrato1 = new Contrato2__c(
+			Name= '125670 586854-Cuenta GLB 1-Combustible',
+			ComoFactura__c= 'Empresa',
+			CondicionesPagoPlazo__c= '0',
+			CorreoRecibeFactura__c= 'test@test.com',
+			Cuenta__c= acc.id,
+			CuotaLitrosLetra_Text__c= 'No Aplica',
+			CuotaMensualLetra_Text__c= 'No Aplica',
+			EmpresaPrincipal_PL__c= 'Prime',
+			Entidad_Cuenta__c= ec.id,
+			Entidad_Legal__c= el.id,
+			EtapaContrato__c= 'Finalizado',
+			FrecuenciaFacturacion__c= 'Mensual',
+			Frecuencia_de_Pedido__c= 'Mensual',
+			Item_Contratacion__c= 'Fleet Edenred',
+			ManejaAutoconsumoLetra_Text__c= 'NO',
+			ModoOffline__c= 'Cliente opera offline',
+			TipoPago__c= 'Prepago',
+			Tipo_de_Facturacion__c= 'Separada',
+			WayPay__c= 'Cheque Normal',
+			EstimatedEmissionVolume__c= 4.5,
+			Package__c= 'Premium',
+			isVirtualCard__c= true,
+			AmountContingency__c= 1000,
+			Monto_anualidad__c= 0,
+			Tasa_mensual_adicional_Text__c= 'Cero  punto cero  porciento',
+			Tasa_mensual_adicional__c= 0,
+			TransferenciaReembolsoValePapel_Text__c= 'Cero  punto cero  porciento',
+			TransferenciaReembolsoValePapel__c= 0,
+			GLB_Facturacion_dia_Especifico__c= 'Lunes',
+			PartidaPresupuesto__c = qli.Id
+		);
+        insert contrato1;
+
+        List<ContratoFilial__c> conFil = new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(
+			Name = '00000-AAB', 
+			Contrato_2__c = contrato1.Id, 
+			IsPrime__c=true
+		));
+        insert conFil;
+
+        String jsonContrato = JSON.serialize(contrato1);
+        String jsonOportunidad = JSON.serialize(opp);
+        String jsonExtras = JSON.serialize(conFil);
+
+            Map<String, String> mapUcadv1 = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, '[]', null, jsonExtras); //TODO test
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testcheckIfCorpIdAlreadyExistsFleet33() {
+        Account acc = new Account(Name = 'Account - Dan Test', NumeroEmpleados__c = '1-25', GLBAr_Country__c = 'México');
+        insert acc;
+
+        Test.startTest();
+            CON_ContractsContainer_CTRL.checkIfCorpIdAlreadyExists(acc.Id);
+            CON_ContractsContainer_CTRL.getNextChar('MyString123');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testcheckIfCorpIdAlreadyExistsFleet331() {
+        Test.startTest();            
+            try {                
+                CON_ContractsContainer_CTRL.createCorpId(null);            
+            } catch(System.Exception e) {}
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testcheckIfCorpIdAlreadyExistsFleet33AndAssignNewCorpId() {                       		
+        Account acc = new Account(Name = 'Account - Test 4', NumeroEmpleados__c = '1-25', GLBAr_Country__c = 'México');
+        insert acc;
+        acc.GLB_ID_Corporativo__c = 'A0010';
+        update acc;
+        Account acc2 = new Account(Name = 'Account - Test 5', NumeroEmpleados__c = '1-25', GLBAr_Country__c = 'México');
+        insert acc2;
+
+
+        Test.startTest();
+            CON_ContractsContainer_CTRL.checkIfCorpIdAlreadyExists(acc2.Id);
+            CON_ContractsContainer_CTRL.getNextChar('MyString123');
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testIncrementString() {
+        Test.startTest();
+        CON_ContractsContainer_CTRL.incrementString('A10011');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testGeneraXML() {
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        EntidadLegal__c entidadLegalMerchant = new EntidadLegal__c();
+        entidadLegalMerchant.Name = 'HIJD93061244A';
+        entidadLegalMerchant.CountryOrigin__c = 'MEXICO';
+        entidadLegalMerchant.Ticket__c = null;
+        insert entidadLegalMerchant;
+        
+        EntidadCuenta__c ecMerchant = new EntidadCuenta__c(
+            EntidadLegal__c = entidadLegalMerchant.Id,
+            Cuenta__c = accMerchant.Id
+        );
+        insert ecMerchant;
+        
+        Test.StartTest();
+        Contrato2__c contrato1 = new Contrato2__c(Entidad_Legal__c = entidadLegalMerchant.Id, PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001', Entidad_Cuenta__c = ecMerchant.Id);
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-221', Name = '01-19-16677-221' ,Contrato_2__c = contrato1.Id, IsPrime__c=true, Entidad_Cuenta__c = ecMerchant.Id));
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=false,  Entidad_Cuenta__c = ecMerchant.Id));
+        insert conFil;
+        
+        List<ContratoFilial__c> conFil2=new List<ContratoFilial__c>();
+        conFil2.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-223', Name = '01-19-16677-223' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        conFil2.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-224', Name = '01-19-16677-224' ,Contrato_2__c = contrato1.Id, IsPrime__c=false));
+        insert conFil2;
+
+        /*Contrato2__c c2 = new Contrato2__c();
+        insert c2;
+        String jsonContrato = '{ "Id": "' + c2.Id + '", "EtapaContrato__c": "Autorizado" }';
+        Opportunity opp1 = TestDataFactory_TEST.createOpportunity();
+        String jsonOportunidad = '{ "Id": "' + opp1.Id + '" }';
+        String extras = '[{ "Name": "Sub Test", "CodigoAS400__c": "11-11-12345-124" }]';        */
+
+            //Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContratoADV2(jsonContrato, jsonOportunidad, extras);
+            CON_ContractsContainer_CTRL.generaXMLExtras(opp.Id,contrato1.Id,conFil,JSON.serialize(conFil2));        
+        Test.StopTest();
+        
+    } 
+ 
+    @isTest
+    static void testgenerarClientesAs400BE() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(2));
+        
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);        
+        Test.StopTest();
+    }
+        
+    @isTest
+    static void testgenerarClientesAs400BEStatusCode() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_BE_Mock(2,400));
+        
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));        
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void testgenerarClientesAs400BEConCargos() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(2));
+        
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        CatalogoDirecciones__c dir = new CatalogoDirecciones__c(Calle_Tt__c='TEST', Ciudad_Tt__c = 'TEST',Colonia_Tt__c='TEST',CodigoPostal_Tt__c='91690', DelegacionMunicipio_Tt__c = 'SANTA FE', Estado_Tt__c = 'TEST', Country__c = 'MX');
+        insert dir;
+                
+        List<Concepto__c> cList = new List<Concepto__c>();
+        Concepto__c c1 = new Concepto__c(Activo__c = true, ClaveReferencia__c = 'TES1', Producto__c = p2.Id, Pilot__c = true, TipoCargo__c = 'Comisión por servicio piloto', RecordTypeId = ConceptoRT );
+        Concepto__c c2 = new Concepto__c(Activo__c = true, ClaveReferencia__c = 'TES2', Producto__c = p2.Id, TipoCargo__c = 'Re-facturación', RecordTypeId = ConceptoRT  );
+        Concepto__c c3 = new Concepto__c(Activo__c = true, ClaveReferencia__c = 'TES3', Producto__c = p2.Id, TipoCargo__c = 'Comisión por el servicio', RecordTypeId = ConceptoRT  );
+        cList.add(c1);
+        cList.add(c2);
+        cList.add(c3);
+        insert cList;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        insert new ProductoConcepto__c(Name = 'C1', Concepto__c = c1.Id, PartidaPresupuesto__c = qli.Id);
+        insert new ProductoConcepto__c(Name = 'C2', Concepto__c = c2.Id, PartidaPresupuesto__c = qli.Id);
+        insert new ProductoConcepto__c(Name = 'C3', Concepto__c = c3.Id, PartidaPresupuesto__c = qli.Id);
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        insert NEW Contrato_Direccion__c(ContratoID__c = contrato1.Id, DireccionID__c = dir.Id);
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true, Distintivo__c = 'Principal'));        
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);
+        Test.StopTest();
+    }
+
+    @isTest
+    static void testgenerarClientesAs400BEMigracion() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(2));
+        
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', 
+                                          FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',
+                                          NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeMigracion);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true, CustomerCreatedAS400__c = false));
+        insert conFil;
+        
+        opp.Contrato_Filial__c = conFil.get(0).Id; 
+        opp.SubCuentaMigracion__c = conFil.get(0).Id;
+        update opp;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);        
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void testgenerarClientesAs400BEMigracion2() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(2));
+        
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeMigracion);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        opp.Contrato_Filial__c = conFil.get(0).Id; 
+        update opp;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void testgenerarClientesAs400Error1() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(2));
+        
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);
+            System.assert(mapGenerarClientesAS400.get('Response')=='Postvendedor no configurado');
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void testgenerarClientesAs400Error2() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(2));
+        
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));        
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);
+            System.assert(mapGenerarClientesAS400.get('Response')=='No existen las credenciales para alta de clientes');
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void testgenerarClientesAs400Error3() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(2));
+        
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();        
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);
+            System.assert(mapGenerarClientesAS400.get('Response')=='No hay filiales asociadas al contrato!!');
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void testgenerarClientesAs400Error4() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(1));
+        
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '19');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '19');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Token BE', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);        
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void testgenerarClientesAs400() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(2));
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '30');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '31');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));        
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);        
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void testgenerarClientesAs400ConCargos() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(2));
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '30');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '31');
+        insert p2;
+        
+        List<Concepto__c> cList = new List<Concepto__c>();
+        Concepto__c c1 = new Concepto__c(Activo__c = true, ClaveReferencia__c = 'TEST01', Producto__c = p2.Id, Pilot__c = true, TipoCargo__c = 'Comisión por servicio piloto', RecordTypeId = ConceptoRT );
+        Concepto__c c2 = new Concepto__c(Activo__c = true, ClaveReferencia__c = 'TEST02', Producto__c = p2.Id, TipoCargo__c = 'Re-facturación', RecordTypeId = ConceptoRT  );
+        Concepto__c c3 = new Concepto__c(Activo__c = true, ClaveReferencia__c = 'TEST01', Producto__c = p2.Id, TipoCargo__c = 'Comisión por el servicio', RecordTypeId = ConceptoRT  );
+        Concepto__c c4 = new Concepto__c(Activo__c = true, ClaveReferencia__c = 'TEST01', Producto__c = p2.Id, TipoCargo__c = 'TAG Telepeaje', RecordTypeId = ConceptoRT  );
+        Concepto__c c5 = new Concepto__c(Activo__c = true, ClaveReferencia__c = 'TEST01', Producto__c = p2.Id, TipoCargo__c = 'Cargo por envío - Recurrente', RecordTypeId = ConceptoRT  );
+        cList.add(c1);
+        cList.add(c2);
+        cList.add(c3);
+        cList.add(c4);
+        cList.add(c5);
+        insert cList;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+
+        insert new ProductoConcepto__c(Name = 'C1', Concepto__c = c1.Id, PartidaPresupuesto__c = qli.Id);
+        insert new ProductoConcepto__c(Name = 'C2', Concepto__c = c2.Id, PartidaPresupuesto__c = qli.Id);
+        insert new ProductoConcepto__c(Name = 'C3', Concepto__c = c3.Id, PartidaPresupuesto__c = qli.Id);
+        insert new ProductoConcepto__c(Name = 'C4', Concepto__c = c4.Id, PartidaPresupuesto__c = qli.Id);
+        insert new ProductoConcepto__c(Name = 'C5', Concepto__c = c5.Id, PartidaPresupuesto__c = qli.Id);
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);
+        Test.StopTest();
+    }
+    
+    @isTest
+    static void testgenerarClientesAs400TCError() {
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(1));
+        insert new GeneralCatalog__c(ApproverBPSmall__c=UserInfo.getUserId(),ApproverBPCorporate__c=UserInfo.getUserId());
+        
+        insert new GeneralCatalog__c(Name='Postvendedor',value__c='63',Key__c='POS-AC');
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '30');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '31');
+        insert p2;
+        
+        List<WScredentials__c> listcredentials = new List<WScredentials__c>();
+        Set<String> listNames = new Set<String>{'AC', 'TOK-AC', 'Alta Customer BE'};
+        for(String names : listNames) {
+            WScredentials__c credentials = new WScredentials__c();
+            credentials.Name = names;
+            credentials.ClientId__c = '123';
+            credentials.ClientSecret__c = '123';
+            credentials.EndPoint__c = 'http://test.com';
+            credentials.GrantType__c = 'test';
+            credentials.Scope__c = 'test';
+            credentials.Log_Request__c = false;            
+            listcredentials.add(credentials);
+        }        
+        insert listcredentials;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-19-16677-222', Name = '01-19-16677-222' ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        Test.StartTest();
+            Map<String, String> mapGenerarClientesAS400 = CON_ContractsContainer_CTRL.generarClientesAs400(contrato1.Id, qli.Id, opp.Id);        
+        Test.StopTest();
+    }
+
+    @isTest
+    static void updateContratoAfiliadoADV2_PROD43() {
+        //Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '31');
+        //insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test',IsAffiliate__c= true, IsActive = true, SendToSIGLO__c=False, ProductCode = '43');
+        insert p2;
+        
+        //Producto_relacionado__c pr = new Producto_relacionado__c(Producto_principal__c = p2.Id, Producto_secundario__c = p1.Id, TipoCargo__c = '% Participación');        
+        //insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(EtapaContrato__c = 'Rechazado para corrección',PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato1.CodigoAS400__c, Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        Test.startTest();
+        EntidadLegal__c entidadLegalMerchant = new EntidadLegal__c();
+        entidadLegalMerchant.Name = 'HIJD93061244A';
+        entidadLegalMerchant.Cuenta__c = accMerchant.Id;
+        entidadLegalMerchant.CountryOrigin__c = 'MEXICO';
+        entidadLegalMerchant.Ticket__c = null;
+        insert entidadLegalMerchant;
+        
+        EntidadCuenta__c ecMerchant = [SELECT Id FROM EntidadCuenta__c WHERE Cuenta__c =: accMerchant.Id AND EntidadLegal__c =: entidadLegalMerchant.Id limit 1];
+        
+        List<Affiliate__c> listAff = new List<Affiliate__c>();
+        Affiliate__c af43 = new Affiliate__c(    
+            Name = '01-43-93608-001',//000-0000000-00000			
+            CodeAS400__c = '123-0000001',// 000-0000000 01-43-93608-001
+            Distintivo__c = 'Principal',
+            Product__c = p2.Id,
+            OwnerId = UserInfo.getUserId(),
+            Contract_2__c = contrato1.Id,
+            PlatformAdministrator__c = cMrechant.Id,
+            isPrime__c = true,
+            AccountEntity__c = ecMerchant.ID
+        );
+        listAff.add(af43);
+        insert listAff;
+        
+        BankAccount__c ba = new BankAccount__c(
+            AccountHolder__c = 'TEST',
+            Bank__c = 'Abc capital',
+            Branch__c = 'TEST1',
+            Carga_Merchant__c = false,
+            CLABE__c = '123456789012345678',
+            Cuenta__c = accMerchant.Id,
+            PaymentType__c = 'Transferencia',
+            Reference__c = '123456',
+            StandardiziedBankKey__c = '1234',
+            SWIFT__c = '124334'
+        );
+        insert ba;
+        
+        List<Establishment__c> listEst = new List<Establishment__c>();
+        
+        Establishment__c est= new Establishment__c (
+            Name = listAff[0].Name,
+            Tradename__c = 'A',
+            PhoneNumber__c= '125',
+            StartTimeBusiness__c= Time.newInstance(1, 2, 3, 4),
+            Bank__c=ba.ID,
+            Contact__c=cMrechant.Id,
+            Email__c='rarguello@test.com',
+            Web__c='www.test.com',
+            BusinessTime__c='Lunes',
+            Street__c='Av Fortuna',
+            PostalCode__c= '07760',
+            Settlement__c= 'Colonia',
+            City__c='Veracruz',
+            ExternalNumber__c='50',
+            InternalNumber__c='51',
+            State__c='Veracruz',
+            Population__c='Gustavo', 
+            location__Latitude__s= 19.4849396,
+            location__Longitude__s= -99.1378324,
+            Account__c=accMerchant.Id, 
+            Contract__c=contrato1.Id,
+            Affiliate__c = listAff[0].Id,            
+            RecordTypeId = EstablishmentRecordTypeTC,
+            IdATPV__c = '1',
+            Id_Estacion__c = '1234',
+            StationId__c = '123-0000003-00003' //DP
+        );
+        
+        Establishment__c est2 = est.clone(false, false, true); //DP
+        est2.Name = est.Name+'2'; //DP
+        est2.IdATPV__c = '2'; //DP
+        est2.StationId__c = '123-0000002-00002'; //DP
+        
+        listEst.add(est);
+        listEst.add(est2); //DP
+        insert listEst;
+        
+        List<Establishment__c> SQLEst =[SELECT Id, Name,PhoneNumber__c, Tradename__c, StartTimeBusiness__c, EndTimeBusiness__c, Bank__c, BusinessTime__c, Email__c,
+                                        Contact__c, Web__c, Street__c, ColMpoCpEdo__c, PostalCode__c, Settlement__c, City__c, ExternalNumber__c,
+                                        InternalNumber__c, State__c, Population__c, location__Latitude__s, location__Longitude__s,
+                                        Affiliate__c, Affiliate__r.Product__c, Affiliate__r.AccountEntity__c, Account__c, Contract__c,
+                                        Affiliate__r.Name, Affiliate__r.Product__r.Name, Affiliate__r.AccountEntity__r.Name
+                                        FROM Establishment__c
+                                        Where Contract__c =: contrato1.Id];
+
+        String jsonExtras = '[{"attributes":{"type":"ContratoFilial__c"},"CodigoAS400__c":"01-43-93608-001","Name":"01-43-93608-001","Contrato_2__c":"'+contrato1.Id+'","isPrime__c":true,"Id":"'+listAff[0].Id+'","EntidadCuenta__c":"'+ecMerchant.Id+'"}]';
+        String jsonContrato = JSON.serialize(contrato1);
+        String jsonOportunidad = JSON.serialize(opp);
+        String jsonEstab = JSON.serialize(listEst);
+        
+            Map<String, String> mapUpdateAfiliado = CON_ContractsContainer_CTRL.updateContratoAfiliadoADV2(jsonContrato, jsonOportunidad, jsonExtras, jsonEstab);
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void updateContratoAfiliadoADV2_PROD43Duplicado() {
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '31');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test',IsAffiliate__c= true, IsActive = true, SendToSIGLO__c=False, ProductCode = '43');
+        insert p2;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+
+        Test.startTest();
+        
+        Contrato2__c contrato1 = new Contrato2__c(EtapaContrato__c = 'Rechazado para corrección',PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato1.CodigoAS400__c, Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        EntidadLegal__c entidadLegalMerchant = new EntidadLegal__c();
+        entidadLegalMerchant.Name = 'HIJD93061244A';
+        entidadLegalMerchant.Cuenta__c = accMerchant.Id;
+        entidadLegalMerchant.CountryOrigin__c = 'MEXICO';
+        entidadLegalMerchant.Ticket__c = null;
+        insert entidadLegalMerchant;
+        
+        EntidadCuenta__c ecMerchant = [SELECT Id FROM EntidadCuenta__c WHERE Cuenta__c =: accMerchant.Id AND EntidadLegal__c =: entidadLegalMerchant.Id limit 1];
+        
+        List<Affiliate__c> listAff = new List<Affiliate__c>();
+        Affiliate__c af43 = new Affiliate__c(    
+            Name = '01-43-93608-001',//000-0000000-00000			
+            CodeAS400__c = '123-0000001',// 000-0000000 01-43-93608-001
+            Distintivo__c = 'Principal',
+            Product__c = p2.Id,
+            OwnerId = UserInfo.getUserId(),
+            Contract_2__c = contrato1.Id,
+            PlatformAdministrator__c = cMrechant.Id,
+            isPrime__c = true,
+            AccountEntity__c = ecMerchant.ID
+        );
+        listAff.add(af43);
+        insert listAff;
+        
+        BankAccount__c ba = new BankAccount__c(
+            AccountHolder__c = 'TEST',
+            Bank__c = 'Abc capital',
+            Branch__c = 'TEST1',
+            Carga_Merchant__c = false,
+            CLABE__c = '123456789012345678',
+            Cuenta__c = accMerchant.Id,
+            PaymentType__c = 'Transferencia',
+            Reference__c = '123456',
+            StandardiziedBankKey__c = '1234',
+            SWIFT__c = '124334'
+        );
+        insert ba;
+        
+        List<Establishment__c> listEst = new List<Establishment__c>();
+        
+        Establishment__c est= new Establishment__c (
+            Name = listAff[0].Name,
+            Tradename__c = 'A',
+            PhoneNumber__c= '125',
+            StartTimeBusiness__c= Time.newInstance(1, 2, 3, 4),
+            Bank__c=ba.ID,
+            Contact__c=cMrechant.Id,
+            Email__c='rarguello@test.com',
+            Web__c='www.test.com',
+            BusinessTime__c='Lunes',
+            Street__c='Av Fortuna',
+            PostalCode__c= '07760',
+            Settlement__c= 'Colonia',
+            City__c='Veracruz',
+            ExternalNumber__c='50',
+            InternalNumber__c='51',
+            State__c='Veracruz',
+            
+            Population__c='Gustavo', 
+            location__Latitude__s= 19.4849396,
+            location__Longitude__s= -99.1378324,
+            Account__c=accMerchant.Id, 
+            Contract__c=contrato1.Id,
+            Affiliate__c = listAff[0].Id,
+            RecordTypeId = EstablishmentRecordTypeTC,
+            IdATPV__c = '1',
+            Id_Estacion__c = '1234',
+            StationId__c = '123-0000003-00003' //DP            
+        );
+        
+        Establishment__c est2 = est.clone(false, false, true); //DP
+        est2.Name = est.Name+'2'; //DP
+        est2.IdATPV__c = '2'; //DP
+        est2.StationId__c = '123-0000002-00002'; //DP
+        
+        listEst.add(est);
+        listEst.add(est2); //DP
+        insert listEst;
+        
+        List<Establishment__c> SQLEst =[SELECT Id, Name,PhoneNumber__c, Tradename__c, StartTimeBusiness__c, EndTimeBusiness__c, Bank__c, BusinessTime__c, Email__c,
+                                        Contact__c, Web__c, Street__c, ColMpoCpEdo__c, PostalCode__c, Settlement__c, City__c, ExternalNumber__c,
+                                        InternalNumber__c, State__c, Population__c, location__Latitude__s, location__Longitude__s,
+                                        Affiliate__c, Affiliate__r.Product__c, Affiliate__r.AccountEntity__c, Account__c, Contract__c,
+                                        Affiliate__r.Name, Affiliate__r.Product__r.Name, Affiliate__r.AccountEntity__r.Name
+                                        FROM Establishment__c
+                                        Where Contract__c =: contrato1.Id];
+        
+        String jsonExtras = '[{"attributes":{"type":"ContratoFilial__c"},"CodigoAS400__c":"01-43-93608-001","Name":"01-43-93608-001","Contrato_2__c":"'+contrato1.Id+'","isPrime__c":true,"Id":"'+listAff[0].Id+'","EntidadCuenta__c":"'+ecMerchant.Id+'"}]';
+        String jsonContrato = JSON.serialize(contrato1);
+        String jsonOportunidad = JSON.serialize(opp);
+        String jsonEstab = JSON.serialize(listEst);
+        
+            Map<String, String> mapUpdateAfiliado = CON_ContractsContainer_CTRL.updateContratoAfiliadoADV2(jsonContrato, jsonOportunidad, jsonExtras, jsonEstab);        
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void updateContratoAfiliadoADV2_PROD432() {
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '31');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test',IsAffiliate__c= true, IsActive = true, SendToSIGLO__c=False, ProductCode = '43');
+        insert p2;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p2.Id,
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Test.startTest();
+        Contrato2__c contrato1 = new Contrato2__c(EtapaContrato__c = 'Rechazado para corrección',PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato1.CodigoAS400__c, Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        EntidadLegal__c entidadLegalMerchant = new EntidadLegal__c();
+        entidadLegalMerchant.Name = 'HIJD93061244A';
+        entidadLegalMerchant.Cuenta__c = accMerchant.Id;
+        entidadLegalMerchant.CountryOrigin__c = 'MEXICO';
+        entidadLegalMerchant.Ticket__c = null;
+        insert entidadLegalMerchant;
+        
+        EntidadCuenta__c ecMerchant = [SELECT Id FROM EntidadCuenta__c WHERE Cuenta__c =: accMerchant.Id AND EntidadLegal__c =: entidadLegalMerchant.Id limit 1];
+
+        List<Affiliate__c> listAff = new List<Affiliate__c>();
+        Affiliate__c af43 = new Affiliate__c(
+            Name = '123-0000002-00001',//000-0000000-00000			
+            CodeAS400__c = '123-0000002',// 000-0000000 01-43-93608-001
+            Distintivo__c = 'Principal',
+            Product__c = p2.Id,
+            OwnerId = UserInfo.getUserId(),
+            Contract_2__c = contrato1.Id,
+            PlatformAdministrator__c = cMrechant.Id,
+            isPrime__c = true,
+            AccountEntity__c = ecMerchant.ID
+        );
+        listAff.add(af43);
+        insert listAff;
+        
+        BankAccount__c ba = new BankAccount__c(
+            AccountHolder__c = 'TEST',
+            Bank__c = 'Abc capital',
+            Branch__c = 'TEST1',
+            Carga_Merchant__c = false,
+            CLABE__c = '123456789012345678',
+            Cuenta__c = accMerchant.Id,
+            PaymentType__c = 'Transferencia',
+            Reference__c = '123456',
+            StandardiziedBankKey__c = '1234',
+            SWIFT__c = '124334'
+        );
+        
+        insert ba;
+        
+        List<Establishment__c> listEst = new List<Establishment__c>();
+        
+        Establishment__c est= new Establishment__c (
+            Name = listAff[0].Name,
+            Tradename__c = 'A',
+            PhoneNumber__c= '125',
+            StartTimeBusiness__c= Time.newInstance(1, 2, 3, 4),
+            Bank__c=ba.ID,
+            Contact__c=cMrechant.Id,
+            Email__c='rarguello@test.com',
+            Web__c='www.test.com',
+            BusinessTime__c='Lunes',
+            Street__c='Av Fortuna',
+            PostalCode__c= '07760',
+            Settlement__c= 'Colonia',
+            City__c='Veracruz',
+            ExternalNumber__c='50',
+            InternalNumber__c='51',
+            State__c='Veracruz',
+            Population__c='Gustavo', 
+            location__Latitude__s= 19.4849396,
+            location__Longitude__s= -99.1378324,
+            Account__c=accMerchant.Id, 
+            Contract__c=contrato1.Id,
+            RecordTypeId = EstablishmentRecordTypeTC,
+            IdATPV__c = '1',
+            Id_Estacion__c = '1234'
+        );
+        listEst.add(est);        
+                
+        String jsonExtras = '[{"attributes":{"type":"ContratoFilial__c"},"CodigoAS400__c":"01-43-93608-001","Name":"01-43-93608-001","Contrato_2__c":"'+contrato1.Id+'","isPrime__c":true,"Id":"'+listAff[0].Id+'"}]';
+        String jsonContrato = JSON.serialize(contrato1);
+        String jsonOportunidad = JSON.serialize(opp);
+        String jsonEstab = JSON.serialize(listEst);
+        
+            Map<String, String> mapUpdateAfiliado = CON_ContractsContainer_CTRL.updateContratoAfiliadoADV2(jsonContrato, jsonOportunidad, jsonExtras, jsonEstab);        
+        Test.stopTest();
+    }        
+    @isTest
+    static void updateContratoAfiliadoADV2_PROD43NoEs43() {
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '31');
+        insert p1;
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test',IsAffiliate__c= true, IsActive = true, SendToSIGLO__c=False, ProductCode = '43');
+        insert p2;
+        
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_principal__c = p1.Id,
+            Producto_secundario__c = p2.Id,
+            TipoCargo__c = '% Participación'
+        );        
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p1.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p1.Id, QuoteId = quo.Id, Escalonamiento__c = null);        
+        insert qli;
+        
+        Contrato2__c contrato1 = new Contrato2__c(EtapaContrato__c = 'Rechazado para corrección',PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato1.CodigoAS400__c, Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        EntidadLegal__c el = new EntidadLegal__c(RFC__c = 'HIJD93061278A', Name = 'HIJD93061278A', CountryOrigin__c = 'MEXICO');
+        insert el;
+        EntidadCuenta__c ecMerchant = new EntidadCuenta__c(Cuenta__c = accMerchant.Id, Name='HIJD93061278A', EntidadLegal__c = el.Id);
+        insert ecMerchant;
+        
+        Affiliate__c af43 = new Affiliate__c(
+            Name = '01-43-93608-001',			
+            CodeAS400__c = '01-43-93608-001',
+            Distintivo__c = 'Principal',
+            Product__c = p1.Id,
+            OwnerId = UserInfo.getUserId(),
+            Contract_2__c = contrato1.Id,
+            PlatformAdministrator__c = cMrechant.Id,
+            isPrime__c = true,
+            AccountEntity__c = ecMerchant.Id);
+        insert af43;
+        
+        BankAccount__c ba = new BankAccount__c(
+            AccountHolder__c = 'TEST',
+            Bank__c = 'Abc capital',
+            Branch__c = 'TEST1',
+            Carga_Merchant__c = false,
+            CLABE__c = '123456789012345678',
+            Cuenta__c = accMerchant.Id,
+            PaymentType__c = 'Transferencia',
+            Reference__c = '123456',
+            StandardiziedBankKey__c = '1234',
+            SWIFT__c = '124334'
+        );
+        insert ba;
+        
+        List<Establishment__c> listEst = new List<Establishment__c>();        
+        Establishment__c est= new Establishment__c (
+            Name = af43.Name,
+            RecordTypeId = EstablishmentRecordTypeTC,
+            Affiliate__c = af43.Id,
+            Tradename__c = 'A',
+            PhoneNumber__c= '125',
+            StartTimeBusiness__c= Time.newInstance(1, 2, 3, 4),
+            Bank__c=ba.ID,
+            Contact__c=cMrechant.Id,
+            Email__c='rarguello@test.com',
+            Web__c='www.test.com',
+            BusinessTime__c='Lunes',
+            Street__c='Av Fortuna',
+            PostalCode__c= '07760',
+            Settlement__c= 'Colonia',
+            City__c='Veracruz',
+            ExternalNumber__c='50',
+            InternalNumber__c='51',
+            State__c='Veracruz',            
+            Population__c='Gustavo', 
+            location__Latitude__s= 19.4849396,
+            location__Longitude__s= -99.1378324,
+            Account__c=accMerchant.Id, 
+            Contract__c=contrato1.Id,            
+            IdATPV__c = '1',
+            Id_Estacion__c = '1234'
+        );
+
+        listEst.add(est);
+        insert listEst;        
+        
+        String jsonExtras = '[{"attributes":{"type":"ContratoFilial__c"},"CodigoAS400__c":"01-43-93608-001","Name":"01-43-93608-001","Contrato_2__c":"'+contrato1.Id+'","isPrime__c":true,"Id":"'+af43.Id+'","EntidadCuenta__c":"'+ecMerchant.Id+'","Producto__c":"'+p1.Id+'"}]';
+        String jsonContrato = JSON.serialize(contrato1);
+        String jsonOportunidad = JSON.serialize(opp);
+        String jsonEstab = JSON.serialize(listEst);        
+        
+        Test.startTest();
+            Map<String, String> mapUpdateAfiliado = CON_ContractsContainer_CTRL.updateContratoAfiliadoADV2(jsonContrato, jsonOportunidad, jsonExtras, jsonEstab);        
+        Test.stopTest();
+    }
+    
+    /*@isTest
+    static void updateContratoADVTestQLI() {
+        Test.startTest();
+        Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '43');
+        insert p2;   
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;    
+        
+        //Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1]; Remove
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        opp.FechaFinADV__c = system.today();
+        opp.FechaInicioADV__c = system.today();
+        opp.NumeroAltaCliente__c = '1234567';
+        update opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli; 
+        
+        Contrato2__c contrato = new Contrato2__c(PartidaPresupuesto__c = qli.Id,EtapaContrato__c = 'Rechazado para corrección');
+        insert contrato;
+        String jsonContrato = JSON.serialize(contrato);
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato.CodigoAS400__c, Name = contrato.CodigoAS400__c ,Contrato_2__c = contrato.Id, IsPrime__c=true));
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-29-93608-002', Name = contrato.CodigoAS400__c ,Contrato_2__c = contrato.Id, IsPrime__c=false));
+        insert conFil;    
+        
+        RenegotiationProduct__c rp = new RenegotiationProduct__c();
+        rp.Name = '01-29-93608-002';
+        rp.SubsidiaryContractApproved__c =conFil[0].Id;
+        rp.SubsidiaryContract__c = conFil[0].Id;
+        rp.QuoteProduct__c = qli.Id;
+        rp.isRenegotiation__c = false;
+        insert rp;
+        
+        String jsonOportunidad = JSON.serialize(opp);
+        Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContratoADV(jsonContrato, jsonOportunidad);
+        Test.stopTest();
+    }
+
+    @isTest
+    static void updateContratoADVTestQLIEtaAutorizado() {
+        Test.startTest();
+        Map<String, Object> mapOppQuoP2PeQli = (Map<String, Object>)TestDataFactory_TEST.createQuoteLineItem();
+        
+        Product2 p2 = new Product2(Name = 'Product43 - Test', IsActive = true, ProductCode = '43');
+        insert p2;   
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p2.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;    
+        
+        //Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1]; remove
+        Opportunity opp = TestDataFactory_TEST.createOpportunity();
+        opp.FechaFinADV__c = system.today();
+        opp.FechaInicioADV__c = system.today();
+        opp.NumeroAltaCliente__c = '1234567';
+        update opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        opp.SyncedQuoteId = quo.Id;
+        
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p2.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli; 
+        
+        Contrato2__c contrato = new Contrato2__c(PartidaPresupuesto__c = qli.Id,EtapaContrato__c = 'Autorizado',CodigoAS400__c = '01-43-93608-001');
+        insert contrato;
+        String jsonContrato = JSON.serialize(contrato);
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato.CodigoAS400__c, Name = contrato.CodigoAS400__c ,Contrato_2__c = contrato.Id, IsPrime__c=true));
+        conFil.add(new ContratoFilial__c(CodigoAS400__c='01-29-93608-002', Name = contrato.CodigoAS400__c ,Contrato_2__c = contrato.Id, IsPrime__c=false));
+        insert conFil;    
+        
+        RenegotiationProduct__c rp = new RenegotiationProduct__c();
+        rp.Name = '01-29-93608-002';
+        rp.SubsidiaryContractApproved__c =conFil[0].Id;
+        rp.SubsidiaryContract__c = conFil[0].Id;
+        rp.QuoteProduct__c = qli.Id;
+        rp.isRenegotiation__c = false;
+        insert rp;
+        
+        String jsonOportunidad = JSON.serialize(opp);
+        Map<String, String> mapUcadv = CON_ContractsContainer_CTRL.updateContratoADV(jsonContrato, jsonOportunidad);
+        Test.stopTest();
+    }*/
+    
+    @isTest
+    static void updateContratoAfiliadoADV2_Des_AF_OPAM() {
+        
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = 'des-AF-OPAM');
+        insert p1;                
+                
+        Producto_relacionado__c pr = new Producto_relacionado__c(            
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        insert pr;
+        
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p1.Id, 
+                                               UseStandardPrice = false, IsActive = true);
+        insert pe;
+        
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+        
+        Opportunity opp = new Opportunity(RegistroPatronalOPAM__c='111', Name = 'Opportunity - 01', StageName = 'Cotizacion', CloseDate = System.today().addMonths(1), Estatus__c = 'Cerrada', FechaInicioADV__c = system.today(), FechaFinADV__c = system.today(), ComentariosADV__c = '', RejectionReasons__c ='', Comentarios_Ejecutivo__c = '',NumeroAltaCliente__c = '', Contacto__c = cMrechant.Id, AccountId = accMerchant.Id, RecordTypeId = OppRecordTypeVentaNueva);
+        insert opp;
+        
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p1.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+        
+        Test.startTest();
+
+        Contrato2__c contrato1 = new Contrato2__c(EtapaContrato__c = 'Rechazado para corrección',PartidaPresupuesto__c = qli.Id, CodigoAS400__c = '01-43-93608-001');
+        insert contrato1;
+        
+        List<ContratoFilial__c> conFil=new List<ContratoFilial__c>();
+        conFil.add(new ContratoFilial__c(CodigoAS400__c=contrato1.CodigoAS400__c, Name = contrato1.CodigoAS400__c ,Contrato_2__c = contrato1.Id, IsPrime__c=true));
+        insert conFil;
+        
+        EntidadLegal__c entidadLegalMerchant = new EntidadLegal__c();
+        entidadLegalMerchant.Name = 'HIJD93061244A';
+        entidadLegalMerchant.Cuenta__c = accMerchant.Id;
+        entidadLegalMerchant.CountryOrigin__c = 'MEXICO';
+        entidadLegalMerchant.Ticket__c = null;
+        insert entidadLegalMerchant;
+        
+        EntidadCuenta__c ecMerchant = [SELECT Id FROM EntidadCuenta__c WHERE Cuenta__c =: accMerchant.Id AND EntidadLegal__c =: entidadLegalMerchant.Id limit 1];
+        
+        List<Affiliate__c> listAff = new List<Affiliate__c>();
+        Affiliate__c af43 = new Affiliate__c(
+            Name = '01-43-93608-001',
+            CodeAS400__c = '01-43-93608-001',
+            Distintivo__c = 'Principal',
+            Product__c = p1.Id,
+            OwnerId = UserInfo.getUserId(),
+            Contract_2__c = contrato1.Id,
+            PlatformAdministrator__c = cMrechant.Id,
+            isPrime__c = true,
+            AccountEntity__c = ecMerchant.ID
+        );
+        listAff.add(af43);
+        insert listAff;
+
+        BankAccount__c ba = new BankAccount__c(
+            AccountHolder__c = 'TEST',
+            Bank__c = 'Abc capital',
+            Branch__c = 'TEST1',
+            Carga_Merchant__c = false,
+            CLABE__c = '123456789012345678',
+            Cuenta__c = accMerchant.Id,
+            PaymentType__c = 'Transferencia',
+            Reference__c = '123456',
+            StandardiziedBankKey__c = '1234',
+            SWIFT__c = '124334'
+        );
+        insert ba;
+        
+        List<Establishment__c> listEst = new List<Establishment__c>();
+        
+        Establishment__c est= new Establishment__c (
+            Name = listAff[0].Name,
+            Tradename__c = 'A',
+            PhoneNumber__c= '125',
+            StartTimeBusiness__c= Time.newInstance(1, 2, 3, 4),
+            Bank__c=ba.ID,
+            Contact__c=cMrechant.Id,
+            Email__c='rarguello@test.com',
+            Web__c='www.test.com',
+            BusinessTime__c='Lunes',
+            Street__c='Av Fortuna',
+            PostalCode__c= '07760',
+            Settlement__c= 'Colonia',
+            City__c='Veracruz',
+            ExternalNumber__c='50',
+            InternalNumber__c='51',
+            State__c='Veracruz',
+            Population__c='Gustavo', 
+            location__Latitude__s= 19.4849396,
+            location__Longitude__s= -99.1378324,
+            Account__c=accMerchant.Id, 
+            Contract__c=contrato1.Id,            
+            Affiliate__c = listAff[0].Id,
+            RecordTypeId = EstablishmentRecordTypeTC,
+            IdATPV__c = '1',
+            Id_Estacion__c = '1234',
+            NTT_FamiliaVehiculos__c='Camioneta',
+            NTT_TipoServicio__c='Llantas' 
+        );
+        listEst.add(est);
+        insert listEst;
+        
+        String jsonExtras = '[{"attributes":{"type":"ContratoFilial__c"},"CodigoAS400__c":"01-43-93608-001","Name":"01-43-93608-001","Contrato_2__c":"'+contrato1.Id+'","isPrime__c":true,"Id":"'+listAff[0].Id+'"}]';
+        String jsonContrato = JSON.serialize(contrato1);
+        String jsonOportunidad = JSON.serialize(opp);
+        String jsonEstab = JSON.serialize(listEst);
+        
+            Map<String, String> mapUpdateAfiliado = CON_ContractsContainer_CTRL.updateContratoAfiliadoADV2(jsonContrato, jsonOportunidad, jsonExtras, jsonEstab);        
+        Test.stopTest();
+    }
+    
+    @isTest 
+    static void getTokenTest(){
+        WScredentials__c credentials = new WScredentials__c();
+        credentials.Name = 'Token BE';
+        credentials.ClientId__c = '123';
+        credentials.ClientSecret__c = '123';
+        credentials.EndPoint__c = 'http://test.com';
+        credentials.GrantType__c = 'test';
+        credentials.Scope__c = 'test';
+        credentials.Log_Request__c = false;        
+        insert credentials;
+        
+        Test.setMock(HttpCalloutMock.class, new AltaCliente_WS_Mock(3));
+        
+        Test.startTest();
+            String token = Altacliente_Callout_BE.getToken();
+            System.assert(token.contains('Bearer'));
+        Test.stopTest();
+    }
+    
+    @isTest 
+    static void getEntidadCuentaTest(){
+        Account accMerchant=new Account();
+        accMerchant.Name='Merchant';
+        accMerchant.RecordTypeId = RT_MerchantAccount;
+        accMerchant.CodigoClienteAS400__c = '93608'; 
+        accMerchant.CodigoClienteOPAM__c = '93608';
+        insert accMerchant;
+        
+        Test.startTest();
+            Boolean respuesta = CON_ContractsContainer_CTRL.getEntidadCuenta(accMerchant.Id);            
+        Test.stopTest();
+    }
+    
+    @isTest 
+    static void getEntidadCuentaTest2(){        
+        Test.startTest();            
+            try {
+                Boolean respuestaNull = CON_ContractsContainer_CTRL.getEntidadCuenta(null);
+            } catch(System.Exception e) {}
+        Test.stopTest();
+    }
+
+    @isTest 
+    static void testmapeoErroresAs400(){    
+        CreateCustomerResponse.mensajesDTO msj=new CreateCustomerResponse.mensajesDTO();
+        msj.code='';
+        msj.level='';
+        msj.text='';
+        Test.startTest();
+            CON_ContractsContainer_CTRL.mapeoErroresAs400(msj);
+        Test.stopTest();
+    }
+
+    @isTest
+    public static void doesExecuteGenerarClientesMoPMethod(){
+        Test.startTest();
+
+        Map<String,String> result = CON_ContractsContainer_CTRL.generarClientesMoP('', '', '');
+
+        Test.stopTest();
+
+        Assert.areEqual('-2', result.get('Code'),'No son iguales los resultados');
+    }
+
+    @isTest
+    public static void doesExecuteupdateContratoADV2MoPayMethod(){
+        Test.startTest();
+
+        Map<String,String> result = CON_ContractsContainer_CTRL.updateContratoADV2MoPay('', '', '','','');
+
+        Test.stopTest();
+
+        Assert.areEqual('-2', result.get('Code'),'No son iguales los resultados');
+    }
+
+        @isTest
+    static void testValidaProdCode_MfaTrue() {
+        // Crea el producto
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '43');
+        insert p1;
+
+        // Relacionado (si es necesario para tu lógica)
+        Producto_relacionado__c pr = new Producto_relacionado__c(
+            Producto_secundario__c = p1.Id,
+            TipoCargo__c = '% Participación'
+        );
+        insert pr;
+
+        // Pricebook y PricebookEntry
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p1.Id, 
+                                            UseStandardPrice = false, IsActive = true);
+        insert pe;
+
+        // Account y Contact
+        Account accMerchant = new Account(Name = 'Merchant', RecordTypeId = RT_MerchantAccount, CodigoClienteAS400__c = '93608', CodigoClienteOPAM__c = '93608');
+        insert accMerchant;
+
+        Contact cMerchant = new Contact(AccountId = accMerchant.Id, FirstName = 'Merchant', LastName = 'test');
+        insert cMerchant;
+
+        // Opportunity
+        Opportunity opp = new Opportunity(
+            RegistroPatronalOPAM__c = '111',
+            Name = 'Opportunity - 01',
+            StageName = 'Cotizacion',
+            CloseDate = System.today().addMonths(1),
+            Estatus__c = 'Cerrada',
+            FechaInicioADV__c = system.today(),
+            FechaFinADV__c = system.today(),
+            ComentariosADV__c = '',
+            RejectionReasons__c = '',
+            Comentarios_Ejecutivo__c = '',
+            NumeroAltaCliente__c = '',
+            Contacto__c = cMerchant.Id,
+            AccountId = accMerchant.Id,
+            RecordTypeId = OppRecordTypeVentaNueva
+        );
+        insert opp;
+
+        // Quote
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+
+        opp.SyncedQuoteId = quo.Id;
+        update opp;
+
+        // QuoteLineItem
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p1.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+
+        Test.startTest();
+        Contrato2__c contrato1 = new Contrato2__c(
+            EtapaContrato__c = 'Rechazado para corrección',
+            PartidaPresupuesto__c = qli.Id,
+            CodigoAS400__c = '01-43-93608-001'
+        );
+        insert contrato1;
+
+        Map<String, String> result = CON_ContractsContainer_CTRL.validaProdCode(contrato1.Id);
+        Test.stopTest();
+
+        System.assertEquals('true', result.get('isMfa'), 'El producto debe estar marcado como MFA');
+    }
+
+
+
+    @isTest
+    static void testCheckIfCorpIdAlreadyExistInAffiliate_PositiveScenario() {
+        // Setup test data
+        Test.startTest();
+        // Account y Contact
+        Account accMerchant = new Account(Name = 'Merchant', RecordTypeId = RT_MerchantAccount, GLB_ID_Corporativo__c = 'C123', CodigoClienteOPAM__c = '93608');
+        insert accMerchant;
+
+        // Crea el producto
+        Product2 p1 = new Product2(Name = 'Product31 - Test', IsActive = true, ProductCode = '43');
+        insert p1;
+
+        Contact cMrechant=new Contact();
+        cMrechant.AccountId=accMerchant.Id;
+        cMrechant.FirstName='Merchant';
+        cMrechant.LastName='test';
+        insert cMrechant;
+
+        EntidadLegal__c entidadLegalMerchant = new EntidadLegal__c();
+        entidadLegalMerchant.Name = 'HIJD93061244A';
+        entidadLegalMerchant.Cuenta__c = accMerchant.Id;
+        entidadLegalMerchant.CountryOrigin__c = 'MEXICO';
+        insert entidadLegalMerchant;
+        
+        EntidadCuenta__c ecMerchant =[SELECT Id FROM EntidadCuenta__c WHERE Cuenta__c =: accMerchant.Id AND EntidadLegal__c =: entidadLegalMerchant.Id limit 1];
+
+        // Pricebook y PricebookEntry
+        Id p2Id = Test.getStandardPricebookId();
+        PricebookEntry pe = new PricebookEntry(UnitPrice = 1000.00, Pricebook2Id = p2Id, Product2Id = p1.Id, 
+                                            UseStandardPrice = false, IsActive = true);
+        insert pe;
+        // Opportunity
+        Opportunity opp = new Opportunity(
+            RegistroPatronalOPAM__c = '111',
+            Name = 'Opportunity - 01',
+            StageName = 'Cotizacion',
+            CloseDate = System.today().addMonths(1),
+            Estatus__c = 'Cerrada',
+            FechaInicioADV__c = system.today(),
+            FechaFinADV__c = system.today(),
+            ComentariosADV__c = '',
+            RejectionReasons__c = '',
+            Comentarios_Ejecutivo__c = '',
+            NumeroAltaCliente__c = '',
+            Contacto__c = cMrechant.Id,
+            AccountId = accMerchant.Id,
+            RecordTypeId = OppRecordTypeVentaNueva
+        );
+        insert opp;
+
+        // Quote
+        Quote quo = new Quote(Name = 'Quote - Test1', OpportunityId = opp.Id, Pricebook2Id = p2Id);
+        insert quo;
+        // QuoteLineItem
+        QuoteLineItem qli = new QuoteLineItem(PricebookEntryId = pe.Id, Quantity = 1, UnitPrice = 1000.00, Product2Id = p1.Id, QuoteId = quo.Id, Escalonamiento__c = null);
+        insert qli;
+
+
+        Contrato2__c contrato1 = new Contrato2__c(
+            EtapaContrato__c = 'Rechazado para corrección',
+            PartidaPresupuesto__c = qli.Id,
+            CodigoAS400__c = '01-43-93608-001'
+        );
+        insert contrato1;
+        Affiliate__c af43 = new Affiliate__c(    
+            Name = '01-43-93608-001',//000-0000000-00000			
+            CodeAS400__c = '123-0000001',// 000-0000000 01-43-93608-001
+            Distintivo__c = 'Principal',
+            Product__c = p1.Id,
+            OwnerId = UserInfo.getUserId(),
+            Contract_2__c = contrato1.Id,
+            PlatformAdministrator__c = cMrechant.Id,
+            isPrime__c = true,
+            AccountEntity__c = ecMerchant.ID
+        );
+        insert af43;
+
+        
+
+        // Test method execution
+        
+        String result = CON_ContractsContainer_CTRL.checkIfCorpIdAlreadyExistInAffiliate(accMerchant.Id);
+        Test.stopTest();
+
+        // Assert the expected result
+        System.assertEquals('', result, 'The Corporate ID should match the expected value.');
+    }
+
+    @isTest
+    public static void doesExecuteUpdateContratoAfiliadoADV3Method(){
+        Test.startTest();
+
+        Map<String,String> result = CON_ContractsContainer_CTRL.updateContratoAfiliadoADV3('');
+
+        Test.stopTest();
+    }
+
+    @isTest 
+    public static void doesExecuteSendAfiliadoMercedesMethod(){
+        Test.startTest();
+
+        Map<String,Object> result = CON_ContractsContainer_CTRL.sendAfiliadoMercedes('');
+
+        Test.stopTest();
+    }
+}
