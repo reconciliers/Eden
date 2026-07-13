@@ -3,6 +3,9 @@ public class QuoteRenegotiationCtrl {
     Public static String productCodeTelevia = System.Label.NTT_ProductCodeTelevia;
     // Televia Fin
     @TestVisible private static List<uvw_ComercialTerms__x> listCommercialTermsTest = new List<uvw_ComercialTerms__x>();
+    // renegociacion - Televia
+    Public static Boolean IsRenegociacionTelevia=false;
+    
     public class InitData {
         @AuraEnabled public Opportunity opportunity {get;set;}
         @AuraEnabled public List<Quote> listQuote {get;set;}
@@ -92,10 +95,16 @@ public class QuoteRenegotiationCtrl {
 	}
     public static Opportunity getDataOpportunity(String oppId) {
         Opportunity opportunity = [
-			SELECT Id, AccountId, Product__c, BypassRenegotiation__c,RecordType.DeveloperName
+            // renegociacion - Televia
+			SELECT Id, AccountId,NTT_ContratoRenegociar__c,NTT_AltaTelevia__c, Product__c, BypassRenegotiation__c,RecordType.DeveloperName
 			FROM Opportunity
 			WHERE Id =: oppId
 		] ;
+        // renegociacion - Televia
+        if(opportunity.NTT_AltaTelevia__c || String.isBlank(opportunity.NTT_ContratoRenegociar__c)){
+            IsRenegociacionTelevia = true;
+        }
+        
         if(opportunity.AccountId == null) throw new AuraHandledException('La oportunidad no contiene Id de Cuenta');
         if(opportunity.Product__c == null) throw new AuraHandledException('La oportunidad no contiene Id de Producto');
         return opportunity;
@@ -178,23 +187,48 @@ public class QuoteRenegotiationCtrl {
 					];
 				}
 			} else {
-				listEntidadCuenta = [
-					SELECT Id, Cuenta__c, EntidadLegal__r.Name, EntidadLegal__r.RazonSocial__c,
-						(
-							SELECT Id, Name, Entidad_Cuenta__r.Id, Entidad_Cuenta__r.Cuenta__r.CodigoClienteAS400__c, Entidad_Cuenta__r.EntidadLegal__r.Name,
-							Entidad_Cuenta__r.EntidadLegal__r.RazonSocial__c, Average_turnover_volume__c, Contrato_2__c, Contrato_2__r.Name,
-							Contrato_2__r.PartidaPresupuesto__r.Quote.Comision_por_Servicio__c, Last_order_date__c, Producto__r.Name, Producto__r.ProductCode
-							FROM Contratos_Filial__r
-							WHERE Producto__c != null
-							AND Entidad_Cuenta__r.Name != null
-							AND isActive__c = true
-							AND	Producto__c =: opps[0].Product__c ORDER BY Entidad_Cuenta__r.EntidadLegal__r.Name ASC
-						)
-					FROM EntidadCuenta__c
-					WHERE Cuenta__c =: opps[0].AccountId
-					ORDER BY EntidadLegal__r.Name ASC
-				];
-			}
+                System.debug('IsRenegociacionTelevia te '+IsRenegociacionTelevia);
+                // renegociacion - Televia
+                if(IsRenegociacionTelevia && !String.isBlank(opps[0].NTT_ContratoRenegociar__c)){
+                    listEntidadCuenta = [
+                        SELECT Id, Cuenta__c, EntidadLegal__r.Name, EntidadLegal__r.RazonSocial__c,
+                            (
+                                SELECT Id, Name, Entidad_Cuenta__r.Id, Entidad_Cuenta__r.Cuenta__r.CodigoClienteAS400__c, Entidad_Cuenta__r.EntidadLegal__r.Name,
+                                Entidad_Cuenta__r.EntidadLegal__r.RazonSocial__c, Average_turnover_volume__c, Contrato_2__c, Contrato_2__r.Name,
+                                Contrato_2__r.PartidaPresupuesto__r.Quote.Comision_por_Servicio__c, Last_order_date__c, Producto__r.Name, Producto__r.ProductCode
+                                FROM Contratos_Filial__r
+                                WHERE Producto__c != null
+                                AND Entidad_Cuenta__r.Name != null
+                                AND isActive__c = true
+                                AND	Producto__c =: opps[0].Product__c
+                                and Contrato_2__r.id =: opps[0].NTT_ContratoRenegociar__c
+                                ORDER BY Entidad_Cuenta__r.EntidadLegal__r.Name ASC
+                            )
+                        FROM EntidadCuenta__c
+                        WHERE Cuenta__c =: opps[0].AccountId
+                        ORDER BY EntidadLegal__r.Name ASC
+                    ];
+                    
+                }else{
+                    listEntidadCuenta = [
+                        SELECT Id, Cuenta__c, EntidadLegal__r.Name, EntidadLegal__r.RazonSocial__c,
+                            (
+                                SELECT Id, Name, Entidad_Cuenta__r.Id, Entidad_Cuenta__r.Cuenta__r.CodigoClienteAS400__c, Entidad_Cuenta__r.EntidadLegal__r.Name,
+                                Entidad_Cuenta__r.EntidadLegal__r.RazonSocial__c, Average_turnover_volume__c, Contrato_2__c, Contrato_2__r.Name,
+                                Contrato_2__r.PartidaPresupuesto__r.Quote.Comision_por_Servicio__c, Last_order_date__c, Producto__r.Name, Producto__r.ProductCode
+                                FROM Contratos_Filial__r
+                                WHERE Producto__c != null
+                                AND Entidad_Cuenta__r.Name != null
+                                AND isActive__c = true
+                                AND	Producto__c =: opps[0].Product__c
+                                ORDER BY Entidad_Cuenta__r.EntidadLegal__r.Name ASC
+                            )
+                        FROM EntidadCuenta__c
+                        WHERE Cuenta__c =: opps[0].AccountId
+                        ORDER BY EntidadLegal__r.Name ASC
+                    ];
+            	}
+			}// renegociacion - Televia
 			if(!listEntidadCuenta.isEmpty()) {
 				//system.debug('opps[0].RecordType.DeveloperName: '  + opps[0].RecordType.DeveloperName);
 				for(EntidadCuenta__c entidadCuenta : listEntidadCuenta) {
@@ -239,30 +273,7 @@ public class QuoteRenegotiationCtrl {
 					}
 				}
 				//List<uvw_ComercialTerms__x> listCommercialTerms = getDataCommercialTerms(setContractsName, setAccountGroup);
-				List<uvw_ComercialTerms__x> listCommercialTerms = new List<uvw_ComercialTerms__x>();
-                /*if(!listCommercialTerms.isEmpty()) {
-                    system.debug('### !listCommercialTerms.isEmpty()');
-					for(uvw_ComercialTerms__x ct : listCommercialTerms) {
-						system.debug('uvw_ComercialTerms__x: '+ct);
-						for(EntidadCuentaWrapper ecw : listWrapper) {
-							for(ContratosFilial i : ecw.ContratosFilial) {
-								if(i.contratoFilial == ct.Contrato_Filial__c) {
-									i.SendFee               =    String.valueOf(ct.SendFee__c);//Cargo por Envío
-									i.CommissionPercentage  =    String.valueOf(ct.CommissionPercentage__c);//Comisión por Servicio
-									i.AccountCharge         =    String.valueOf(ct.AccountCharge__c);//Cuota por Cuenta Activa
-									i.AdicCardDisc          =    String.valueOf(ct.AdicCardDisc__c);
-									i.RenewCardDisc         =    String.valueOf(ct.RenewCardDisc__c);
-									i.ReplaceCardDisc       =    String.valueOf(ct.ReplaceCardDisc__c);
-									i.PrincipalCardDisc     =    String.valueOf(ct.PrincipalCardDisc__c);
-									i.AditionalCardFee      =    String.valueOf(ct.AditionalCardFee__c);//Tarjeta Adicional
-									i.RenewCardFee          =    String.valueOf(ct.RenewCardFee__c);//Tarjeta Renovación
-									i.ReplaceCardFee        =    String.valueOf(ct.ReplaceCardFee__c);//Tarjeta Reposición
-									i.PrincipalCardFee      =    String.valueOf(ct.PrincipalCardFee__c);//Tarjeta Titular
-								}
-							}
-						}
-					}
-				}*/
+				List<uvw_ComercialTerms__x> listCommercialTerms = new List<uvw_ComercialTerms__x>();               
 			}
 		} else {
 			throw new AuraHandledException('No existe oportunidad con id:'+oppId);
