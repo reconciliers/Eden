@@ -253,7 +253,9 @@
                     GLBAr_Country__c : '{!Opportunity.GLBAr_Country__c }', 
                     // Televia Inicio
                     NTT_CheckTelepeaje__c : '{!Opportunity.NTT_CheckTelepeaje__c }', 
-                    NTT_CheckTelepeaje__c : '{!Opportunity.NTT_CheckTelepeaje__c }', 
+                    NTT_CheckTelepeaje__c : '{!Opportunity.NTT_CheckTelepeaje__c }',
+                    // renegociacion - Televia 656
+                    NTT_ContratoRenegociar__c : '{!Opportunity.NTT_ContratoRenegociar__c}', 
                     
                     NTT_InfoValida__c : '{!Opportunity.NTT_InfoValida__c}', 
                     // Televia fin
@@ -1847,11 +1849,11 @@
 
                             angular.forEach( todosConceptos, function( concepto, index ) {
                                 console.log('[concepto.TipoCargo__c]: ' + concepto.TipoCargo__c);
-                                if( 'Comisión por el servicio' == concepto.TipoCargo__c ) {
+                                /* if( 'Comisión por el servicio' == concepto.TipoCargo__c ) {
                                     ordenados.unshift(concepto);
                                     console.log('NVH-ordenados in comision: ', ordenados);
                             
-                                } else if(concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje') {
+                                } else */if(concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje') {
                                     ordenados.splice(1, 0, concepto);
                                 } else if(concepto.TipoCargo__c == 'TAG Telepeaje') {
                                     ordenados.splice(2, 0, concepto);
@@ -1864,8 +1866,22 @@
                                 }
                                 // Televia fin
                                  else {
-                                    ordenados.push(concepto)
-                                }
+                                     // renegociacion - Televia  
+                                     console.log('NVH-opp: ', ctcUtils.app.opportunity.NTT_ContratoRenegociar__c);
+                                     if(ctcUtils.app.opportunity.NTT_ContratoRenegociar__c != null && ctcUtils.app.opportunity.NTT_ContratoRenegociar__c != undefined && ctcUtils.app.opportunity.NTT_ContratoRenegociar__c != '' )                                         
+                                     {
+                                        if(concepto.TipoCargo__c == 'Cuota por Renta Mensual Tag Dual' || concepto.TipoCargo__c == 'Tag Dual' || concepto.TipoCargo__c == 'TAG Dual'  ||   concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje')
+                                        {                                            
+                                        	ordenados.push(concepto)
+                                        }
+                                    }else{
+                                         if( 'Comisión por el servicio' == concepto.TipoCargo__c ) {
+                                            ordenados.unshift(concepto);
+                                            console.log('NVH-ordenados in comision: ', ordenados);                                
+                                         }
+                                         ordenados.push(concepto)
+                                    }                                     
+                                } // renegociacion - Televia
                             })
                             
                              
