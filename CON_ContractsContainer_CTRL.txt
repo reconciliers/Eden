@@ -2275,13 +2275,17 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         return   jsonFormat;
     }
     // agregado Estabilizacion
+
     public static String GenerarJsonRenegociacion(List<RenegotiationProduct__c> ContratosRenegociados, Contrato2__c contrato,boolean CambioCondicionesFacturacion, boolean CambioCondicionesComerciales){
+        System.debug('--GenerarJsonRenegociacion ');
         String jsonFormat;
          for(RenegotiationProduct__c item : ContratosRenegociados){
              codigos.add(item.Name);
          }
         if(!codigos.isEmpty()){
+            System.debug('--GenerarJsonRenegociacion2 ');
           jsonFormat =  getRecordRenegociacion(codigos,contrato,CambioCondicionesFacturacion,CambioCondicionesComerciales);
+            System.debug('--GenerarJsonRenegociacion3 ');
         }
         return  jsonFormat;
     }
@@ -2332,10 +2336,11 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     }
   // agregado Estabilizacion
      public static String getRecordRenegociacion(Set<String> codigos , Contrato2__c contrato,boolean CambioCondicionesFacturacion, boolean CambioCondicionesComerciales ){
-         String jsonFormat;
+        System.debug('getRecordRenegociacion'); 
+        String jsonFormat;
          boolean nullList=false;
          List<NTT_MercedesSnapshot__c> getListSnapshop  = [SELECT id,LastConfirmedSourceType__c,ProductCode__c,contratoFilial__r.Contrato_2__r.TipoPago__c,Contrato2__c, ContratoFilial__r.Contrato_2__r.ComoFactura__c, ContratoFilial__r.Contrato_2__r.FrecuenciaFacturacion__c, ContratoFilial__r.Contrato_2__r.Tipo_de_Facturacion__c, ContratoFilial__r.Contrato_2__r.GLB_Facturacion_dia_Especifico__c, SnapshotKey__c,LastConfirmedPayload__c,CanonicalSubaccountKey__c,SnapshotStatus__c  FROM  NTT_MercedesSnapshot__c where CanonicalSubaccountKey__c IN: codigos ];
-         if(getListSnapshop.isEmpty()){
+        /* if(getListSnapshop.isEmpty()){
              String codigoTrace;
              for(String codigo : codigos){
                  codigoTrace = codigo;
@@ -2352,7 +2357,8 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                  new CustomException('No existe snapshot Mercedes confirmado para generar la renegociacion.')
              );
              throw new CustomException('No existe snapshot Mercedes confirmado para generar la renegociacion.');
-         }
+         }*/
+         System.debug('getRecordRenegociacion2'); 
          if(!getListSnapshop.isEmpty()){
             if(getListSnapshop[0].SnapshotStatus__c != NTT_MercedesSnapshotRepository.SNAPSHOT_STATUS_CONFIRMED){
                 CustomException unconfirmedSnapshotEx = new CustomException('El snapshot Mercedes no esta confirmado para generar la renegociacion.');
@@ -2370,12 +2376,17 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
             }
              List<NTT_MercedesSnapshotCommercialItem__c> com = [select ChargeIdentifier__c,DiscountValue__c,Amount__c,PaymentDeadlineDate__c from NTT_MercedesSnapshotCommercialItem__c where Snapshot__c =: getListSnapshop[0].id ];
              String normalizedSnapshotPayload = normalizeMercedesSnapshotPayloadDates(getListSnapshop[0].LastConfirmedPayload__c);
+             System.debug('normalizedSnapshotPayload '+normalizedSnapshotPayload); 
+             System.debug('wrapper '+JSON.deserialize(normalizedSnapshotPayload, NTTER_ClientToMercedesWrapper.RequestToMercedes.class)); 
+             System.debug('wrapper '+(NTTER_ClientToMercedesWrapper.RequestToMercedes)JSON.deserialize(normalizedSnapshotPayload, NTTER_ClientToMercedesWrapper.RequestToMercedes.class)); 
+
              NTTER_ClientToMercedesWrapper.RequestToMercedes wrapper = (NTTER_ClientToMercedesWrapper.RequestToMercedes) JSON.deserialize(normalizedSnapshotPayload, NTTER_ClientToMercedesWrapper.RequestToMercedes.class);
              String confirmedContrato2Id = getListSnapshop[0].Contrato2__c == null ? null : String.valueOf(getListSnapshop[0].Contrato2__c);
              preferConfirmedAgreementForRenegotiation(wrapper, confirmedContrato2Id);
              LastConfirmedSourceType = getListSnapshop[0].LastConfirmedSourceType__c;
              map<integer, ProductoConcepto__c> getConcetosNews = getConcetosNews(contrato.PartidaPresupuesto__c);
              String[] partsCode = getListSnapshop[0].CanonicalSubaccountKey__c.split('-');
+             System.debug('---Wrapper '+wrapper.Client); 
              wrapper.Client.contacts = new List<NTTER_ClientToMercedesWrapper.contacts>();
              wrapper.Client.action_type = 2;
              wrapper.Client.addresses = new List<NTTER_ClientToMercedesWrapper.addresses>();
@@ -2389,6 +2400,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
              if(confirmedBilling != null && String.isNotBlank(confirmedBilling.identifier)){
                  mercedesConditionRef = confirmedBilling.identifier;
              }
+             System.debug('---Warpper2'+wrapper.Client.agreements);
              if(
                  wrapper.Client.agreements == null ||
                  wrapper.Client.agreements.isEmpty() ||
@@ -2569,6 +2581,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                  Wrapper.Client.accounts =new  List<NTTER_ClientToMercedesWrapper.Accounts>();
               }
             prepareCurrentAgreementForRenegotiation(wrapper, contratoActualId, mercedesConditionRef);
+            normalizeChargeDefaults(wrapper);
             if(LastConfirmedSourceType != 'JsonManual' ){
                  	jsonFormat = removerCampos(wrapper, isMFG,getListSnapshop[0].contratoFilial__r.Contrato_2__r.TipoPago__c);
                     jsonFormat = normalizeRenegotiationAccountsForMercedesUpdate(jsonFormat);
@@ -3010,6 +3023,9 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         }
         discount.value = productConcept.Bonificacion__c;
         discount.identifier = productConcept.Bonificacion__c != null && productConcept.Bonificacion__c > 0 ? 2 : 0;
+        if(discount.table_code == null){
+            discount.table_code = '';
+        }
         Date discountStartDate = productConcept.FechaInicio__c;
         Date discountEndDate = productConcept.VigenciaDescuento__c != null ? productConcept.VigenciaDescuento__c : productConcept.FechaFinal__c;
         Map<String, Object> productConceptFields = productConcept.getPopulatedFieldsAsMap();
@@ -3049,11 +3065,51 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     public static NTTER_ClientToMercedesWrapper.Discount getDiscount(NTTER_ClientToMercedesWrapper.Discount disc){
         NTTER_ClientToMercedesWrapper.Discount cloneDis = new NTTER_ClientToMercedesWrapper.Discount();
         cloneDis.identifier =  disc.value >0 ? 2 : 0;//disc.identifier;
-        cloneDis.table_code = disc.table_code;
+        cloneDis.table_code = disc.table_code == null ? '' : disc.table_code;
         cloneDis.value = disc.value;
         cloneDis.start_date = disc.start_date;
         cloneDis.end_date = disc.end_date;
         return cloneDis;
+    }
+    private static void normalizeChargeDefaults(NTTER_ClientToMercedesWrapper.RequestToMercedes wrapper){
+        if(wrapper == null || wrapper.Client == null || wrapper.Client.agreements == null){
+            return;
+        }
+        for(NTTER_ClientToMercedesWrapper.Agreements agreement : wrapper.Client.agreements){
+            if(agreement == null || agreement.conditions == null){
+                continue;
+            }
+            for(NTTER_ClientToMercedesWrapper.Conditions condition : agreement.conditions){
+                if(condition == null || condition.billings == null){
+                    continue;
+                }
+                for(NTTER_ClientToMercedesWrapper.ConditionsBillings billing : condition.billings){
+                    if(billing == null || billing.charges == null){
+                        continue;
+                    }
+                    for(NTTER_ClientToMercedesWrapper.Charges charge : billing.charges){
+                        normalizeSeparatedGrouping(charge);
+                        normalizeDiscountTableCode(charge);
+                    }
+                }
+            }
+        }
+    }
+    private static void normalizeSeparatedGrouping(NTTER_ClientToMercedesWrapper.Charges charge){
+        if(charge == null){
+            return;
+        }
+        if(charge.is_separated_group == null || charge.is_separated_group == false){
+            charge.separated_group_id = 0;
+        }
+    }
+    private static void normalizeDiscountTableCode(NTTER_ClientToMercedesWrapper.Charges charge){
+        if(charge == null || charge.discount == null){
+            return;
+        }
+        if(charge.discount.table_code == null){
+            charge.discount.table_code = '';
+        }
     }
          // agregado Estabilizacion
      public static NTTER_ClientToMercedesWrapper.Frecuency getFrecuency(NTTER_ClientToMercedesWrapper.Frecuency disc){
@@ -3115,14 +3171,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                     reason = NTT_MercedesPayloadTraceService.REASON_SNAPSHOT_NOT_CONFIRMED;
                 }
                 NTT_MercedesPayloadTraceService.recordBlockedRenegotiation(
-                    reason,
-                    sourceType,
-                    sourceId,
-                    codigoAS400,
-                    productCode,
-                    contrato2Id,
-                    requestBody,
-                    snapshotEx
+                    reason, sourceType,  sourceId,  codigoAS400,  productCode, contrato2Id, requestBody, snapshotEx
                 );
                 return new Map<String, Object>{
                     'success' => false,
@@ -3142,26 +3191,11 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         ) {
             try {
                 NTT_MercedesSnapshotHook.handleClientsSuccess(
-                    sourceType,
-                    sourceId,
-                    codigoAS400,
-                    null,
-                    contrato2Id,
-                    productCode,
-                    requestBody,
-                    String.valueOf(result.get('responseBody'))
+                    sourceType,  sourceId, codigoAS400,  null, contrato2Id, productCode, requestBody, String.valueOf(result.get('responseBody'))
                 );
             } catch (Exception snapshotEx) {
                 logMercedesSnapshotFailure(
-                    'handleClientsSuccess',
-                    method,
-                    sourceType,
-                    sourceId,
-                    codigoAS400,
-                    productCode,
-                    contrato2Id,
-                    requestBody,
-                    snapshotEx
+                    'handleClientsSuccess',  method, sourceType, sourceId,  codigoAS400, productCode,  contrato2Id,  requestBody, snapshotEx
                 );
             }
         }
@@ -3175,50 +3209,22 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
             if (snapshotRequestBody == null) {
                 try {
                     snapshotRequestBody = NTT_MercedesSnapshotHook.prepareClientsUpdatePayload(
-                        requestBody,
-                        codigoAS400,
-                        contrato2Id,
-                        productCode
+                        requestBody, codigoAS400,  contrato2Id, productCode
                     );
                 } catch (Exception snapshotEx) {
                     logMercedesSnapshotFailure(
-                        'prepareClientsUpdatePayloadPostSuccess',
-                        method,
-                        sourceType,
-                        sourceId,
-                        codigoAS400,
-                        productCode,
-                        contrato2Id,
-                        requestBody,
-                        snapshotEx
+                        'prepareClientsUpdatePayloadPostSuccess', method,sourceType,sourceId,codigoAS400, productCode,contrato2Id, requestBody,snapshotEx
                     );
                 }
             }
             if (snapshotRequestBody != null) {
                 try {
                     NTT_MercedesSnapshotHook.handleClientsUpdateSuccess(
-                        sourceType,
-                        sourceId,
-                        codigoAS400,
-                        null,
-                        contrato2Id,
-                        productCode,
-                        snapshotRequestBody,
-                        String.valueOf(result.get('responseBody')),
-                        requestBody,
-                        method
+                        sourceType,sourceId,codigoAS400,null,contrato2Id,productCode,snapshotRequestBody,String.valueOf(result.get('responseBody')),requestBody, method
                     );
                 } catch (Exception snapshotEx) {
                     logMercedesSnapshotFailure(
-                        'handleClientsUpdateSuccess',
-                        method,
-                        sourceType,
-                        sourceId,
-                        codigoAS400,
-                        productCode,
-                        contrato2Id,
-                        snapshotRequestBody,
-                        snapshotEx
+                        'handleClientsUpdateSuccess',method,sourceType,sourceId,codigoAS400,productCode,contrato2Id,snapshotRequestBody,snapshotEx
                     );
                 }
             }
@@ -3230,37 +3236,16 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         return CON_MercedesRenegotiationPayloadHelper.normalizeRenegotiationAccountsForMercedesUpdate(requestBody);
     }
     private static void logMercedesSnapshotFailure(
-        String stage,
-        String method,
-        String sourceType,
-        String sourceId,
-        String codigoAS400,
-        String productCode,
-        Id contrato2Id,
-        String requestBody,
+        String stage,String method,String sourceType,String sourceId,String codigoAS400,String productCode, Id contrato2Id,String requestBody,
         Exception snapshotEx
     ) {
         try {
             NTT_MercedesSnapshotContext context = method == MERCEDES_MOD_CLIENTE
                 ? NTT_MercedesSnapshotContext.forClientsUpdateSuccess(
-                    sourceType,
-                    sourceId,
-                    codigoAS400,
-                    null,
-                    contrato2Id,
-                    productCode,
-                    requestBody,
-                    null
+                    sourceType,sourceId,codigoAS400,null,contrato2Id,productCode,requestBody,null
                 )
                 : NTT_MercedesSnapshotContext.forClientsSuccess(
-                    sourceType,
-                    sourceId,
-                    codigoAS400,
-                    null,
-                    contrato2Id,
-                    productCode,
-                    requestBody,
-                    null
+                    sourceType,sourceId,codigoAS400,null,contrato2Id,productCode,requestBody,null
                 );
             context.outboundEndpoint = method == MERCEDES_MOD_CLIENTE
                 ? NTT_MercedesSnapshotContext.ENDPOINT_CLIENTS_UPDATE
@@ -3360,32 +3345,24 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                                     (SELECT Id, Concepto__r.SinEdicion__c, PrecioLista__c , Concepto__r.ClaveReferencia__c, Bonificacion__c,
                                     VigenciaDescuento__c, Concepto__r.Importe__c, Concepto__r.ReferenceKeyDiscount__c, FechaInicio__c,Concepto__r.Billing_period__c,
                                     FechaFinal__c, PrecioLista2__c, PrecioFinal__c, Concepto_Tipo_Cargo__c, PartidaPresupuesto__r.FormaPago__c,
-                                    PartidaPresupuesto__r.NivelConsumo__c, CantidadTarjetas__c
-                                    FROM Productos_Concepto__r)
-                                FROM QuoteLineItem
-                                WHERE Id =: idQli];
+                                    PartidaPresupuesto__r.NivelConsumo__c, CantidadTarjetas__c FROM Productos_Concepto__r)
+                                FROM QuoteLineItem WHERE Id =: idQli];
             Set<String> idsDirecciones=new Set<String>();
             List<Contrato_Direccion__c> contratoDirecciones = [SELECT Id, Name, ContratoID__c,DireccionID__r.CodigoPostalID__r.CodigoPostal__c,
-                                                               DireccionID__c, Contrato_Filial__c,
-                                                               DireccionID__r.Ciudad_Tt__c,
+                                                               DireccionID__c, Contrato_Filial__c,DireccionID__r.Ciudad_Tt__c,
                                                                DireccionID__r.Calle_Tt__c, DireccionID__r.CodigoPostal_Tt__c, DireccionID__r.Colonia_Tt__c, DireccionID__r.CodigoPostalID__r.Name,
                                                                DireccionID__r.Name, DireccionID__r.NumeroExterior_Tt__c, DireccionID__r.NumeroInterior_Tt__c
-                                                               FROM Contrato_Direccion__c
-                                                               WHERE ContratoID__c =: idContrato];
+                                                               FROM Contrato_Direccion__c WHERE ContratoID__c =: idContrato];
             for(Contrato_Direccion__c cd: contratoDirecciones){
                 idsDirecciones.add(cd.DireccionID__c);
             }
             List<CatalogoDirecciones__c> direcciones = new List<CatalogoDirecciones__c>();
             Contrato2__c cont = [Select Id,FiscalAddress__c, DireccionesAuxiliares__c FROM Contrato2__c WHERE Id =:idContrato ];
             if(cont.DireccionesAuxiliares__c){  direcciones = [ Select Id, Calle_Tt__c, CodigoPostal_Tt__c, CodigoPostalID__r.CodigoPostal__c, Colonia_Tt__c, CodigoPostalID__r.Name,
-                               Name, NumeroExterior_Tt__c, NumeroInterior_Tt__c
-                               from CatalogoDirecciones__c
-                               where Id =:cont.FiscalAddress__c];
+                               Name, NumeroExterior_Tt__c, NumeroInterior_Tt__c from CatalogoDirecciones__c  where Id =:cont.FiscalAddress__c];
             }else {
                 direcciones = [ Select Id, Calle_Tt__c, CodigoPostal_Tt__c, CodigoPostalID__r.CodigoPostal__c, Colonia_Tt__c, CodigoPostalID__r.Name,
-                               Name, NumeroExterior_Tt__c, NumeroInterior_Tt__c
-                               from CatalogoDirecciones__c
-                               where Id IN: idsDirecciones];
+                               Name, NumeroExterior_Tt__c, NumeroInterior_Tt__c from CatalogoDirecciones__c where Id IN: idsDirecciones];
             }
             List<GeneralCatalog__c> catalogo=[SELECT Id, Name, Key__c, Value__c FROM GeneralCatalog__c WHERE RecordType.DeveloperName = 'Alta_Benefits'];
             map<String, String> mapCatalogo = new map<String, String>();
@@ -3418,8 +3395,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                         Contrato_2__r.Maneja_Conductores__c, Contrato_2__r.DenyPurchaseSunday__c,
                         Contrato_2__r.DenyPurchaseBusinessDay__c, Contrato_2__r.DenyPurchaseSaturday__c,
                         Contrato_2__r.Controla_Presencia_Vehiculo_NFC__c, Contrato_2__r.Facturacion_Comision__c,
-                        Contrato_2__r.Maneja_Nota_Vale__c,
-                        Contrato_2__r.Facturacion_Plasticos__c, Entidad_Cuenta__r.Cuenta__r.Sector__c,
+                        Contrato_2__r.Maneja_Nota_Vale__c,Contrato_2__r.Facturacion_Plasticos__c, Entidad_Cuenta__r.Cuenta__r.Sector__c,
                         Entidad_Cuenta__r.Cuenta__r.Giro__c,Entidad_Cuenta__r.RFCEL__c, Contrato_2__r.FiscalAddress__r.Calle_Tt__c,
                         Contrato_2__r.FiscalAddress__r.NumeroInterior_Tt__c, Contrato_2__r.FiscalAddress__r.NumeroExterior_Tt__c,
                         Contrato_2__r.Contacto__r.FirstName, Contrato_2__r.Contacto__r.LastName, Contrato_2__r.Contacto__r.Extension__c,
@@ -3439,17 +3415,11 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                         Contrato_2__r.PeriodicidadComplemento__c, Contrato_2__r.FiscalAddressText__c,Contrato_2__r.TipoPlastico__c,Contrato_2__r.TipoPlasticoFinanciero_PL__c,
                         Contrato_2__r.PaymentMethod__c,Contrato_2__r.PartidaPresupuesto__r.CreditDays__c, Contrato_2__r.PartidaPresupuesto__r.FormaPago__c,
                         Contrato_2__r.PartidaPresupuesto__r.OpcionesMetodoPago__c,Contrato_2__r.PartidaPresupuesto__r.Quote.Comision_por_Servicio__c,
-                        Contrato_2__r.DireccionesAuxiliares__c,//Añadido por Carlos Cruz
-                        Contrato_2__r.Contacto__r.Fax,//Añadido por Carlos Cruz
-                        Contrato_2__r.FiscalAddressFormula__c,//Añadido por Carlos Cruz
-                        Contrato_2__r.Dias_credito__c, //Añadido por Carlos Cruz
-                        Contrato_2__r.Direccion_Personalizacion__c, //Añadido por Carlos Cruz
-                        Contrato_2__r.PartidaPresupuesto__r.Product2.Es_OPAM__c, //Añadido por Carlos Cruz
+                        Contrato_2__r.DireccionesAuxiliares__c, Contrato_2__r.Contacto__r.Fax,Contrato_2__r.FiscalAddressFormula__c,//Añadido por Carlos Cruz
+                        Contrato_2__r.Dias_credito__c, Contrato_2__r.Direccion_Personalizacion__c, Contrato_2__r.PartidaPresupuesto__r.Product2.Es_OPAM__c, //Añadido por Carlos Cruz
                         Contrato_2__r.Facturacion_consolidada_tarjetas__c, //Añadido por Carlos Cruz
                         Contrato_2__r.PartidaPresupuesto__r.Quote.Opportunity.Maquilador__c
-                    FROM ContratoFilial__c
-                    WHERE Contrato_2__c =: idContrato
-                    AND CustomerCreatedAS400__c = false];
+                    FROM ContratoFilial__c WHERE Contrato_2__c =: idContrato  AND CustomerCreatedAS400__c = false];
             Integer filialesCount = [Select count() from ContratoFilial__c where Contrato_2__c=:idContrato];
             if(filialesCount == 0){   response.put('Code','2');    response.put('Response','No hay filiales asociadas al contrato!!');   response.put('cliente',JSON.serialize(cliente)); return response;
             }
@@ -3865,14 +3835,11 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                 cf.Name=cf.CodigoAS400__c;
             }
             upsert cFilial;
-            List<ContratoFilial__c> cFiliales = [
-                SELECT Name, Contrato_2__c, Contrato_2__r.PartidaPresupuesto__r.Quote.Opportunity.AccountId,
+            List<ContratoFilial__c> cFiliales = [ SELECT Name, Contrato_2__c, Contrato_2__r.PartidaPresupuesto__r.Quote.Opportunity.AccountId,
                        Contrato_2__r.PartidaPresupuesto__r.Quote.Opportunity.RecordType.DeveloperName, Entidad_Cuenta__r.Cuenta__c,
                        CodigoAS400__c, Contrato_2__r.PartidaPresupuesto__r.Product2.IDInterno__c, Entidad_Cuenta__r.Name, Producto__r.Family,
-                       Entidad_Cuenta__r.Cuenta__r.CodigoClienteAS400__c
-                  FROM ContratoFilial__c
-                 WHERE id =: cFilial
-                   AND isPrime__c = false];
+                       Entidad_Cuenta__r.Cuenta__r.CodigoClienteAS400__c  FROM ContratoFilial__c WHERE id =: cFilial  AND isPrime__c = false];
+            
             List<String> lisErr=new List<String>();
             Set<String> setAcc=new Set<String>();
             Set<String> setAdv=new Set<String>();
@@ -3931,11 +3898,8 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
             }
             List<Affiliate__c> cFiliales = [SELECT Name, Contract_2__c, Contract_2__r.PartidaPresupuesto__r.Quote.Opportunity.AccountId,
                        Contract_2__r.PartidaPresupuesto__r.Quote.Opportunity.RecordType.DeveloperName, AccountEntity__r.Cuenta__c,
-                       CodeAS400__c, Contract_2__r.PartidaPresupuesto__r.Product2.IDInterno__c,
-                       AccountEntity__r.Cuenta__r.CodigoClienteAS400__c
-                  FROM Affiliate__c
-                 WHERE id =: cFilial
-                   AND isPrime__c = false
+                       CodeAS400__c, Contract_2__r.PartidaPresupuesto__r.Product2.IDInterno__c,AccountEntity__r.Cuenta__r.CodigoClienteAS400__c
+                  FROM Affiliate__c WHERE id =: cFilial AND isPrime__c = false
             ];
             List<String> lisErr = new List<String>();
             Set<String> setAcc = new Set<String>();
@@ -4118,11 +4082,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     @AuraEnabled
     public static List<ProductoConcepto__c> getProductosByCodigoContrato(String codigoContrato) {
         List<Contrato2__c> contratos = [
-            SELECT PartidaPresupuesto__c
-            FROM Contrato2__c
-            WHERE GLB_Enviado_Mercedes__c = true
-            AND (CodigoAS400_Con2_Ori__c = :codigoContrato
-                OR CodigoAS400__c = :codigoContrato)
+            SELECT PartidaPresupuesto__c FROM Contrato2__c WHERE GLB_Enviado_Mercedes__c = true AND (CodigoAS400_Con2_Ori__c = :codigoContrato OR CodigoAS400__c = :codigoContrato)
             ORDER BY LastModifiedDate DESC
         ];
         Set<Id> partidas = new Set<Id>();
@@ -4135,26 +4095,10 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
             return new List<ProductoConcepto__c>();
         }
         List<ProductoConcepto__c> productos = [
-            SELECT Id, Concepto_Tipo_Cargo__c, Concepto__c,
-                Concepto__r.NTT_Usar_Valor_Default__c,
-                Concepto__r.NTT_Valor_Default__c,
-                Concepto__r.Orden__c,
-                Concepto__r.Obligatorio__c,
-                Concepto__r.TipoCargo__c,
-                Concepto__r.ClaveReferencia__c,
-                Concepto__r.GLBAr_Currency__c,
-                PrecioLista__c, PrecioLista2__c,
-                PrecioFinal__c, Bonificacion__c,
-                VigenciaDescuento__c, CantidadTarjetas__c,
-                PartidaPresupuesto__c,
-                ProductoComparadoID__c,
-                ApprovalLevel__c,
-                CreatedDate,
-                GLBAr_Currency__c
-            FROM ProductoConcepto__c
-            WHERE Concepto__c != null
-            AND PartidaPresupuesto__c IN :partidas
-            ORDER BY Concepto__c, CreatedDate DESC
+            SELECT Id, Concepto_Tipo_Cargo__c, Concepto__c, Concepto__r.NTT_Usar_Valor_Default__c,Concepto__r.NTT_Valor_Default__c,Concepto__r.Orden__c,
+                Concepto__r.Obligatorio__c, Concepto__r.TipoCargo__c,Concepto__r.ClaveReferencia__c,Concepto__r.GLBAr_Currency__c, PrecioLista__c, PrecioLista2__c,
+                PrecioFinal__c, Bonificacion__c,VigenciaDescuento__c, CantidadTarjetas__c,PartidaPresupuesto__c,ProductoComparadoID__c, ApprovalLevel__c,CreatedDate, GLBAr_Currency__c 
+            FROM ProductoConcepto__c WHERE Concepto__c != null AND PartidaPresupuesto__c IN :partidas ORDER BY Concepto__c, CreatedDate DESC
         ];
         Map<Id, ProductoConcepto__c> unicos = new Map<Id, ProductoConcepto__c>();
         for (ProductoConcepto__c pc : productos) {
