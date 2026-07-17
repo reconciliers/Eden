@@ -14,6 +14,10 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     static final Id ClienteRecordType = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Edenred').getRecordTypeId();
     private static String MERCEDES_ALTA_CLIENTE = 'create';
     private static String MERCEDES_MOD_CLIENTE = 'update';
+    // renegociacion - Televia
+    private static Opportunity opp;
+    @TestVisible
+    private static Boolean BLOCK_RENEGOTIATION_WITHOUT_SNAPSHOT = false;
     @TestVisible
     private static Boolean isMercedesSnapshotProduct(String productCode){
         return productCode == '33' || productCode == '43' || productCode == '60' || productCode == '60-t';
@@ -2197,7 +2201,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         List<RenegotiationProduct__c> listRenegotiationProduct = new List<RenegotiationProduct__c>();
         List<RenegotiationProduct__c> listRenegotiationProductApproved = new List<RenegotiationProduct__c>();
         Contrato2__c contrato = (Contrato2__c)JSON.deserialize(jsonContrato, Contrato2__c.class);
-        Opportunity opp = (Opportunity)JSON.deserialize(jsonOportunidad,Opportunity.class);
+        /*Opportunity */opp = (Opportunity)JSON.deserialize(jsonOportunidad,Opportunity.class);
         List<QuoteLineItem> ListQli = [
             SELECT Id
             FROM QuoteLineItem
@@ -2337,10 +2341,13 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
   // agregado Estabilizacion
      public static String getRecordRenegociacion(Set<String> codigos , Contrato2__c contrato,boolean CambioCondicionesFacturacion, boolean CambioCondicionesComerciales ){
         System.debug('getRecordRenegociacion'); 
-        String jsonFormat;
+         String jsonFormat;
          boolean nullList=false;
          List<NTT_MercedesSnapshot__c> getListSnapshop  = [SELECT id,LastConfirmedSourceType__c,ProductCode__c,contratoFilial__r.Contrato_2__r.TipoPago__c,Contrato2__c, ContratoFilial__r.Contrato_2__r.ComoFactura__c, ContratoFilial__r.Contrato_2__r.FrecuenciaFacturacion__c, ContratoFilial__r.Contrato_2__r.Tipo_de_Facturacion__c, ContratoFilial__r.Contrato_2__r.GLB_Facturacion_dia_Especifico__c, SnapshotKey__c,LastConfirmedPayload__c,CanonicalSubaccountKey__c,SnapshotStatus__c  FROM  NTT_MercedesSnapshot__c where CanonicalSubaccountKey__c IN: codigos ];
-        /* if(getListSnapshop.isEmpty()){
+         if(getListSnapshop.isEmpty()){
+             if(!BLOCK_RENEGOTIATION_WITHOUT_SNAPSHOT){
+                 return null;
+             }
              String codigoTrace;
              for(String codigo : codigos){
                  codigoTrace = codigo;
@@ -2357,7 +2364,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                  new CustomException('No existe snapshot Mercedes confirmado para generar la renegociacion.')
              );
              throw new CustomException('No existe snapshot Mercedes confirmado para generar la renegociacion.');
-         }*/
+         }
          System.debug('getRecordRenegociacion2'); 
          if(!getListSnapshop.isEmpty()){
             if(getListSnapshop[0].SnapshotStatus__c != NTT_MercedesSnapshotRepository.SNAPSHOT_STATUS_CONFIRMED){
@@ -2418,6 +2425,11 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                  );
                  throw new CustomException('El snapshot Mercedes no tiene un agreement completo para renegociacion.');
              }
+             // renegociacion - Televia
+             if(opp.NTT_AltaTelevia__c){
+                crearContratoNuevo(new Contrato2__c(),wrapper);                 
+             }
+
              wrapper.Client.agreements[0].identifier = contratoActualId;
              wrapper.Client.agreements[0].action_type = 2;
              wrapper.Client.agreements[0].Conditions[0].identifier = contratoActualId;
@@ -2589,6 +2601,71 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
          }
         return jsonFormat;
     }
+    // renegociacion - Televia
+    private static void crearContratoNuevo(Contrato2__c contrato, NTTER_ClientToMercedesWrapper.RequestToMercedes wrapper){
+
+        NTTER_ClientToMercedesWrapper.Agreements addAgrementTL = crearAgrements(new Contrato2__c());        
+        wrapper.Client.agreements.add(addAgrementTL);         
+        
+        NTTER_ClientToMercedesWrapper.Conditions conditionItem = crearConditions(new Contrato2__c());
+        wrapper.Client.agreements[1].conditions = new List<NTTER_ClientToMercedesWrapper.Conditions>{conditionItem};   
+
+        NTTER_ClientToMercedesWrapper.ConditionsBillings crearBilling =crearBilling(new Contrato2__c());
+        wrapper.Client.agreements[1].Conditions[0].billings = new List<NTTER_ClientToMercedesWrapper.ConditionsBillings>{crearBilling};
+            
+        NTTER_ClientToMercedesWrapper.Charges chargeItem = crearCharges(new Contrato2__c());                
+        wrapper.Client.agreements[1].Conditions[0].billings[0].Charges = new List<NTTER_ClientToMercedesWrapper.Charges>{chargeItem};
+        
+        System.debug('---Warpper3 TL '+ json.serialize(wrapper.Client));        
+    }
+   // renegociacion - Televia    
+    private static NTTER_ClientToMercedesWrapper.Agreements crearAgrements(Contrato2__c contrato){
+ 		NTTER_ClientToMercedesWrapper.Agreements addAgrementTL = new NTTER_ClientToMercedesWrapper.Agreements();   
+        addAgrementTL.identifier = contrato.id;
+        addAgrementTL.action_type = 2;
+        
+        return addAgrementTL;
+    }
+     // renegociacion - Televia
+    private static NTTER_ClientToMercedesWrapper.Conditions crearConditions(Contrato2__c contrato){
+       
+        NTTER_ClientToMercedesWrapper.Conditions conditionItem = new NTTER_ClientToMercedesWrapper.Conditions(); 
+        conditionItem.identifier = contrato.Id;
+        conditionItem.action_type = 2;
+        conditionItem.stepped_tables = new List<NTTER_ClientToMercedesWrapper.SteppedTables>();
+        
+        return conditionItem;
+    }
+// renegociacion - Televia    
+    private static NTTER_ClientToMercedesWrapper.ConditionsBillings crearBilling(Contrato2__c contrato){
+         NTTER_ClientToMercedesWrapper.ConditionsBillings billing = new NTTER_ClientToMercedesWrapper.ConditionsBillings();    
+         billing.identifier = contrato.Id;
+         billing.action_type = 2;
+        return billing;
+    }
+// renegociacion - Televia    
+    private static NTTER_ClientToMercedesWrapper.Charges crearCharges(Contrato2__c contrato){
+        NTTER_ClientToMercedesWrapper.Charges charge = new NTTER_ClientToMercedesWrapper.Charges();
+        charge.separated_group_id = 0;
+        charge.printed_group_id = 0;
+        charge.price_type_id = 0;
+        charge.price_table_code = '';
+        charge.payment = new NTTER_ClientToMercedesWrapper.Payment();
+        charge.is_separated_invoice = true;
+        charge.is_separated_group = true;
+        charge.is_replicated_billing_group = false;
+        charge.is_printed_group = false;
+        charge.is_custom_name = false;
+        charge.identifier = 8;
+        charge.frecuency = new NTTER_ClientToMercedesWrapper.Frecuency();
+        charge.discount = new NTTER_ClientToMercedesWrapper.Discount();
+        charge.custom_name = '';
+        charge.amount = 0;
+        charge.action_type = 2;
+        
+        return  charge;     
+    }
+    
     @TestVisible
     private static void preferConfirmedAgreementForRenegotiation(NTTER_ClientToMercedesWrapper.RequestToMercedes wrapper, String confirmedContrato2Id){
         if(
@@ -2885,7 +2962,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
       // agregado Estabilizacion
     public static map<integer, ProductoConcepto__c> getConcetosNews(String PartidaPresupuesto){
         map<integer, ProductoConcepto__c> mapConceptos = new  map<integer, ProductoConcepto__c> ();
-        List<ProductoConcepto__c> conceptos = [SELECT id,CreatedDate,Concepto__r.Name, Concepto_Tipo_Cargo__c, Bonificacion__c, PrecioLista__c, VigenciaDescuento__c, FechaInicio__c, FechaFinal__c FROm ProductoConcepto__c where PartidaPresupuesto__c =: PartidaPresupuesto];
+        List<ProductoConcepto__c> conceptos = [SELECT id,CreatedDate,Concepto__r.Name, Concepto_Tipo_Cargo__c, Bonificacion__c, PrecioLista__c, PrecioFinal__c, VigenciaDescuento__c, FechaInicio__c, FechaFinal__c FROm ProductoConcepto__c where PartidaPresupuesto__c =: PartidaPresupuesto];
         if(!conceptos.isEmpty()){
             for(ProductoConcepto__c itemConcep :conceptos ){
                 integer valorCargo = CON_MercedesRenegotiationPayloadHelper.chargeIdentifier(itemConcep.Concepto_Tipo_Cargo__c);
@@ -2942,8 +3019,9 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                     //
                     ProductoConcepto__c productConcept = getConcetosNews.get(wrapItem.identifier);
                     if(CambioCondicionesComerciales == true){
-                        if(productConcept.PrecioLista__c != null){
-                            wrapItem.amount = productConcept.PrecioLista__c;
+                        Decimal productConceptAmount = CON_MercedesRenegotiationPayloadHelper.chargeAmount(productConcept);
+                        if(productConceptAmount != null){
+                            wrapItem.amount = productConceptAmount;
                         }
                         applyProductConceptDiscount(wrapItem.discount, productConcept);
                     }
@@ -2975,7 +3053,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                         newCharge.custom_name = targetBilling.charges[0].custom_name;
                         newCharge.price_type_id =  productConcept.Concepto_Tipo_Cargo__c.contains('Comisi') ? 2 : 1; // % o $;
                         newCharge.price_table_code = targetBilling.charges[0].price_table_code;
-                        newCharge.amount = productConcept.PrecioLista__c;
+                        newCharge.amount = CON_MercedesRenegotiationPayloadHelper.chargeAmount(productConcept);
                         newCharge.is_separated_invoice = is_separated_invoice;
                         newCharge.is_separated_group = is_separated_group;
                         newCharge.separated_group_id = separated_group_id;
@@ -3152,10 +3230,15 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         String requestBody = data;
         String snapshotRequestBody;
         Boolean useMercedesSnapshot = isMercedesSnapshotProduct(productCode);
+        Boolean updateSnapshotValidated = false;
+        Boolean requiresRenegotiationSnapshotPreflight =
+            method == MERCEDES_MOD_CLIENTE &&
+            sourceType == 'Renegociacion' &&
+            useMercedesSnapshot;
         if (method == MERCEDES_MOD_CLIENTE && sourceType == 'Renegociacion') {
             requestBody = normalizeRenegotiationAccountsForMercedesUpdate(requestBody);
         }
-        if (method == MERCEDES_MOD_CLIENTE && sourceType == 'Renegociacion' && useMercedesSnapshot) {
+        if (requiresRenegotiationSnapshotPreflight) {
             try {
                 snapshotRequestBody = NTT_MercedesSnapshotHook.validateClientsUpdatePayloadBeforeSend(
                     requestBody,
@@ -3163,22 +3246,30 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                     contrato2Id,
                     productCode
                 );
+                updateSnapshotValidated = true;
             } catch (Exception snapshotEx) {
-                String reason = NTT_MercedesPayloadTraceService.REASON_PREFLIGHT_FAILED;
-                if(snapshotEx.getMessage() != null && snapshotEx.getMessage().contains('No existe snapshot')){
-                    reason = NTT_MercedesPayloadTraceService.REASON_NO_SNAPSHOT;
-                }else if(snapshotEx.getMessage() != null && snapshotEx.getMessage().contains('no esta confirmado')){
-                    reason = NTT_MercedesPayloadTraceService.REASON_SNAPSHOT_NOT_CONFIRMED;
+                Boolean missingSnapshot =
+                    snapshotEx.getMessage() != null &&
+                    snapshotEx.getMessage().contains('No existe snapshot');
+                if(missingSnapshot && !BLOCK_RENEGOTIATION_WITHOUT_SNAPSHOT){
+                    snapshotRequestBody = null;
+                }else{
+                    String reason = NTT_MercedesPayloadTraceService.REASON_PREFLIGHT_FAILED;
+                    if(missingSnapshot){
+                        reason = NTT_MercedesPayloadTraceService.REASON_NO_SNAPSHOT;
+                    }else if(snapshotEx.getMessage() != null && snapshotEx.getMessage().contains('no esta confirmado')){
+                        reason = NTT_MercedesPayloadTraceService.REASON_SNAPSHOT_NOT_CONFIRMED;
+                    }
+                    NTT_MercedesPayloadTraceService.recordBlockedRenegotiation(
+                        reason, sourceType,  sourceId,  codigoAS400,  productCode, contrato2Id, requestBody, snapshotEx
+                    );
+                    return new Map<String, Object>{
+                        'success' => false,
+                        'Error' => 'No se envio a Mercedes porque no fue posible validar el snapshot Mercedes: ' + snapshotEx.getMessage(),
+                        'statusCode' => 0,
+                        'responseBody' => ''
+                    };
                 }
-                NTT_MercedesPayloadTraceService.recordBlockedRenegotiation(
-                    reason, sourceType,  sourceId,  codigoAS400,  productCode, contrato2Id, requestBody, snapshotEx
-                );
-                return new Map<String, Object>{
-                    'success' => false,
-                    'Error' => 'No se envio a Mercedes porque no fue posible validar el snapshot Mercedes: ' + snapshotEx.getMessage(),
-                    'statusCode' => 0,
-                    'responseBody' => ''
-                };
             }
         }
         Map<String, Object> result = sendClientToMercedes(requestBody, method);
@@ -3187,7 +3278,8 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
             result != null &&
             Boolean.valueOf(result.get('success')) &&
             contrato2Id != null &&
-            useMercedesSnapshot
+            useMercedesSnapshot &&
+            (!requiresRenegotiationSnapshotPreflight || updateSnapshotValidated)
         ) {
             try {
                 NTT_MercedesSnapshotHook.handleClientsSuccess(
