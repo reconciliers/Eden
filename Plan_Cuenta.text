@@ -483,7 +483,8 @@
                             ctcUtils.app.approvalLevels = vm.initApprovalLevels();
                             console.log('ctcUtils.app.approvalLevels: ' + JSON.stringify(ctcUtils.app.approvalLevels));
                             // renegociacion - Televia    
-                            ctcUtils.app.snapShop = vm.getSnap(); 
+                            console.log('ctcUtils.app.vm.contracts[0].Id: ' + JSON.stringify(vm.contracts[0]));    
+                            ctcUtils.app.snapShop = vm.getSnap(vm.contracts[0].Contract); 
                             console.log('ctcUtils.app.snapShop: ' + JSON.stringify(ctcUtils.app.snapShop));                            
                             
                             ctcUtils.app.contracts = vm.contracts;//CEAM:3563
@@ -735,8 +736,8 @@
                     vm.initApprovalLevels = function() {
                         return ctcUtils.invoke('PLAN_CuentaService.query', 'SELECT Concept__c, NumberOfShipments__c, Discount__c, MoreShipmentsMoreDiscountApproval__c, MoreShipmentsLessDiscountApproval__c, LessShipmentsMoreDiscountApproval__c, LessShipmentsLessDiscountApproval__c, MoreDiscountApproval__c, LessDiscountApproval__c, Segment__c, Solution__c, Product__c FROM ConceptApprovalLevel__mdt') //REQ: 4600
                     }
-                     vm.getSnap = function() {
-                        return ctcUtils.invoke('PLAN_CuentaService.query', 'SELECT ProductIdMercedes__c from NTT_MercedesSnapshotCommercialItem__c where Snapshot__r.Contrato2__r.Contrato_Filial__c  = \'a0mOx000008F4mfIAC\'') //REQ: 4600
+                     vm.getSnap = function(contratoFilialId) {
+                         return ctcUtils.invoke('PLAN_CuentaService.query', 'SELECT ProductIdMercedes__c from NTT_MercedesSnapshotCommercialItem__c where Snapshot__c IN (select id from NTT_MercedesSnapshot__c  where CanonicalSubaccountKey__c =  \''+contratoFilialId+'\')') //REQ: 4600
                     }
                     /* Cotizador monofamilia calvarez 08/11/2017 */
                     vm.initFactory = function() {

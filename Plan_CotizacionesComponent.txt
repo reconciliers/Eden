@@ -232,6 +232,7 @@
                 vm.comisionServicio = 'Comisión por el servicio'
                 vm.classAction = 'alert-danger'
                 vm.conceptoAprobacion = ctcUtils.app.conceptoAprobacion;
+                
                 //Inicio Flujo de Aprobaciones
                 vm.doesFollowOldApprovalLogic = false;
                 //Fin Flujo de Aprobaciones
@@ -2019,7 +2020,10 @@
                             }//Fin Licitación clientes, primer punto sprint 13/04/2026 - 24/04/2026
                         }
                     }
-                }
+                
+            
+            	debugger;
+            }
 
                 ctcUtils.guardaCotizacionConAprobacion = function(cotizacion, aprobacion) {
                     console.log('Guardando cotización con aprobación.');
@@ -2126,11 +2130,18 @@
                     const tiposCargo = [];
                     //add Televia
                     let CodeProduc='';
+                    // fix metodo de pago
+                    let metodoPago='';
                     
+
                     var isProduct43 = false;
                     if (cotizacion && cotizacion.productos && ctcUtils.app.opportunity.RecordType !== 'RT_ChangeParameters') {
                         const productos = cotizacion.productos;
                         for (let producto of productos) {
+                                                // fix metodo de pago
+                            console.log('producto.PaymentMethod__c '+producto.NTT_FormaPagoSTP__c);
+                            metodoPago = producto.NTT_FormaPagoSTP__c;
+                    // fix metodo de pago
                             if(producto.isProductMfa){isProduct43 = true;}
                             if (producto.conceptosUnicos) {
 
@@ -2150,11 +2161,40 @@
                         console.log('tiposCargo: ', tiposCargo);
                         
                         console.log('CodeProduc: ', CodeProduc);
+                        console.log('cotizacion: ', cotizacion);
+                        console.log('tiposCargo.includes: ', tiposCargo.includes('Comisión por Servicio Telepeaje'));
+                        console.log('ctcUtils.app.opportunity.RecordType: ', ctcUtils.app.opportunity.RecordType);
+                        console.log('cctcUtils.app.modalidadPago: ',ctcUtils.app.modalidadPago);
+                        
                         //add Televia
-                        if(ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation'  && CodeProduc == '33' && (tiposCargo.includes('Cuota por Renta Mensual Tag Dual')  || (tiposCargo == 'Tag Dual' || tiposCargo == 'TAG Dual' ) || tiposCargo.includes('Comisión por Servicio Telepeaje'))){
+                       // renegociacion - Televia
+                        /*if(ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation'  && CodeProduc == '33' && (tiposCargo.includes('Cuota por Renta Mensual Tag Dual')  || (tiposCargo == 'Tag Dual' || tiposCargo == 'TAG Dual' ) || tiposCargo.includes('Comisión por Servicio Telepeaje'))){
                             ctcUtils.showError('Cuota por Renta Mensual Tag Dual, Comisión por Servicio Telepeaje y Tag Dual, no estan activos en una renegociacion');
                         	return false;
+                        }*/
+                       // renegociacion - Televia     
+                       if(ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation'  && CodeProduc == '33' &&  tiposCargo.includes('Comisión por Servicio Telepeaje')){
+                            if(!tiposCargo.includes('Cuota por Renta Mensual Tag Dual') || !tiposCargo.includes('TAG Dual') ) {
+                                ctcUtils.showError('Para activar Televía son necesario los conceptos Cuota por Renta Mensual Tag Dual y Tag Dual');
+                        	    return false;
+                            }                           
                         }
+
+                        /* if(ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation'  && CodeProduc == '33' &&  tiposCargo.includes('Comisión por Servicio Telepeaje')){
+                            console.log('NTT_AltaTelevia__c Cot '+ctcUtils.app.opportunity.NTT_AltaTelevia__c);
+                            if(!ctcUtils.app.opportunity.NTT_AltaTelevia__c || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'false') {
+                                 console.log('entro Cot ');
+                                ctcUtils.showError('Para añadir Televía es necesario activar la casilla Alta Televia en la oportunidad');
+                        	    return false;
+                            }                           
+                         }*/
+                        // renegociacion - Televia     
+                        // fix metodo de pago
+                        if( metodoPago  != 'STP REFERENCIADO' &&  (ctcUtils.app.opportunity.RecordType == 'VentaNueva' || ctcUtils.app.opportunity.RecordType == 'Migracion') && CodeProduc == '33' &&  tiposCargo.includes('Comisión por Servicio Telepeaje')){
+                            ctcUtils.showError('El tipo de pago seleccionado no es válido para Telepeaje. Selecciona STP REFERENCIADO');
+                        	return false;
+                        }
+                                            // fix metodo de pago
                         //add Televia
                     	if (tiposCargo.includes('Cobro por gestion de vehiculos por evento') && tiposCargo.includes('Cobro por gestion de vehiculos') && isProduct43) {
                         	ctcUtils.showError('Debes seleccionar gestión de vehículos o gestión de vehículos por evento');
@@ -2411,7 +2451,9 @@
                         }
                         //Inicio Flujo de Aprobaciones
                         //Validamos si se contemplará el nivel de jurídico
-                        if((ctcUtils.app.ProductCode == '33' || ctcUtils.app.ProductCode == '43') && cotizacion.productos[0].PaymentMethod__c == 'Pospago' && ctcUtils.isStringNotEmpty(ctcUtils.app.approvalFlowName)){
+                        //Inicio Licitación clientes
+                        if(Object.keys(ctcUtils.approvalMatrixFlows).includes(ctcUtils.app.ProductCode) && cotizacion.productos[0].PaymentMethod__c == 'Pospago' && ctcUtils.isStringNotEmpty(ctcUtils.app.approvalFlowName)){
+                            //Fin Licitación clientes
                             payloadQuote.NTT_Nombre_Flujo_de_Aprobacion__c = ctcUtils.app.approvalFlowName;
                             if(aprobacion != null){
                                 aprobacion.IsApprovalLevelCredit = true;
@@ -2595,7 +2637,7 @@
                             payloadQuoteLineItem.push(payloadQLI)
                             //Inicio Flujo de Aprobaciones
                             //Validamos si el flujo contemplará a jurídico
-                            if((payloadQLI.WarrantyType__c == 'Fianza' || payloadQLI.WarrantyType__c == 'Garantia Mixta' || payloadQLI.WarrantyType__c == 'Carta Stand By') && (ctcUtils.app.ProductCode == '33' || ctcUtils.app.ProductCode == '43') && cotizacion.productos[0].PaymentMethod__c == 'Pospago' && ctcUtils.isStringNotEmpty(ctcUtils.app.approvalFlowName)){
+                            if((payloadQLI.WarrantyType__c == 'Fianza' || payloadQLI.WarrantyType__c == 'Garantia Mixta' || payloadQLI.WarrantyType__c == 'Carta Stand By') && Object.keys(ctcUtils.approvalMatrixFlows).includes(ctcUtils.app.ProductCode) && cotizacion.productos[0].PaymentMethod__c == 'Pospago' && ctcUtils.isStringNotEmpty(ctcUtils.app.approvalFlowName)){
                                 //Validamos si entrará a flujo de jurídico
                                 payloadQuote.IsApprovalLevelJuridico__c = true;
                                 
@@ -2633,9 +2675,10 @@
                         //Establecer en la oportunidad el check de MFG
                         payloadOpportunity.MX_Alta_del_programa_MFG__c = isMFGSelected;
                         ctcUtils.app.isMFGSelected = isMFGSelected;
-
-                      
-						debugger;
+                        // renegociacion - Televia
+                        console.log('ctcUtils.app.hasSnap  '+JSON.stringify (ctcUtils.app.hasSnap));
+                        payloadOpportunity.NTT_AltaTelevia__c = ctcUtils.app.hasSnap != undefined && ctcUtils.app.hasSnap != null ? true : false;
+            			
                         ///ASIGNACION CREDITO
                         if(ctcUtils.app.opportunity.RecordType == 'RT_ChangeParameters' &&  (ctcUtils.app.ProductCode == '33' || ctcUtils.app.ProductCode == '43') && (cotizacion.contracts !== undefined || ctcUtils.app.contracts !== undefined )){   
                             var contratoFilial = null;
@@ -3221,7 +3264,7 @@
                         ret.NTT_Tipo_Credito__c              =  producto.NTT_Tipo_Credito__c ? producto.NTT_Tipo_Credito__c : null;
                         ret.NTT_Monto_Liberado_Periodo__c    =  producto.NTT_Monto_Liberado_Periodo__c ? producto.NTT_Monto_Liberado_Periodo__c : null;
                         ret.NTT_Frecuencia_Liberacion__c     =  producto.NTT_Frecuencia_Liberacion__c ? producto.NTT_Frecuencia_Liberacion__c : null;
-                        ret.DocumentType__c                  =  producto.Product2Id__o.ProductCode == vm.productLicitacion.clients.code ? 'MPago_ACredito_CSoporteLicitacion':ret.DocumentType__c;
+                        ret.DocumentType__c                  =  producto.Product2Id__o.ProductCode == vm.productLicitacion.clients.code ? 'MPago_SCliente_Licitacion':ret.DocumentType__c;
                     }
                     ret.NTT_Numero_Contrato_Licitacion__c = producto.NTT_Numero_Contrato_Licitacion__c ? producto.NTT_Numero_Contrato_Licitacion__c : null;
                     console.log('GUARDAR INFORMACIÓN LICITACIÓN');
