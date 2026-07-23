@@ -254,7 +254,8 @@
                     NTT_CheckTelepeaje__c : '{!Opportunity.NTT_CheckTelepeaje__c }',
                     NTT_CheckTelepeaje__c : '{!Opportunity.NTT_CheckTelepeaje__c }',
                     // renegociacion - Televia 656
-                     NTT_AltaTelevia__c : '{!Opportunity.NTT_AltaTelevia__c}',
+                    NTT_AltaTelevia__c : '{!Opportunity.NTT_AltaTelevia__c}',
+                    NTT_ModificacionTelevia__c : '{!Opportunity.NTT_ModificacionTelevia__c}',
                    
                     NTT_InfoValida__c : '{!Opportunity.NTT_InfoValida__c}',
                     // Televia fin
@@ -274,7 +275,9 @@
                         Role__c: '{!Opportunity.Owner.UserRole.Name}'
                     },
                     MX_Alta_del_programa_MFG__c:'{!Opportunity.MX_Alta_del_programa_MFG__c}',
+                    // renegociacion - Televia 
                     GLB_Cambio_Condiciones_Comerciales__c:'{!Opportunity.GLB_Cambio_Condiciones_Comerciales__c}',
+                    GLB_Cambio_Condiciones_Facturacion__c:'{!Opportunity.GLB_Cambio_Condiciones_Facturacion__c}',                    
                     GLBAr_Cantidad_Litros__c: '{!Opportunity.GLBAr_Cantidad_Litros__c}', // NVH --> Edenred Argentina
                     GLBAr_Origin__c: '{!Opportunity.GLBAr_Origin__c}', // NVH --> Edenred Argentina
                    
@@ -286,14 +289,18 @@
                 console.log('vm.scontracts1: ' + JSON.stringify(vm.scontracts));
                 // renegociacion - Televia    
                 vm.snapShop = '{!$CurrentPage.parameters.snapShop}';//CEAM: 3563
+                vm.comisionTelevia = '{!$CurrentPage.parameters.comisionTelevia}';
                 console.log('vm.snapShop: ' + JSON.stringify(vm.snapShop));
-                vm.hasSnap ;//CEAM: 3563
+                vm.hasSnap ;
+                ctcUtils.NTT_IsTelepeaje__c  ='{!$CurrentPage.parameters.NTT_IsTelepeaje__c}';
+
                 // renegociacion - Televia    
                 console.log('vm.hasSnap: ' + JSON.stringify(vm.hasSnap));
                 
                 vm.contracts = vm.scontracts ? JSON.parse(vm.scontracts) : '';//CEAM: 3563
                 console.log('vm.contracts: ' + JSON.stringify(vm.contracts));
                 ctcUtils.contractsR = vm.contracts;
+                
                 console.log('vm.contractsR: ' + JSON.stringify(vm.contractsR));
                 //vm.contracts = JSON.parse(vm.scontracts.replace(/_/g, '\u00A0'));//CEAM: 3563
                 //vm.valorComisionLicitacionGobFed = 0.00; // LICITACION GOB FED
@@ -479,15 +486,16 @@
                                 profile: '{!$Profile.Name}',
                                 user: vm.user
                             }
-                           
                             ctcUtils.app.approvalLevels = vm.initApprovalLevels();
                             console.log('ctcUtils.app.approvalLevels: ' + JSON.stringify(ctcUtils.app.approvalLevels));
+                            ctcUtils.app.contracts = vm.contracts;//CEAM:3563                              
                             // renegociacion - Televia    
-                            console.log('ctcUtils.app.vm.contracts[0].Id: ' + JSON.stringify(vm.contracts[0]));    
-                            ctcUtils.app.snapShop = vm.getSnap(vm.contracts[0].Contract); 
-                            console.log('ctcUtils.app.snapShop: ' + JSON.stringify(ctcUtils.app.snapShop));                            
-                            
-                            ctcUtils.app.contracts = vm.contracts;//CEAM:3563
+                            if(vm.contracts != null && vm.contracts != '' && ctcUtils.app.opportunity.RecordType === 'RT_Renegotiation'){
+                           		console.log('ctcUtils.app.vm.contracts[0].Id: ' + JSON.stringify(vm.contracts));
+                                ctcUtils.app.snapShop = vm.getSnap(vm.contracts[0].Contract); 
+								console.log('ctcUtils.app.snapShop: ' + JSON.stringify(ctcUtils.app.snapShop));                                 
+                            }
+
                             //ctcUtils.app.originalRenegotiationQuoteProduct = (vm.contracts && vm.contracts[0]) ? vm.getRenegotiationOriginalPackage(vm.contracts[0].Id) : {};
                             ctcUtils.app.product = {};
                             vm.getPlantillaPropuesta()
@@ -617,10 +625,14 @@
                                 var representante = ctcUtils.filter(ctcUtils.app.contacts, {Funcion__c: 'Representante Legal'})
                                 representante = representante.length > 0 ? representante[0] : {}
                                 ctcUtils.app.representante = representante
+                               	ctcUtils.app.opportunity.CloseDateLong = new Date(ctcUtils.app.opportunity.CloseDate).getTime()
                                
-                                ctcUtils.app.opportunity.CloseDateLong = new Date(ctcUtils.app.opportunity.CloseDate).getTime()
-                               
+
                                 console.log('ctcUtils.app.cots: ' + JSON.stringify(ctcUtils.app.cots));
+                                // renegociacion - Televia 
+                                ctcUtils.NTT_IsTelepeaje__c = res.NTT_IsTelepeaje__c;
+                                console.log('ctcUtilstetet: ' + JSON.stringify(ctcUtils.NTT_IsTelepeaje__c ));
+                                
                                 if( ctcUtils.app.cots.length == 0 ) {
                                    
                                     // Crear columnas por cada ProductoComparado__c
@@ -649,6 +661,7 @@
                                     console.log('VM.COTS  ', ctcUtils.app.cots[0].Package__c);
                                 }
 
+                                
                                 //INICIO - Ajuste Forma de Pago 43 y 33
                                 ctcUtils.app.paymentTypes = angular.copy(ctcUtils.app.schema.QuoteLineItem.NTT_FormaPagoSTP__c);
                                 //FIN - Ajuste Forma de Pago 43 y 33
@@ -737,7 +750,7 @@
                         return ctcUtils.invoke('PLAN_CuentaService.query', 'SELECT Concept__c, NumberOfShipments__c, Discount__c, MoreShipmentsMoreDiscountApproval__c, MoreShipmentsLessDiscountApproval__c, LessShipmentsMoreDiscountApproval__c, LessShipmentsLessDiscountApproval__c, MoreDiscountApproval__c, LessDiscountApproval__c, Segment__c, Solution__c, Product__c FROM ConceptApprovalLevel__mdt') //REQ: 4600
                     }
                      vm.getSnap = function(contratoFilialId) {
-                         return ctcUtils.invoke('PLAN_CuentaService.query', 'SELECT ProductIdMercedes__c from NTT_MercedesSnapshotCommercialItem__c where Snapshot__c IN (select id from NTT_MercedesSnapshot__c  where CanonicalSubaccountKey__c =  \''+contratoFilialId+'\')') //REQ: 4600
+                         return ctcUtils.invoke('PLAN_CuentaService.query', 'SELECT ProductIdMercedes__c from NTT_MercedesSnapshotCommercialItem__c where Snapshot__c IN (select id from NTT_MercedesSnapshot__c  where CanonicalSubaccountKey__c =  \''+contratoFilialId+'\') and ProductIdMercedes__c = 55') //REQ: 4600
                     }
                     /* Cotizador monofamilia calvarez 08/11/2017 */
                     vm.initFactory = function() {
@@ -1021,7 +1034,7 @@
                                
                                 //Dan
                                 console.log('Eliminar Duplicados: '+JSON.stringify(ctcUtils.EliminarDuplicados(res, it => it.TipoCargo__c)));//Dan
-                                console.log('Eliminar Duplicados Comisión por el servicio'+JSON.stringify(ctcUtils.eliminarSegundosValores(res,'Comisión por el servicio')));
+                                ///   console.log('Eliminar Duplicados Comisión por el servicio'+JSON.stringify(ctcUtils.eliminarSegundosValores(res,'Comisión por el servicio')));
 
                                 for(let approvalConcepto of ctcUtils.app.approvalLevels.$$state.value){//REQ: 4600
                                     //BEGIN Removed By Fran Rojas | HU Firma Electronica
@@ -1033,10 +1046,14 @@
                                         ctcUtils.app.ApprovalConceProduct.push(approvalConcepto.Product__c+'-'+approvalConcepto.Concept__c);
                                 }
                                
-                                // renegociacion - Televia    
-                                for(let snaps of ctcUtils.app.snapShop.$$state.value){//REQ: 4600                                   
-                                   ctcUtils.app.hasSnap = snaps;
-                                   console.log('snaps test '+ JSON.stringify(snaps));
+                                 // renegociacion - Televia    
+                                if(ctcUtils.app.opportunity.RecordType === 'RT_Renegotiation' && ctcUtils.app.contracts != null && ctcUtils.app.contracts != ''){
+                                    if(ctcUtils.app.snapShop != undefined){
+                                        for(let snaps of ctcUtils.app.snapShop.$$state.value){//REQ: 4600                                   
+                                           ctcUtils.app.hasSnap = snaps;
+                                           console.log('snaps test '+ JSON.stringify(snaps));
+                                     	} 
+                                    }                                   
                                 }
                                 //res = ctcUtils.EliminarDuplicados(res,it => it.TipoCargo__c);//Dan
                                 res = ctcUtils.eliminarSegundosValores(res,'Comisión por el servicio');
@@ -1465,7 +1482,9 @@
                                                
                                                     if(conceptotest){
                                                         concepto.Bonificacion__c  = conceptotest.Descuento;
-                                                        concepto.Render = true                                                  
+                                                        // renegociacion - Televia  
+                                                        console.log('ctcUtils.NTT_IsTelepeaje__c: ' + JSON.stringify(ctcUtils.app.cots[0].NTT_IsTelepeaje__c));
+                                                        concepto.Render =ctcUtils.app.cots[0].NTT_IsTelepeaje__c; //true                                                  
                                                         concepto.PrecioFinal__c = conceptotest.CostoFinal;
                                                         concepto.PrecioFinal2__c = conceptotest.CostoFinal;
                                                        
@@ -1549,7 +1568,10 @@
                                 }
                                 // televia add
                                  if(concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje'){
-                                        concepto.Render = true
+                                   //     concepto.Render = true
+                                    // renegociacion - Televia
+                                   console.log('ctcUtils.NTT_IsTelepeaje__c: ' + JSON.stringify(ctcUtils.app.cots[0].NTT_IsTelepeaje__c));
+                                   concepto.Render =ctcUtils.app.cots[0].NTT_IsTelepeaje__c;
                                 }
                                 // televia add
                                 if ( !unicos.hasOwnProperty(key) ) {
@@ -1662,7 +1684,10 @@
                                    
                                         if(conceptotest){
                                             concepto.Bonificacion__c  = conceptotest.Descuento;
-                                            concepto.Render = true
+                                            //concepto.Render = true
+                                             // renegociacion - Televia
+                                            console.log('ctcUtils.NTT_IsTelepeaje__c: ' + JSON.stringify(ctcUtils.app.cots[0].NTT_IsTelepeaje__c));
+                                            concepto.Render =ctcUtils.app.cots[0].NTT_IsTelepeaje__c;
                                             concepto.PrecioFinal__c = conceptotest.CostoFinal;
                                             concepto.PrecioFinal2__c = conceptotest.CostoFinal;
 
@@ -2642,7 +2667,10 @@
                                             concepto.Render = false;
                                         }else if(producto.conceptosUnicos.length > 0 && concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje' ){
                                             // Televia Inicio
-                                            concepto.Render = ctcUtils.app.opportunity.NTT_CheckTelepeaje__c ? true : false;
+                                            // renegociacion - Televia
+                                            console.log('ctcUtils.NTT_IsTelepeaje__c: ' + JSON.stringify(ctcUtils.app.cots[0].NTT_IsTelepeaje__c));
+                                            concepto.Render =ctcUtils.app.cots[0].NTT_IsTelepeaje__c;
+                            				//concepto.Render = ctcUtils.app.opportunity.NTT_CheckTelepeaje__c ? true : false;
                                             console.log('NVH-key:dem  ', concepto.Render);
                                             // Televia FIN
                                         }
@@ -4611,7 +4639,7 @@
                 border-radius: 4px;
                 margin-bottom: 10px;
                 text-align: center;
-                font-size: 20px;
+                font-size: 20px; 
             }
 
             .error-message strong {
