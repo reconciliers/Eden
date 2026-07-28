@@ -1,0 +1,2830 @@
+<apex:component controller="CON_ContractsContainer_CTRL">
+    <script type="text/ng-template" id="generaPDF.html">
+        <div class="modal-header" id="generaPDFCtrl">
+            <button type="button" class="close" ng-click="sc.close()"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">
+                <span class="fa fa-file-pdf-o text-danger fa-fw"></span>
+                <span ng-bind="sc.cotizacion.Name"></span>
+            </h4>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-success" ng-if="sc.processing"> <strong class="fa fa-spinner fa-pulse fa-fw"></strong> Generando cotización. </div>
+            <iframe width="100%" height="510px" type="application/pdf" ng-src="{{sc.data}}" ng-if="sc.dataRender"></iframe>
+            <div class="containerHidden">
+                <div id="promiseGeneralID">
+                    <div ng-repeat="solucion in sc.soluciones">
+                        <div ng-if="solucion.openMFGAttached">
+                            <ctc-component-vfc name="PLAN_AnexoMFG" ng-if="solucion.openMFGAttached"></ctc-component-vfc>
+                        </div>
+                        <div ng-if="solucion.RecordType != 'RT_Renegotiation' && !solucion.openMFGAttached">
+                            
+                        	<ctc-component-vfc name="PLAN_EcovaleCombustibleEdenred" ng-if="sc.codigos[solucion.Product2.ProductCode].Name ==
+	                        'PLAN_EcovaleCombustibleEdenred'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_EcovaleDespensasEdenred" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_EcovaleDespensasEdenred'"></ctc-component-vfc>
+                        
+                        	<ctc-component-vfc name="PLAN_ValeDespensasEdenred" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+                        	'PLAN_ValeDespensasEdenred'"></ctc-component-vfc>
+                        	<ctc-component-vfc name="PLAN_ValeDespensasEdenred2" ng-if="sc.codigos[solucion.Product2.ProductCode + '-CMP2'].Name == 
+                        	'PLAN_ValeDespensasEdenred2'"></ctc-component-vfc>
+                        
+                        	<ctc-component-vfc name="PLAN_EmpresarialEdenred" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+                        	'PLAN_EmpresarialEdenred'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_EmpresarialEdenred2" ng-if="sc.codigos[solucion.Product2.ProductCode + '-CMP2'].Name == 
+	                        'PLAN_EmpresarialEdenred2'"></ctc-component-vfc>
+
+                        	<ctc-component-vfc name="PLAN_RegaloEdenred" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+                        	'PLAN_RegaloEdenred'"></ctc-component-vfc>
+                        	<ctc-component-vfc name="PLAN_RegaloEdenredMax" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+                        	'PLAN_RegaloEdenredMax'"></ctc-component-vfc><!-- REQ:4294 -->
+                        	<ctc-component-vfc name="PLAN_RegaloEdenredWalmart" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+                        	'PLAN_RegaloEdenredWalmart'"></ctc-component-vfc><!-- REQ:4294 -->
+                        
+                        	<ctc-component-vfc name="PLAN_TicketRestaurante" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+                        	'PLAN_TicketRestaurante'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_TicketRestauranteMax" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_TicketRestauranteMax'"></ctc-component-vfc><!-- REQ:4294 -->
+	                        <ctc-component-vfc name="PLAN_TicketCar" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_TicketCar' && solucion.Maquilador != 'SmartCard Business'"></ctc-component-vfc>
+                            <ctc-component-vfc name="PLAN_TicketCar2" ng-if="sc.codigos[solucion.Product2.ProductCode+'-CMP2'].Name == 
+	                        'PLAN_TicketCar2' && solucion.Maquilador != 'SmartCard Business'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_TC3SmartCardBusiness" ng-if="sc.codigos[solucion.Product2.ProductCode].Name ==
+	                        'PLAN_TicketCar' && solucion.Maquilador == 'SmartCard Business' "></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_TicketPlus" ng-if="sc.codigos[solucion.Product2.ProductCode].Name ==
+	                        'PLAN_TicketPlus'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_VestimentaEdenred" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_VestimentaEdenred'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_VestimentaEdenred2" ng-if="sc.codigos[solucion.Product2.ProductCode + '-CMP2'].Name == 
+	                        'PLAN_VestimentaEdenred2'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_Mantenimiento" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_Mantenimiento'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_PropuestaGeneral" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_PropuestaGeneral'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_TicketCarHidrosina" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_TicketCarHidrosina'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_Nectar" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_Nectar'"></ctc-component-vfc>
+                            <ctc-component-vfc name="PLAN_Nectar2" ng-if="sc.codigos[solucion.Product2.ProductCode+ '-CMP2'].Name == 
+	                        'PLAN_Nectar2'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_EcovaleCombustible60t" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_EcovaleCombustible60t'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_ValeDespensaWalmart" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_ValeDespensaWalmart'"></ctc-component-vfc> <!-- REQ:4294 -->
+    	                    <ctc-component-vfc name="PLAN_ValeDespensaWalmart2" ng-if="sc.codigos[solucion.Product2.ProductCode + '-CMP2'].Name == 
+	                        'PLAN_ValeDespensaWalmart2'"></ctc-component-vfc>
+	                         <ctc-component-vfc name="PLAN_PropuestaEconomica" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_PropuestaEconomica'"></ctc-component-vfc>
+	                        <span class="page-break" ng-if="!$last && sc.soluciones.length > 1 && sc.codigos[solucion.Product2.ProductCode]"></span>
+	                        <!--<div ng-if="sc.codigos[solucion.Product2.ProductCode].Name ==  'PLAN_ValeDespensasEdenred'" id="valeDespensa" style="display: none;visibility: hidden;"><c:PLAN_ValeDespensasEdenred /></div>-->
+                          <!-- CV - EdenredArg -->
+                          <ctc-component-vfc name="PLAN_Shell_Flota_Arg" ng-if="sc.codigos[solucion.Product2.ProductCode].Name ==
+	                        'PLAN_Shell_Flota_Arg'"></ctc-component-vfc>
+	                        <ctc-component-vfc name="PLAN_Ticket_Car_Arg" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_Ticket_Car_Arg'"></ctc-component-vfc>
+                            <ctc-component-vfc name="PLAN_mantenimiento710_Arg" ng-if="sc.codigos[solucion.Product2.ProductCode].Name == 
+	                        'PLAN_mantenimiento710'"></ctc-component-vfc>
+                        </div>
+                        <div ng-if="solucion.RecordType == 'RT_Renegotiation' && !solucion.openMFGAttached">
+                            <ctc-component-vfc name="PLAN_SISTEMA_TELEPEAJE"></ctc-component-vfc>
+                            
+                       <!-- 	<ctc-component-vfc name="PLAN_Renegociacion"></ctc-component-vfc> -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <center>
+                <a class="btnb btnb-primary" ng-if="!sc.seAbrioAnexoMFG" ng-disabled="!sc.dataRender || sc.msgEnviarCorreoProcessing" ng-href="{{sc.urlEmail}}" target="_blank">
+                    <span class="fa fa-envelope fa-fw"></span>
+                    <span class="fa fa-spinner fa-pulse fa-fw" ng-if="sc.msgEnviarCorreoProcessing"></span>
+                    <span ng-bind="sc.msgEnviarCorreo"></span> 
+                </a>
+                <button type="button" ng-disabled="sc.processing" class="btnb btnb-default" ng-click="sc.close()" ng-if="!sc.email">
+                    <span class="fa fa-mail-reply fa-fw"></span>
+                    Cerrar
+                </button>
+            </center>
+        </div>
+        <div id="pdfTemplateContenedor">
+          <div id='pdfTemplate'>
+            <div id="contentPdf">
+                <div class="div0pm">
+                    <div class="pageContainer">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <!-- INICIO -->
+                                <table class="table letraTablas" id="encabezado">
+                                    <thead class="headerTable">
+
+                                        <tr class="headerFontSizeTable">
+                                            <th class="anchoTipoConTarjeta" style="background-color: rgb(59, 194, 177);" colspan="3"></th>
+
+                                            <th class="text-center"
+                                            style="background-color: rgb(59, 194, 177);">Precio original</th>
+
+                                            <th class="text-center" style="background-color: rgb(59, 194, 177);">Bonificación / Descuento</th>
+
+                                            <th class="text-center" style="background-color: rgb(59, 194, 177);">Precio final</th>
+
+                                            <th class="text-center"
+                                            style="background-color: rgb(59, 194, 177);">Vigencia de Descuento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="tablePDFValores">
+                                        <tr ng-repeat="concepto in sc.soluciones.conceptosTabla">
+                                            <td class="text-center" colspan="3">
+                                                <span ng-bind="concepto.Concepto_Tipo_Cargo__c"></span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span ng-bind="(concepto.PrecioLista__c | number: 2) + ' %'" ng-if="(concepto.Concepto_Tipo_Cargo__c == 'Comisión por el servicio' || concepto.Concepto_Tipo_Cargo__c == 'Comisión por Servicio Telepeaje') && concepto.PrecioLista__c"></span>
+
+                                                <span ng-bind="concepto.PrecioLista__c | currency: '$ '" ng-if="concepto.Concepto_Tipo_Cargo__c != 'Comisión por el servicio' && concepto.Concepto_Tipo_Cargo__c != 'Comisión por Servicio Telepeaje' && concepto.PrecioLista__c"></span>
+
+                                                <span ng-if="!concepto.PrecioLista__c">-</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span ng-if="concepto.Bonificacion__c && concepto.Bonificacion__c != 0"
+                                                ng-bind="(concepto.Bonificacion__c | number: 2) + ' %'"></span>
+
+                                                <span ng-if="(concepto.Bonificacion__c == 0 || concepto.Bonificacion__c == undefined)">
+                                                    <center>-</center>
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span ng-if="(concepto.Concepto_Tipo_Cargo__c == 'Comisión por el servicio' || concepto.Concepto_Tipo_Cargo__c == 'Comisión por Servicio Telepeaje') && concepto.PrecioFinal__c && concepto.PrecioFinal__c != 0"
+                                                ng-bind="(concepto.PrecioFinal__c | number: 2) + ' %'"></span>
+                                        
+                                                <span ng-if="(concepto.Concepto_Tipo_Cargo__c == 'Comisión por el servicio' || concepto.Concepto_Tipo_Cargo__c == 'Comisión por Servicio Telepeaje') && concepto.PrecioFinal__c && concepto.PrecioFinal__c == 0"
+                                                    ng-bind="(concepto.PrecioFinal__c | number: 2) + ' %'"></span>
+
+                                                <span ng-if="(concepto.Concepto_Tipo_Cargo__c == 'Comisión por el servicio' || concepto.Concepto_Tipo_Cargo__c == 'Comisión por Servicio Telepeaje') && concepto.Bonificacion__c == 100">
+                                                    <center>0%</center>
+                                                </span>
+
+                                                <span ng-if="concepto.Concepto_Tipo_Cargo__c != 'Comisión por el servicio' && concepto.Concepto_Tipo_Cargo__c != 'Comisión por Servicio Telepeaje' && concepto.PrecioFinal__c && concepto.PrecioFinal__c != 0"
+                                                ng-bind="concepto.PrecioFinal__c | currency: '$ ': 2"></span>
+
+                                                <span ng-if="concepto.Concepto_Tipo_Cargo__c != 'Comisión por el servicio' && concepto.Concepto_Tipo_Cargo__c != 'Comisión por Servicio Telepeaje' && concepto.Bonificacion__c == 100">
+                                                    <center>$ 0</center>
+                                                </span>
+
+                                                <span ng-if="concepto.PrecioFinal__c == undefined ">
+                                                    <center>-</center>
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span ng-if="concepto.VigenciaDescuento__c" ng-bind="concepto.VigenciaDescuento__c | date: 'dd / MM / yyyy': 'UTC'"></span>
+
+                                                <span ng-if="!concepto.VigenciaDescuento__c">
+                                                    <center>-</center>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <!-- FIN -->
+                            </div>
+
+                            <div class="col-sm-12 seccionDatosCliente" ng-if="seccion.nombre == 'vigenciaIva'">
+                                <div class="col-sm-12 text-right boldEdenred sizeIva">
+                                    <span>Esta propuesta tiene una vigencia de {{solucion.Quote.VigenciaCotizacion__c}}</span>
+                                    <br/>
+                                    <span>Los costos no incluyen IVA</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- <p>{{pagina.numPagina + ' of '+ sc.documento.numPaginas}}</p> -->
+                    <div class="page-break" ></div>
+                </div>
+                <div id="contentAnexoPdf">
+
+                </div>
+          </div>
+        </div>
+    </script>
+    <script type="text/javascript">
+        function Marco(width,height){
+            this.width = width;
+            this.height = height;
+        }
+        
+        /** OBJETO DOCUMENTO **/
+        function DocumentoPDF(){
+            this.paginas = [];
+            this.numPaginas = 0;
+            this.currentPage = 0;
+        }
+    
+        DocumentoPDF.prototype.addPagina = function(p){
+            this.numPaginas += 1;
+            p.numPagina = this.numPaginas;
+            this.currentPage = 1;
+            this.paginas.push(p);
+        }
+        
+        /** OBJETO PAGINA **/
+        function Pagina(size){
+            this.size = size || T_CARTA;
+            this.sumaHeight = 0;
+            this.secciones = [];
+            this.numPagina = 0;
+        }
+    
+        Pagina.prototype.addSeccion = function(s){
+            //console.log("AddSeccion");
+            //console.log(s);
+            this.sumaHeight += s.size.height || 1;
+            if(this.sumaHeight < this.size.height){
+                this.secciones.push(s);
+                return true;
+            }else{
+                this.sumaHeight -= s.size.height;
+                return false;
+            }
+        }
+        
+        Pagina.prototype.getEspacioFaltante = function(){
+            //console.log(this.size.height - this.sumaHeight);
+            return this.size.height - this.sumaHeight;
+        }
+        
+        /** OBJETO SECCION **/
+        function Seccion(nombre, titulo, size, arr){
+            this.nombre = nombre;
+            this.titulo = titulo;
+            this.listaContenido = arr;
+            this.size = size;
+        }
+        
+        /** OBJETO SECCION_TABLA **/
+        function SeccionTabla(nombre, titulo, arr){
+            this.nombre = nombre;
+            this.titulo = titulo;
+            this.ST_HEADER = 1.7;
+            this.ST_ROW = 0.55;
+            this.listaContenido = arr;
+            this.size = new Marco(W_CONTENIDO,this.ST_HEADER + this.ST_ROW * this.listaContenido.length);
+            //this.size.height += this.ST_HEADER + this.ST_ROW * this.listaContenido.length;
+        }
+        
+    	//SeccionTabla.prototype = Object.create(Seccion.prototype);
+        //SeccionTabla.prototype.constructor = SeccionTabla;
+        SeccionTabla.prototype.getSize = function(){
+            return(new Marco(W_CONTENIDO,this.ST_HEADER + this.ST_ROW * this.listaContenido.length));
+        }
+        
+        SeccionTabla.prototype.getRowsInHeight = function(height){
+            return Math.floor((height-this.ST_HEADER)/this.ST_ROW);
+        }
+        
+        SeccionTabla.prototype.partirSeccion = function(maxNumRows){
+            //console.log('####partirSeccion');
+            //console.log(this.titulo);
+            //console.log(this.nombre);
+            var lsSec = [];
+            var lsRowsSec = [];
+            var contador = 0;
+            var limiteRows = maxNumRows -1;
+            var rows;
+            var total = this.listaContenido.length;
+
+            this.listaContenido.forEach(function(item){
+                if(contador == 0){
+                    rows = [];
+                    rows.push(item);
+                    if(limiteRows == contador){
+                        lsRowsSec.push(rows);
+                        rows = [];
+                    }
+                }else if(contador > 0 && limiteRows == contador){
+                    rows.push(item);
+                    lsRowsSec.push(rows);
+                    rows = [];
+                }else{
+                    rows.push(item);
+                    if(contador == (total - 1)){
+                        lsRowsSec.push(rows);
+                    }
+                }
+                contador++;
+            });
+            
+            contador = 0;
+            
+            var name = this.nombre;
+            var title = this.titulo;
+            var hrow = this.ST_ROW;
+            //console.log('####Titulo '+this.titulo);
+            lsRowsSec.forEach(function(ar){
+                var st = new SeccionTabla(name,title,ar);
+                st.ST_ROW = hrow;
+                st.size = st.getSize();
+                lsSec.push(st);
+                contador++;
+            });
+            
+            return lsSec;
+        }
+        
+        //CONSTANTES
+        var T_A4    = new Marco(21.00, 29.70);
+        var T_CARTA = new Marco(21.59, 27.94);
+        var W_CONTENIDO = 19.0;
+        
+        (function() {
+            'use strict'
+            angular.module('appEdenred')
+            .controller('generaPDFCtrl', GeneraPDFCtrl)
+            //.directive('test', test)
+            kendo.pdf.defineFont({
+                  "DejaVu Sans": "{!URLFOR($Resource.kendoui,'/fonts/DejaVuSans.ttf')}",
+                  "DejaVu Sans|Bold": "{!URLFOR($Resource.kendoui,'/fonts/DejaVuSans-Bold.ttf')}",
+                  "DejaVu Sans|Bold|Italic": "{!URLFOR($Resource.kendoui,'/fonts/DejaVuSans-Oblique.ttf')}",
+                  "DejaVu Sans|Italic": "{!URLFOR($Resource.kendoui,'/fonts/DejaVuSans-Oblique.ttf')}",
+                  "Helvetica": "{!URLFOR($Resource.kendoui,'/fonts/Helvetica-Regular.ttf')}",
+                  "Helvetica|Bold": "{!URLFOR($Resource.kendoui,'/fonts/Helvetica-Bold.ttf')}",
+                  "Helvetica|Bold|Italic": "{!URLFOR($Resource.kendoui,'/fonts/Helvetica-BoldItalic.ttf')}",
+                  "Helvetica|Italic": "{!URLFOR($Resource.kendoui,'/fonts/Helvetica-Italic.ttf')}",
+  
+            });
+
+            GeneraPDFCtrl.$inject = ['ctcUtils', '$uibModal', '$uibModalInstance', 'cotizacion','soluciones','owner','codigos','$sce','$timeout']
+
+            function GeneraPDFCtrl(ctcUtils, $uibModal, $uibModalInstance, cotizacion, soluciones,owner,codigos,$sce,$timeout) {
+
+                var vm = this
+                vm.cotizacion = cotizacion || {}
+                console.log('vm.cotizacion PDF:', vm.cotizacion);
+                vm.soluciones = soluciones || {}
+                console.log('vm.soluciones PDF:', vm.soluciones);
+                vm.owner = owner || {}
+                vm.codigos = codigos || {} 
+                vm.fechaHoy = new Date().getTime()
+                vm.errors = []
+                vm.idGenerado = ''
+                vm.nombreGenerado = ''
+                vm.urlEmail = ''
+                vm.urlFile = ''
+                vm.msgEnviarCorreo = 'Enviar por correo electrónico'
+                vm.msgEnviarCorreoProcessing = false
+                vm.margin = undefined
+                vm.seAbrioAnexoMFG = false;
+
+                vm.forceRender = function() {
+                   vm.init(vm.soluciones)
+                }
+
+                vm.init = function (soluciones){
+                    vm.processing = true
+                    var QuoteId = null
+                    var nombreProducto 	= 'Ticket Car Edenred';
+                    var solucionesDescartadas = []
+                    vm.seAbrioAnexoMFG = soluciones.openMFGAttached;
+                    /*var blockVigenciaDescuento = false
+                    var blockTarjetas = false*/
+                    if(soluciones.length > 0){
+                        //Sirve para el check del PDF que tienen; SI o NO
+                        //soluciones[0].adjuntarAnexoB = ctcUtils.app.opportunity.MX_Alta_del_programa_MFG__c == "true" && !soluciones.openMFGAttached;
+                        soluciones[0].adjuntarAnexoB = soluciones[0].Quote?.Opportunity?.MX_Alta_del_programa_MFG__c && !soluciones.openMFGAttached;
+                        //Adjuntar siempre el anexo B, para eso se colocan los logos y el encabezado
+                        let logoHeader = 'LogoEdenred.png';
+                        soluciones[0].edenRedLogo = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+logoHeader+"')}"
+                        soluciones[0].ticketCarLogo = "{!URLFOR($Resource.LogoTicketCar)}";
+                    }
+					 console.log('AQUÍ test '+JSON.stringify(soluciones));
+					 console.log('AQUÍ test '+JSON.stringify(ctcUtils.app.opportunity.NTT_ModificacionTelevia__c));
+							
+                    if(soluciones.openMFGAttached){
+                        console.log('AQUÍ');
+                        const quoteId = soluciones.quoteId;
+                        //es cotizacion.Id
+                        let dataSource = null;
+                        let dataSourceQuery = 
+                              "SELECT Id"+
+                              ",Opportunity.MX_Alta_del_programa_MFG__c"+
+                              ",Opportunity.MX_Not_Move_For_Good__c "+
+                              ",Opportunity.Razon_social__c"+
+                              ",Opportunity.Account.Name"+
+                              ",Opportunity.Owner.Manager.Name "+
+                              ",Opportunity.Contact__r.Name "+
+                              "FROM Quote "+
+                              "WHERE Id = '"+quoteId+"'";
+                        ctcUtils.invoke('CON_ContractsContainer_CTRL.executeQueryRA',dataSourceQuery)
+                            .then(res => {
+                                dataSource = res[0];
+                                
+                        let query = "select Activo__c, AnexoA__c, AnexoB__c, AnexoC__c, AnexoD__c, AnexoE__c, AdditionalAnnexVP__c,AdditionalAnnexME__c, CamposAnexoA__c, CamposAnexoB__c, CamposAnexoC__c, CamposAnexoD__c, CodigosTYC__c, Contenido_del__c, Contratos_Ticket_Despensa__c, CreatedById, CreatedDate, Dias_habiles_para_entrega_de_tarjetas__c, Horas_de_anticipacion_para_dispersion_de__c, Horas_de_dispersion_de_saldos__c, Id, IsDeleted, LastModifiedById, LastModifiedDate, LastReferencedDate, LastViewedDate, Name, OwnerId, RecordTypeId, Seccion1__c, Seccion2__c, Seccion3__c, Seccion4__c, Seccion5__c, Seccion6__c, SystemModstamp, Tipo_Contrato__c, UsoMarcaLogotipo__c, UsoProgramaOrganismoGubernamental__c,Logocontrato__c,Adicional__c, Carta_terminos__c from PlantillaContrato__c WHERE Name = '" + nombreProducto + "' ";
+                                ctcUtils.invoke('CON_ContractsContainer_CTRL.executeQueryRA',query)
+                                    .then(res => {
+                                        //MFG
+                                        console.log('RES: ',res);
+                                        let contenido = res[0].AnexoC__c;
+                                        let palabraIndex = 'del presente Contrato.';
+                                        let indexPalabraAntesAnexoB = contenido.indexOf(palabraIndex);
+                                        let container = document.createElement('div');
+                                        let logo = '<div class = "logoTCMFG"></div>';
+                                        let logoHeader = 'LogoEdenred.png';
+                                        let top= '3cm';
+                                        let leyendaHeader = `<div class="leyendaHeaderMFG">
+                                                <img class="logoFleetMFG" src="{!URLFOR($Resource.LogoTicketCar)}" />
+                                            </div>`;
+                                        let templateHtml = '<div class="page-template-MFG">' +
+                                                '<div class="headerMFG">' +
+                                                '<img class = "logoEdenredMFG" src="{!URLFOR($Resource.CotizacionesPDF, "/Encabezados/' + logoHeader + '")}" />' +logo + leyendaHeader
+                                            '</div>';
+                                        if(indexPalabraAntesAnexoB != -1){
+                                            contenido = contenido.slice(indexPalabraAntesAnexoB + palabraIndex.length);
+                                        }
+                                        //Aplicando estilos
+                                        contenido = contenido.replace(/font-family: Calibri;/g, 'font-family: Helvetica;');
+                                        contenido = contenido.replace(/‐/g, '-');
+                                        contenido = contenido.replace(/color: rgb\(112\, 110\, 107\)\;/g, '');
+                                        contenido = contenido.replace(new RegExp('!check', 'gi'), '<input type="checkbox" kendoCheckBox checked="true" [(ngModel)]="model.foo" />');
+                                        contenido = contenido.replace(/\{\!repLegalName\}/g,dataSource.Opportunity.Contact__r.Name);
+
+                                        contenido = vm.html(contenido,dataSource)
+                                        $('#contentAnexoPdf').html('');
+                                        $('#contentAnexoPdf').append(contenido);
+                                        //MFG
+                                        $timeout(function() {
+                                            vm.margin = { left: "1cm", top: top, right: "1cm", bottom: "1.5cm" };
+                                            ctcUtils.renderPDF( 'contentPdf', templateHtml, true, vm.margin )
+                                            .then( function( pdf ) {
+                                                console.log('pdf response: ', pdf)
+                                                vm.data = pdf.render
+                                                vm.dataRender = true
+                                                vm.processing = false
+                                                ctcUtils.showProcess(false, 'Generando documento')
+                                                vm.msgEnviarCorreo = 'Guardando documento'
+                                                vm.msgEnviarCorreoProcessing = true
+                                                //console.log('PDFOriginal',pdf.original);
+                                                let data = pdf.original.replace('data:application/pdf;base64,', 'data')
+                                                console.log('DATA:',data);
+                                                //MFG
+                                                return ctcUtils.execute('guardarAnexoMFG')(quoteId, data);
+                                                //return null;
+                                            })
+                                            /*.then( function( res ) {
+                                                vm.msgEnviarCorreo = 'Enviar por correo electrónico'
+                                                vm.msgEnviarCorreoProcessing = false
+                                                console.log('response save pdf: ', res)
+
+                                                vm.idGenerado = res.Upsert_QuoteDocument.Id
+                                                vm.urlEmail = window['sforce'] && window['sforce']['one'] ? '/one/one.app#/alohaRedirect/_ui/core/email/author/EmailAuthor?p2_lkid=' : '/_ui/core/email/author/EmailAuthor?p2_lkid='
+                                                vm.urlEmail += vm.cotizacion.ContactId
+                                                // vm.urlEmail += '&p3_lkid=' + vm.cotizacion.Id
+                                                // vm.urlEmail += '&p3_lkid=' + vm.cotizacion.OpportunityId
+                                                vm.urlEmail += '&p3_lkid=' + ctcUtils.app.opportunity.Id
+                                                vm.urlEmail += '&doc_id=' + vm.idGenerado
+                                                if(vm.cotizacion.Email && vm.cotizacion.Email.length > 0) {
+                                                    vm.urlEmail += '&p24=' + vm.cotizacion.Email 
+                                                }
+                                                if( ctcUtils.app.emailTemplate && ctcUtils.app.emailTemplate.Id ) {
+                                                    vm.urlEmail += '&template_id=' + ctcUtils.app.emailTemplate.Id
+                                                }
+                                                vm.urlEmail += '&saveURL=/' + ctcUtils.app.opportunity.Id
+                                                vm.urlFile = '/servlet/servlet.FileDownload?file=' + res.Upsert_QuoteDocument.Id
+                                            })*/
+                                            .catch( function( err ) {
+                                                vm.msgEnviarCorreoProcessing = false
+                                                console.log('error save pdf: ', err)
+                                                ctcUtils.showError( err )
+                                            })
+                                        }, 4700 );
+                                    })
+                                    .catch(err => {
+                                        vm.msgEnviarCorreoProcessing = false
+                                        console.log('error getting document: ', err)
+                                        ctcUtils.showError( err )
+                                    });
+                            })
+                            .catch(err => {
+                                vm.msgEnviarCorreoProcessing = false
+                                console.log('error getting quote: ', err)
+                                ctcUtils.showError( err )
+                            });            
+                        return null;
+                    }
+                    
+                    angular.forEach(soluciones,function(producto,index){
+                        console.log("VERRRR:::"+JSON.stringify(producto));
+                        var tipoPromesa = producto.Product2.ProductCode
+                        QuoteId = ( QuoteId == null) ? producto.QuoteId : QuoteId;
+
+                        producto.Qli = vm.cotizacion.productos[0]
+                        producto.conceptosFiltrados = []
+                        producto.PreciosTabla1 = []
+                        producto.PreciosTabla2 = [];
+                        producto.DiferencialesTabla1 = []
+                        producto.DiferencialesTabla2 = []
+                        producto.CambioAlgunaTarifa = false
+                        producto.CambioAlgunaTarifa2 = false
+                        producto.ExisteComparados = false
+                        producto.blockVigenciaDescuento = false
+                        producto.blockTarjetas = false
+                        producto.PlantillaMantenimiento = []
+
+                        producto.PreciosTamaño = (producto.conceptosUnicos) ? producto.conceptosUnicos.length : 0;
+                        producto.DiferencialesTamaño = (producto.diferenciales) ? producto.diferenciales.length : 0;
+
+                        // SE PARTE LA TABLA
+                        producto.PreciosPrimo = primoPar(producto.PreciosTamaño);
+                        producto.DiferencialesPrimo = primoPar(producto.DiferencialesTamaño);
+
+                        producto.ExisteComparados = (producto.Productos_Comparados__r && producto.Productos_Comparados__r.length > 0) ? true : false
+
+                        if(!producto.PreciosPrimo){
+                            if(producto.PreciosTamaño >= 12){
+                                producto.PreciosxTabla = parseInt(producto.PreciosTamaño) /2;
+                                producto.PreciosDosTablas = true;
+                            }else{
+                                producto.PreciosDosTablas = false;
+                            }
+                        }else {
+                            if(producto.PreciosTamaño != 1){
+                                if(producto.PreciosTamaño >= 12){
+                                    producto.PreciosxTabla = (parseInt(producto.PreciosTamaño)+1) /2;
+                                    producto.PreciosDosTablas = true;
+                                }else{
+                                    producto.PreciosDosTablas = false;
+                                }
+                            }
+                        }
+
+                        if(!producto.DiferencialesPrimo){
+                            if(producto.DiferencialesTamaño >= 32){
+                                producto.DiferencialesxTabla = parseInt(producto.DiferencialesTamaño) /2;
+                                producto.DiferencialesDosTablas = true;
+                            }else{
+                                producto.DiferencialesDosTablas = false;
+                            }
+                            
+                        }else {
+                            if(producto.DiferencialesTamaño != 1){
+                                if(producto.DiferencialesTamaño >= 32){
+                                    producto.DiferencialesxTabla = (parseInt(producto.DiferencialesTamaño)+1) /2;
+                                    producto.DiferencialesDosTablas = true;
+                                }else{
+                                    producto.DiferencialesDosTablas = false;
+                                }
+                            }
+                        }
+                        //--------
+                        
+                        //Si el código del producto no aparece en el atributo de productos se elimina el producto
+                        if(!vm.codigos[producto.Product2.ProductCode]){
+                            solucionesDescartadas.push(soluciones.indexOf(producto));
+                        }
+                        
+                        if(soluciones[0].Product2.ProductCode == '33'){
+
+                            
+                            producto.conceptosUnicos = ctcUtils.splitConceptosByPackage(vm.cotizacion.productos[0].Package__c, vm.cotizacion.productos[0].conceptosUnicos, vm.cotizacion.productos[0].FormaPago__c);
+                                
+                            
+                            /*
+                            let mediaTypes = {"TAG Dual" :  {"includeConcepts" : ['Cuota por renta mensual TAG']},
+                                              "TAG Regular" : {"includeConcepts" : ['Cuota por renta mensual TAG']}, 
+                                              "Tarjetas Físicas" : {"includeConcepts" : ['Cuota por impresión de logo a color']},
+                                              "Tarjetas Virtuales" : {"includeConcepts" : [],"excludeConcepts": ['Cargo por envío - Recurrente','Cuota por ordenamiento y/o entrega especial','Cuota por impresión de logo a color']}
+                                             };
+                            let mediaReference = ctcUtils.app.selectedMeans || [];
+                            let excludedConcepts = ctcUtils.excludeDependencies(producto, mediaTypes, mediaReference);
+                            let objectReference = {"Premium": ["Mensualidad Premium Plus","Comisión por el servicio"], // Premium antes Básico
+                                                   "Premium Plus" : ["Mensualidad Premium","Comisión por el servicio"], // Premium Plus antes Avanzado
+                                                   "Por comisión" : ["Mensualidad Premium","Mensualidad Premium Plus"]};
+                            
+                            producto.conceptosUnicos = producto.conceptosUnicos.filter( (concepto) => 
+                                                                                       (!objectReference[vm.cotizacion.productos[0].Package__c].includes(concepto.TipoCargo__c)) && 
+                                                                                       (mediaReference.includes(concepto.TipoCargo__c) && 
+                                                                                        Object.keys(mediaTypes).includes(concepto.TipoCargo__c) || 
+                                                                                        !Object.keys(mediaTypes).includes(concepto.TipoCargo__c)) 
+                                                                                      );
+                            
+                            producto.conceptosUnicos = producto.conceptosUnicos.filter( concepto =>  !excludedConcepts.includes(concepto));
+                        //*/
+                        }
+                        
+                        //Se recorren los conceptos unicos
+                        angular.forEach(producto.conceptosUnicos,function(producto2,index2){
+                            console.log('$$ producto.conceptosUnicos',producto.conceptosUnicos);    
+                            if(producto.conceptosKey[producto2.key]){
+                                    
+                                    if(soluciones[0].Product2.ProductCode != '33' && soluciones[0].Product2.ProductCode != '60-t') {
+                                        if(producto.productoConceptoKeys[producto2.key] && producto.productoConceptoKeys[producto2.key].PrecioFinal__c){
+                                            if(producto2.TipoCargo__c == 'Comisión por el servicio' || producto2.TipoCargo__c == 'Comisión por Servicio Telepeaje'){
+                                                producto2.Render = true;
+                                                producto.conceptosKey[producto2.key].Bonificacion__c = (producto.productoConceptoKeys[producto2.key].PrecioFinal__c > producto.productoConceptoKeys[producto2.key].PrecioLista2__c) ? 0 : producto.conceptosKey[producto2.key].Bonificacion__c;
+                                                producto.conceptosKey[producto2.key].VigenciaDescuento__c = (producto.productoConceptoKeys[producto2.key].PrecioFinal__c > producto.productoConceptoKeys[producto2.key].PrecioLista2__c) ? undefined : producto.conceptosKey[producto2.key].VigenciaDescuento__c;
+                                                producto.conceptosKey[producto2.key].CantidadTarjetas__c = (producto.productoConceptoKeys[producto2.key].PrecioFinal__c > producto.productoConceptoKeys[producto2.key].PrecioLista2__c) ? undefined : producto.conceptosKey[producto2.key].CantidadTarjetas__c;
+                                                producto.conceptosKey[producto2.key].Importe__c = (producto.productoConceptoKeys[producto2.key].PrecioFinal__c > producto.productoConceptoKeys[producto2.key].PrecioLista2__c) ? producto.productoConceptoKeys[producto2.key].PrecioFinal__c : producto.productoConceptoKeys[producto2.key].PrecioLista2__c;
+                                            }else{
+                                                producto.conceptosKey[producto2.key].Bonificacion__c = (producto.productoConceptoKeys[producto2.key].PrecioFinal__c > producto.productoConceptoKeys[producto2.key].PrecioLista__c) ? 0 : producto.conceptosKey[producto2.key].Bonificacion__c;
+                                                producto.conceptosKey[producto2.key].VigenciaDescuento__c = (producto.productoConceptoKeys[producto2.key].PrecioFinal__c > producto.productoConceptoKeys[producto2.key].PrecioLista__c) ? undefined : producto.conceptosKey[producto2.key].VigenciaDescuento__c;
+                                                producto.conceptosKey[producto2.key].CantidadTarjetas__c = (producto.productoConceptoKeys[producto2.key].PrecioFinal__c > producto.productoConceptoKeys[producto2.key].PrecioLista__c) ? undefined : producto.conceptosKey[producto2.key].CantidadTarjetas__c;
+                                                producto.conceptosKey[producto2.key].Importe__c = (producto.productoConceptoKeys[producto2.key].PrecioFinal__c > producto.productoConceptoKeys[producto2.key].PrecioLista__c) ? producto.productoConceptoKeys[producto2.key].PrecioFinal__c : producto.productoConceptoKeys[producto2.key].PrecioLista__c;
+                                            }
+                                        }
+                                    }
+                                    
+                                }
+
+                                if(producto2.TipoCargo__c == 'Comisión por el servicio' || producto2.TipoCargo__c == 'Comisión por Servicio Telepeaje'){
+                                    if(producto.conceptosKey[producto2.key]){
+                                        /*producto.Comision = (producto.conceptosKey[producto2.key].PrecioFinal2__c > producto.conceptosKey[producto2.key].Importe__c) ? producto.conceptosKey[producto2.key].PrecioFinal2__c : producto.conceptosKey[producto2.key].Importe__c;*/
+                                        producto.Comision = producto.conceptosKey[producto2.key].PrecioFinal2__c;
+                                        if(soluciones[0].Product2.ProductCode == '33' && producto2.TipoCargo__c == 'Comisión por Servicio Telepeaje'){
+                                             producto2.Render =producto.Quote.NTT_IsTelepeaje__c  == true || producto.Quote.NTT_IsTelepeaje__c  =='true' ? true :false; 
+                                        }else{
+                                            producto2.Render = true;
+                                        }                              
+                                        console.log('$$ opportunity : ',ctcUtils.app.opportunity );           
+                                        console.log('$$ producto2.TipoCargo__c : ',producto2.TipoCargo__c ); 
+                                        console.log('$$ producto2 : ',producto2 ); 
+                                        console.log('$$ producto2.TipoCargo__c : ',producto2.render );
+                                    }
+                                }
+
+                                //Validaciones Productos Cotizados
+                                if( producto2.Bonificacion__c && producto2.Bonificacion__c != 0 && !producto.CambioAlgunaTarifa ) {
+                                    producto.CambioAlgunaTarifa = true 
+                                }
+
+                                producto2.CambioTarifa = (producto2.Bonificacion__c && producto2.Bonificacion__c != 0 && producto2.PrecioFinal2__c != producto2.Importe__c) ? true : false // Si es true, esta tarifa cambió
+                                producto2.CambioDescuento = (producto2.VigenciaDescuento__c) ? true : false
+                                producto2.CambioTarjetas = (producto2.CantidadTarjetas__c && producto2.CantidadTarjetas__c != 0) ? true : false
+                        
+                                console.log("*******************");
+                            	console.log("$$ producto.conceptosKey[producto2.key].IdProductoConcepto__c: " + producto.conceptosKey[producto2.key].TipoCargo__c);
+                                console.log("$$ producto2.Render: " + producto2.Render);
+
+                                if((producto2.Obligatorio__c == true && soluciones[0].Product2.ProductCode == '33') || (soluciones[0].Product2.ProductCode == '33' && producto2.Render == true)){
+                                	producto.conceptosFiltrados.push(producto2); 
+                                    //console.log("producto2.Obligatorio__c: " + producto2.Obligatorio__c);
+                                    //console.log("producto2.Render: " + producto2.Render);
+                                    //console.log("producto2 soliciones[0].Product2.ProductCode: " + soluciones[0].Product2.ProductCode);
+                                }else if((producto.conceptosKey[producto2.key] && producto.conceptosKey[producto2.key].IdProductoConcepto__c )
+                                    	|| producto2.Render == true){//Se agrga linea desde Fullcopy
+                                        if(producto2.EtiquetaTipoDeCargo__c != null)
+                                            producto2.TipoCargo__c = producto2.EtiquetaTipoDeCargo__c;
+                                        producto.conceptosFiltrados.push(producto2)    
+                                }
+
+                            	/*if(producto.conceptosKey[producto2.key] && producto.conceptosKey[producto2.key].TipoCargo__c.indexOf('Tarjeta') != -1 ){*/
+                                    if(producto.conceptosKey[producto2.key] && producto.conceptosKey[producto2.key].CantidadTarjetas__c && producto.conceptosKey[producto2.key].CantidadTarjetas__c != undefined){
+                                        if(producto.blockTarjetas == false){
+                                            producto.blockTarjetas = true
+                                            producto.blockVigenciaDescuento = true
+                                        }
+                                    }
+                                //}else 
+
+                                //*****************************
+                                //Cambio 10/04/18
+                                /*if(producto.conceptosKey[producto2.key] && 
+                                    producto.conceptosKey[producto2.key].PrecioFinal2__c &&
+                                    (producto.conceptosKey[producto2.key].PrecioFinal2__c < producto.conceptosKey[producto2.key].Importe__c) &&
+                                    producto.conceptosKey[producto2.key].Bonificacion__c != undefined &&
+                                    producto.conceptosKey[producto2.key].VigenciaDescuento__c != undefined){
+
+                                    if(producto.blockVigenciaDescuento == false){                                        
+                                        producto.blockVigenciaDescuento = true
+                                    }   
+                                }*/
+                                if(producto.conceptosKey[producto2.key] &&
+                                    producto.conceptosKey[producto2.key].Bonificacion__c != undefined && producto.conceptosKey[producto2.key].Bonificacion__c != 0 &&
+                                    producto.conceptosKey[producto2.key].VigenciaDescuento__c != undefined){
+
+                                    if(producto.blockVigenciaDescuento == false){                                        
+                                        producto.blockVigenciaDescuento = true
+                                    }   
+                                }
+                                //*****************************
+
+                                //Producto Comparado
+                                if(producto.ExisteComparados){
+                                    if(producto.Productos_Comparados__r[0].conceptosKey[producto2.key]){
+                                        for(var x = 0; x < producto.Productos_Comparados__r[0].productoConcepto.length; x++){
+                                            if(producto.Productos_Comparados__r[0].productoConcepto[x] && producto.Productos_Comparados__r[0].productoConcepto[x].Concepto__c == producto2.Id){
+                                                if(producto2.TipoCargo__c == 'Comisión por el servicio'){
+                                                    producto.Productos_Comparados__r[0].conceptosKey[producto2.key].Bonificacion__c = (producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c > producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista2__c) ? 0 : producto.Productos_Comparados__r[0].conceptosKey[producto2.key].Bonificacion__c; 
+                                                    producto.Productos_Comparados__r[0].conceptosKey[producto2.key].VigenciaDescuento__c = (producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c > producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista2__c) ? undefined : producto.Productos_Comparados__r[0].conceptosKey[producto2.key].VigenciaDescuento__c;
+                                                    producto.Productos_Comparados__r[0].conceptosKey[producto2.key].CantidadTarjetas__c = (producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c > producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista2__c) ? undefined : producto.Productos_Comparados__r[0].conceptosKey[producto2.key].CantidadTarjetas__c;
+                                                    producto.Productos_Comparados__r[0].conceptosKey[producto2.key].Importe__c = (producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c > producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista2__c) ? producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c : producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista2__c;
+                                                }else{
+                                                    producto.Productos_Comparados__r[0].conceptosKey[producto2.key].Bonificacion__c = (producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c > producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista__c) ? 0 : producto.Productos_Comparados__r[0].conceptosKey[producto2.key].Bonificacion__c; 
+                                                    producto.Productos_Comparados__r[0].conceptosKey[producto2.key].VigenciaDescuento__c = (producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c > producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista__c) ? undefined : producto.Productos_Comparados__r[0].conceptosKey[producto2.key].VigenciaDescuento__c;
+                                                    producto.Productos_Comparados__r[0].conceptosKey[producto2.key].CantidadTarjetas__c = (producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c > producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista__c) ? undefined : producto.Productos_Comparados__r[0].conceptosKey[producto2.key].CantidadTarjetas__c;
+                                                    producto.Productos_Comparados__r[0].conceptosKey[producto2.key].Importe__c = (producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c > producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista__c) ? producto.Productos_Comparados__r[0].productoConcepto[x].PrecioFinal__c : producto.Productos_Comparados__r[0].productoConcepto[x].PrecioLista__c;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                
+                                    if(producto.Productos_Comparados__r[0].conceptosKey[producto2.key] && producto.Productos_Comparados__r[0].conceptosKey[producto2.key].CantidadTarjetas__c && producto.Productos_Comparados__r[0].conceptosKey[producto2.key].CantidadTarjetas__c != 0){
+                                            if( producto.blockTarjetas == false){
+                                                blockTarjetas = true;
+                                                producto.blockTarjetas = true
+                                                producto.blockVigenciaDescuento = true
+                                            }
+                                        }
+                                    //}else 
+                                    if(producto.Productos_Comparados__r[0].conceptosKey[producto2.key] && producto.Productos_Comparados__r[0].conceptosKey[producto2.key].PrecioFinal2__c && producto.Productos_Comparados__r[0].conceptosKey[producto2.key].Bonificacion__c && (producto.Productos_Comparados__r[0].conceptosKey[producto2.key].CantidadTarjetas__c == 0 || producto.Productos_Comparados__r[0].conceptosKey[producto2.key].CantidadTarjetas__c == undefined)){
+                                        if(producto.blockVigenciaDescuento == false){                                        
+                                            producto.blockVigenciaDescuento = true
+                                        }   
+                                    }
+                                }
+                        })
+
+                        // Verificar si existe un concepto con 'Move for Good' en producto.conceptosFiltrados
+                        // Buscamos en los conceptos si se eligo el concepto de Move for Good
+                        let existeMFG = producto.conceptosFiltrados.some(concepto => concepto.TipoCargo__c.includes('Move for Good'));
+                        //Si no se eligio el concepto de Move for Good, se eliminan las caracteristicas de solución que tengan la etiqueta de Compensación de huella de carbono
+                        if(!existeMFG){
+                            //Guardamos el valor en la misma varibale
+                            producto.diferenciales = producto.diferenciales.filter(concepto => !concepto.CaracteristicasSolucion__c.includes("Compensación de huella de carbono"));
+                        }
+
+                        if(producto.blockTarjetas){
+                            producto.AnchoHeader = '5'
+                        }
+                        if(producto.blockTarjetas == false && producto.blockVigenciaDescuento){
+                            producto.AnchoHeader = '4'
+                        }
+                        if(producto.blockTarjetas == false && producto.blockVigenciaDescuento == false){
+                            producto.AnchoHeader = '1'
+                        }
+
+                        if(producto.blockVigenciaDescuento == false && producto.blockTarjetas == false){
+                            producto.blockTarjetas = false
+                            producto.blockVigenciaDescuento = false
+                        }
+
+                        angular.forEach(producto.diferenciales,function(diferencial,index){
+                            if(diferencial){
+                                if(producto.DiferencialesDosTablas){
+                                    if(index < producto.DiferencialesxTabla){
+                                        var dif = diferencial
+                                        producto.DiferencialesTabla1.push(diferencial)
+                                    }else{
+                                        var dif = diferencial
+                                        producto.DiferencialesTabla2.push(diferencial)
+                                    }
+                                }else{
+                                    var dif = diferencial
+                                    producto.DiferencialesTabla1.push(diferencial)
+                                }
+                            }
+                        })
+
+                        if(tipoPromesa != null){
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_EcovaleCombustibleEdenred'){
+                                if(vm.owner.Segmento__c == 'Small'){
+                                    producto.Segmento__c = 'Small'
+                                }else{
+                                    producto.Segmento__c = 'MLK'
+                                }
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'EcovaleCombustibleEdenred.png'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#00B050'}
+                                producto.fontColor = {'color':'#00B050'}
+                                producto.dateBorder = {'border': '1.5px solid #00B050'}
+                                producto.owner = vm.owner                                
+                                vm.paginaEcovaleCombustible(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_EcovaleDespensasEdenred'){
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'EcovaleDespensasEdenred.png'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#d52b1e'}
+                                producto.fontColor = {'color':'#d52b1e'}
+                                producto.dateBorder = {'border': '1.5px solid #d52b1e'}
+                                producto.owner = vm.owner
+                                 //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_EmpresarialEdenred' || (vm.codigos[tipoPromesa+'-CMP2'] && vm.codigos[tipoPromesa+'-CMP2'].Name == 'PLAN_EmpresarialEdenred2')){
+                                producto.fechaHoy = vm.fechaHoy
+                                //producto.header = 'EmpresarialEdenred.png'//REQ: 4294 comentar cuando se pase a prod/qa
+                                producto.header = 'EmpresarialEdenred.jpg'//REQ: 4294 Descomentar cuando se pase a prod/qa
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#002060'}
+                                producto.fontColor = {'color':'#002060'}
+                                producto.dateBorder = {'border': '1.5px solid #002060'}
+                                producto.owner = vm.owner
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_RegaloEdenred'){
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'RegaloEdenred.png'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#0085CA'}
+                                producto.fontColor = {'color':'#0085CA'}
+                                producto.dateBorder = {'border': '1.5px solid #0085CA'}
+                                producto.owner = vm.owner
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_RegaloEdenredMax'){//REQ: 4294
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'RegaloEdenredMax.jpg'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#0085CA'}
+                                producto.fontColor = {'color':'#0085CA'}
+                                producto.dateBorder = {'border': '1.5px solid #0085CA'}
+                                producto.owner = vm.owner
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_RegaloEdenredWalmart'){//REQ: 4294
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'RegaloEdenredWalmart.jpg'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#0085CA'}
+                                producto.fontColor = {'color':'#0085CA'}
+                                producto.dateBorder = {'border': '1.5px solid #0085CA'}
+                                producto.owner = vm.owner
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_TicketRestaurante'){
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'TicketRestaurante.png'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#78be20'}
+                                producto.fontColor = {'color':'#78be20'}
+                                producto.dateBorder = {'border': '1.5px solid #78be20'}
+                                producto.owner = vm.owner
+                                 //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_TicketRestauranteMax'){//REQ: 4294 
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'TicketRestauranteMax.jpg'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#78be20'}
+                                producto.fontColor = {'color':'#78be20'}
+                                producto.dateBorder = {'border': '1.5px solid #78be20'}
+                                producto.owner = vm.owner
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_VestimentaEdenred' || (vm.codigos[tipoPromesa+'-CMP2'] && vm.codigos[tipoPromesa+'-CMP2'].Name == 'PLAN_VestimentaEdenred2')){
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'VestimentaEdenred.jpg' //REQ: 4294 comentar cuando se pase a prod/qa
+                                //producto.header = 'VestimentaEdenred.png'//REQ: 4294 comentar cuando se pase a prod/qa
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                //producto.titlePipe = { 'background-color': '#2cd5c4'} //REQ: 4294 comentar cuando se pase a prod/qa
+                                //producto.fontColor = {'color':'#2cd5c4'} //REQ: 4294 comentar cuando se pase a prod/qa
+                                //producto.dateBorder = {'border': '1.5px solid #2cd5c4'} //REQ: 4294 comentar cuando se pase a prod/qa
+                                producto.titlePipe = { 'background-color': '#c5a3cc'} //REQ: 4294 descomentar cuando se pase a prod/qa
+                                producto.fontColor = {'color':'#c5a3cc'} //REQ: 4294 descomentar cuando se pase a prod/qa
+                                producto.dateBorder = {'border': '1.5px solid #c5a3cc'} //REQ: 4294 descomentar cuando se pase a prod/qa
+                                producto.owner = vm.owner
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_ValeDespensasEdenred' || (vm.codigos[tipoPromesa+'-CMP2'] && vm.codigos[tipoPromesa+'-CMP2'].Name == 'PLAN_ValeDespensasEdenred2')){
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'ValeDespensasEdenred.png'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#d52b1e'}
+                                producto.fontColor = {'color':'#d52b1e'}
+                                producto.dateBorder = {'border': '1.5px solid #d52b1e'}
+                                producto.owner = vm.owner
+                                 //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                 //vm.paginaPdfComun(producto);
+                                vm.paginaPdfValeDespensasEdenred(producto);
+                                //vm.paginaPdfValeDespensasEdenred2(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_TicketPlus'){
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'TicketPlus.png'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#00aec9'}
+                                producto.fontColor = {'color':'#00aec9'}
+                                producto.dateBorder = {'border': '1.5px solid #00aec9'}
+                                producto.owner = vm.owner
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            // SE DESCOMENTA PARA ACTIVAR NECTAR [3374]
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_Nectar' || (vm.codigos[tipoPromesa+'-CMP2'] && vm.codigos[tipoPromesa+'-CMP2'].Name == 'PLAN_Nectar2')){
+                               console.log('sajajaj');
+                                producto.fechaHoy = vm.fechaHoy//
+                                producto.owner = vm.owner;
+                                producto.titlePipe = { 'background-color': '#3bc2b1'}; //MEJORA NECTAR
+                                //producto.titlePipe = { 'background-color': 'red'};
+                                producto.header = 'Nectar.png';
+                                producto.dateBorder = {'border': '1.5px solid #3bc2b1'}; //MEJORA NECTAR
+                                //producto.dateBorder = {'border': '1.5px solid red'};
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.urlPaloma = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/paloma.png')}"
+                                producto.Segmento__c = 'Small'
+                                vm.paginaPdfNectar(producto);
+                            } 
+                            //NECTAR [3374]
+							//Para Producto Ecovale Combustible 60-t
+							if(vm.codigos[tipoPromesa].Name == 'PLAN_EcovaleCombustible60t'){
+                                producto.fechaHoy = vm.fechaHoy//
+                                producto.owner = vm.owner;
+                                producto.titlePipe = { 'background-color': 'rgb(124,185,39)'};
+								                producto.titlePipe2 = { 'background-color': 'rgb(2,116,54)'};
+                                producto.header = 'EcovaleCombustible60t.png';
+                                producto.dateBorder = {'border': '1.5px solid rgb(2,116,54)'};
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.urlPaloma = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/paloma.png')}"
+                                producto.Segmento__c = 'Small'
+                                vm.paginaPdfNectar(producto);
+                            } 
+                            //Caso para cuando es ticketCar -- Caso de prueba
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_TicketCar' || (vm.codigos[tipoPromesa+'-CMP2'] && vm.codigos[tipoPromesa+'-CMP2'].Name == 'PLAN_TicketCar2')){
+                                if(vm.owner.Segmento__c == 'Small'){
+                                    producto.fechaHoy = vm.fechaHoy
+                                    producto.header = 'TicketCarSmall.png'//REQ: 4294 comentar cuando se pase a prod/qa
+                                    //producto.header = 'TicketCarCorporate.png' //REQ: 4294 descomentar cuando se pase a prod/qa
+                                    producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                    producto.titlePipe = { 'background-color': '#7030a0'} //REQ: 4294 comentar cuando se pase a prod/qa
+                                    producto.fontColor = {'color':'#7030a0'}//REQ: 4294 comentar cuando se pase a prod/qa
+                                    producto.dateBorder = {'border': '1.5px solid #7030a0'}//REQ: 4294 comentar cuando se pase a prod/qa
+                                    //producto.titlePipe = { 'background-color': '#ffc72c'} //REQ: 4294 descomentar cuando se pase a prod/qa
+                                    //producto.fontColor = {'color':'#ffc72c'} //REQ: 4294 descomentar cuando se pase a prod/qa
+                                    //producto.dateBorder = {'border': '1.5px solid #ffc72c'} //REQ: 4294 descomentar cuando se pase a prod/qa
+                                    producto.owner = vm.owner
+                                    producto.Segmento__c = 'Small'
+                                }
+                                if(vm.owner.Segmento__c == 'MLK'){
+                                    producto.fechaHoy = vm.fechaHoy
+                                    producto.header = 'TicketCarSmall.png'//REQ: 4294 comentar cuando se pase a prod/qa
+                                    //producto.header = 'TicketCarCorporate.png' //REQ: 4294 descomentar cuando se pase a prod/qa
+                                    producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                    producto.titlePipe = { 'background-color': '#7030a0'} //REQ: 4294 comentar cuando se pase a prod/qa
+                                    producto.fontColor = {'color':'#7030a0'}//REQ: 4294 comentar cuando se pase a prod/qa
+                                    producto.dateBorder = {'border': '1.5px solid #7030a0'}//REQ: 4294 comentar cuando se pase a prod/qa
+                                    //producto.titlePipe = { 'background-color': '#ffc72c'} //REQ: 4294 descomentar cuando se pase a prod/qa
+                                    //producto.fontColor = {'color':'#ffc72c'} //REQ: 4294 descomentar cuando se pase a prod/qa
+                                    //producto.dateBorder = {'border': '1.5px solid #ffc72c'} //REQ: 4294 descomentar cuando se pase a prod/qa
+                                    producto.owner = vm.owner
+                                    producto.Segmento__c = 'MLK'
+                                }
+                                if(tipoPromesa == '30-TC4'){
+                                    producto.tipo = '4.0';
+                                }
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfTicketCar(producto); //vm.codigos[tipoPromesa]
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_TicketCarHidrosina'){
+                                if(vm.owner.Segmento__c == 'Small'){
+                                    producto.fechaHoy = vm.fechaHoy
+                                    producto.header = 'TicketCarCorporate.png'
+                                    producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                    producto.titlePipe = { 'background-color': '#ffc72c'}
+                                    producto.fontColor = {'color':'#ffc72c'}
+                                    producto.dateBorder = {'border': '1.5px solid #ffc72c'}
+                                    producto.owner = vm.owner
+                                    producto.Segmento__c = 'Small'
+                                }
+                                if(vm.owner.Segmento__c == 'MLK'){
+                                    producto.fechaHoy = vm.fechaHoy
+                                    producto.header = 'TicketCarCorporate.png'
+                                    producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                    producto.titlePipe = { 'background-color': '#ffc72c'}
+                                    producto.fontColor = {'color':'#ffc72c'}
+                                    producto.dateBorder = {'border': '1.5px solid #ffc72c'}
+                                    producto.owner = vm.owner
+                                    producto.Segmento__c = 'MLK'
+                                }
+                                if(tipoPromesa == '30-TC4'){
+                                    producto.tipo = '4.0';
+                                }
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfTicketCar(producto); //vm.codigos[tipoPromesa]
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_Mantenimiento'){
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'Mantenimiento.png'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#B0D700'}
+                                producto.fondoTabla = { 'background-color': '#2E4D60'}
+                                producto.fontColor = {'color':'#2E4D60'}
+                                producto.dateBorder = {'border': '1.5px solid #B0D700'}
+                                producto.owner = vm.owner
+
+                                producto.DiferencialesMantenimiento = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/Mantenimiento2.png')}"
+                                producto.SolucionesMantenimiento = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/Mantenimiento3.png')}"
+                                producto.SolucionesMantenimiento2 = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/Mantenimiento4.png')}"
+                                
+                                vm.paginaPdfMantenimiento(producto);
+                                
+                                vm.margin = {left: "0cm", top: "0cm", right: "0cm", bottom: "0.75cm"}
+
+                                var tablaGlobal = [];                                
+
+                                if((producto.PreciosTabla1).length > 0){
+                                    angular.forEach(producto.PreciosTabla1,function(tablaP1,indexP1){
+                                        tablaGlobal.push(tablaP1);
+                                    });
+
+                                    producto.PreciosTabla1 = []
+
+                                    if((producto.PreciosTabla2).length > 0){
+                                        angular.forEach(producto.PreciosTabla2,function(tablaP2,indexP2){
+                                            tablaGlobal.push(tablaP2);
+                                        });
+
+                                        producto.PreciosTabla2 = []
+                                    }
+                                }                                
+
+                                if(tablaGlobal.length > 0){
+                                    var valorImplementacion = (producto.contrato && producto.contrato.ImplementacionCuenta__c) ? producto.contrato.ImplementacionCuenta__c : '-';
+                                    var valorDeposito = (producto.contrato && producto.contrato.DepositoOperacional__c) ? producto.contrato.DepositoOperacional__c : '-';
+                                    var valorFee = (producto.contrato && producto.contrato.FeeFijoVehiculo__c) ? producto.contrato.FeeFijoVehiculo__c : '-';
+                                    producto.PlantillaMantenimiento.push(
+                                    {
+                                        TipoCargo__c: 'Implementación de la cuenta',
+                                        Importe__c: valorImplementacion,
+                                        Bonificacion__c: '-',
+                                        PrecioFinal2__c: valorImplementacion ,
+                                        VigenciaDescuento__c: '-',
+                                        CantidadTarjetas__c: '-'
+                                    });
+
+                                    producto.PlantillaMantenimiento.push(
+                                    {
+                                        TipoCargo__c: 'Depósito de operación',
+                                        Importe__c: valorDeposito,
+                                        Bonificacion__c: '-',
+                                        PrecioFinal2__c: valorDeposito ,
+                                        VigenciaDescuento__c: '-',
+                                        CantidadTarjetas__c: '-'
+                                    });
+
+                                    producto.PlantillaMantenimiento.push(
+                                    {
+                                        TipoCargo__c: 'Fee fijo por vehículo',
+                                        Importe__c: valorFee,
+                                        Bonificacion__c: '-',
+                                        PrecioFinal2__c: valorFee ,
+                                        VigenciaDescuento__c: '-',
+                                        CantidadTarjetas__c: '-'
+                                    });                                          
+
+                                   producto.PreciosTamaño = tablaGlobal.length + 4; 
+                                   producto.PreciosPrimo = primoPar(producto.PreciosTamaño);
+
+                                    if(!producto.PreciosPrimo){
+                                        if(producto.PreciosTamaño >= 12){
+                                            producto.PreciosxTabla = parseInt(producto.PreciosTamaño) /2;
+                                            producto.PreciosDosTablas = true;
+                                        }else{
+                                            producto.PreciosDosTablas = false;
+                                        }
+                                    }else {
+                                        if(producto.PreciosTamaño != 1){
+                                            if(producto.PreciosTamaño >= 12){
+                                                producto.PreciosxTabla = (parseInt(producto.PreciosTamaño)+1) /2;
+                                                producto.PreciosDosTablas = true;
+                                            }else{
+                                                producto.PreciosDosTablas = false;
+                                            }
+                                        }
+                                    }
+
+                                    angular.forEach(tablaGlobal,function(tablaG,indexG){
+                                        if(producto.PreciosDosTablas){
+                                            if(indexG < producto.PreciosxTabla){
+                                                producto.PreciosTabla1.push(tablaG)
+                                            }else{
+                                                producto.PreciosTabla2.push(tablaG)
+                                            }
+                                        }else{
+                                            producto.PreciosTabla1.push(tablaG)
+                                        }
+                                    });
+                                }else{
+                                    producto.PreciosTabla1.push({TipoCargo__c: 'Implementación de la cuenta'});
+                                    producto.PreciosTabla1.push({TipoCargo__c: 'Depósito de operación'});
+                                    producto.PreciosTabla1.push({TipoCargo__c: 'Fee fijo por vehículo'});
+                                }
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_PropuestaGeneral'){
+                                //console.log("PRUEE:::"+JSON.stringify(producto));
+                                producto.fechaHoy = vm.fechaHoy//
+                                producto.textoPrinc = vm.codigos[tipoPromesa].TextoPresentacion__c//
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+vm.codigos[tipoPromesa].NombreLogotipo__c+"')}"
+                                producto.titlePipe = { 'background-color': vm.codigos[tipoPromesa].ColorPrincipal__c}//vm.codigos[tipoPromesa].ColorPrincipal__c
+                                producto.fondoSec = { 'background-color': vm.codigos[tipoPromesa].ColorLetra__c}//
+                                producto.fontColorP = { 'color': vm.codigos[tipoPromesa].ColorPrincipal__c}//vm.codigos[tipoPromesa].ColorPrincipal__c
+                                producto.fontColor = {'color':vm.codigos[tipoPromesa].ColorLetra__c}//
+                                producto.dateBorder = {'border': '1.5px solid '+vm.codigos[tipoPromesa].ColorPrincipal__c}//
+                                producto.subSize = {'font-size': '22pt'}//
+                                producto.titulo=vm.codigos[tipoPromesa].Titulo__c//
+                                producto.subtitulo=vm.codigos[tipoPromesa].Subtitulo__c//
+                                producto.representante=producto.Quote.Contact.Name//
+                                producto.owner = vm.owner
+                                 //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_ValeDespensaWalmart' || (vm.codigos[tipoPromesa+'-CMP2'] && vm.codigos[tipoPromesa+'-CMP2'].Name == 'PLAN_ValeDespensaWalmart2')) {// REQ:4294
+                                console.log('4294: Producto: ', producto);
+                                console.log('4294: Producto.Contrato: ', producto.contrato);
+                                producto.fechaHoy = vm.fechaHoy//
+                                producto.textoPrinc = vm.codigos[tipoPromesa].TextoPresentacion__c//
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+vm.codigos[tipoPromesa].NombreLogotipo__c+"')}"
+                                producto.titlePipe = { 'background-color': vm.codigos[tipoPromesa].ColorPrincipal__c}//vm.codigos[tipoPromesa].ColorPrincipal__c
+                                producto.fondoSec = { 'background-color': vm.codigos[tipoPromesa].ColorLetra__c}//
+                                producto.fontColorP = { 'color': vm.codigos[tipoPromesa].ColorPrincipal__c}//vm.codigos[tipoPromesa].ColorPrincipal__c
+                                producto.fontColor = {'color':vm.codigos[tipoPromesa].ColorLetra__c}//
+                                producto.dateBorder = {'border': '1.5px solid '+vm.codigos[tipoPromesa].ColorPrincipal__c}//
+                                producto.subSize = {'font-size': '22pt'}//
+                                producto.titulo=vm.codigos[tipoPromesa].Titulo__c//
+                                producto.subtitulo=vm.codigos[tipoPromesa].Subtitulo__c//
+                                producto.representante=producto.Quote.Contact.Name//
+                                producto.owner = vm.owner
+                                 //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_PropuestaEconomica'){
+                                if(vm.owner.Segmento__c == 'Small'){
+                                    producto.Segmento__c = 'Small'
+                                }else{
+                                    producto.Segmento__c = 'MLK'
+                                }
+                                
+                                producto.fechaHoy = vm.fechaHoy
+                                producto.header = 'Teletrabajo.jpg'
+                                producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                producto.titlePipe = { 'background-color': '#86D7CB'} 
+                                producto.fontColor = {'color':'#000000'} 
+                                producto.fontCheck = {'color':'#86D7CB'} 
+                                producto.dateBorder = {'border': '1.5px solid #86D7CB'} 
+                                producto.owner = vm.owner
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfComun(producto);
+                            }
+                            //CV - EdenredArg
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_Ticket_Car_Arg'){
+                              console.log("Entro TicketCarArg");
+                              producto.fechaHoy = vm.fechaHoy
+                              producto.header = 'headTicketCarArg.jpg'
+                              producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                              producto.titlePipe = { 'background-color': '#F72717'} 
+                              producto.fontColor = {'color':'#7030a0'}
+                              producto.dateBorder = {'border': '1.5px solid #7030a0'}
+                              producto.owner = vm.owner
+                              producto.Segmento__c = 'Small'
+                              producto.urlPaloma = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/palomaArg.png')}"
+                              vm.paginaPdfArg(producto);
+                            }
+                            //CV - EdenredArg
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_Shell_Flota_Arg'){
+                              console.log("Entro ShellFlotaArg");
+                              producto.fechaHoy = vm.fechaHoy
+                              producto.header = 'headSFArg.jpg'
+                              producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                              producto.titlePipe = { 'background-color': '#ffc72c'} 
+                              producto.fontColor = {'color':'#ffc72c'}
+                              producto.dateBorder = {'border': '1.5px solid #ffc72c'}
+                              producto.owner = vm.owner
+                              producto.Segmento__c = 'Small'
+                              producto.urlPaloma = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/palomaArg.png')}"
+                              vm.paginaPdfArg(producto); //vm.codigos[tipoPromesa]
+                            }
+                            // 710
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_mantenimiento710'){
+                              console.log("Entro PLAN_mantenimiento710");
+                              producto.fechaHoy = vm.fechaHoy
+                              producto.header = 'headSFArg.jpg'
+                              producto.urlHeader = "{!URLFOR($Resource.argPdfHeadEdenred)}"
+                              producto.titlePipe = { 'background-color': '#ffc72c'} 
+                              producto.fontColor = {'color':'#ffc72c'}
+                              producto.dateBorder = {'border': '1.5px solid #ffc72c'}
+                              producto.owner = vm.owner
+                              producto.Segmento__c = 'Small'
+                              producto.urlPaloma = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/palomaArg.png')}"
+                              producto.urlVentajas = "{!URLFOR($Resource.argPdfVentajasEdenred)}"
+                              console.log('PLAN_mantenimiento710: ', JSON.stringify(producto));
+                              vm.paginaPdfArg(producto); //vm.codigos[tipoPromesa]
+                            }
+                            if(vm.codigos[tipoPromesa].Name == 'PLAN_TicketCarHidrosina'){
+                                if(vm.owner.Segmento__c == 'Small'){
+                                    producto.fechaHoy = vm.fechaHoy
+                                    producto.header = 'TicketCarCorporate.png'
+                                    producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                    producto.titlePipe = { 'background-color': '#ffc72c'}
+                                    producto.fontColor = {'color':'#ffc72c'}
+                                    producto.dateBorder = {'border': '1.5px solid #ffc72c'}
+                                    producto.owner = vm.owner
+                                    producto.Segmento__c = 'Small'
+                                }
+                                if(vm.owner.Segmento__c == 'MLK'){
+                                    producto.fechaHoy = vm.fechaHoy
+                                    producto.header = 'TicketCarCorporate.png'
+                                    producto.urlHeader = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/"+producto.header+"')}"
+                                    producto.titlePipe = { 'background-color': '#ffc72c'}
+                                    producto.fontColor = {'color':'#ffc72c'}
+                                    producto.dateBorder = {'border': '1.5px solid #ffc72c'}
+                                    producto.owner = vm.owner
+                                    producto.Segmento__c = 'MLK'
+                                }
+                                if(tipoPromesa == '30-TC4'){
+                                    producto.tipo = '4.0';
+                                }
+                                //Se crea un documento para que las tablas se corten de acuerdo al tamaño de la hoja
+                                vm.paginaPdfTicketCar(producto);
+                            }
+                        }
+                    })
+                    
+                    //Si se descartan la totalidad de soluciones se muestra un mensaje de error
+                    //MFG
+                    if(parseInt(solucionesDescartadas.length) == parseInt(soluciones.length) && !soluciones.openMFGAttached){
+                        vm.processing = false
+                        vm.dataRender = false
+                        ctcUtils.showError('Productos sin Propuesta Comercial.','');
+                    }
+                    //Si hay soluciones no descartadas
+                    else{
+                        if(solucionesDescartadas.length > 0){
+                            for(var cont = 0; cont < solucionesDescartadas.length; cont++){
+                                soluciones.splice(solucionesDescartadas[cont], 1);
+                            }
+                        }
+                        
+                        $timeout(function() {
+                            var urlImage, html;
+							// renegociacion - Televia
+                            if(!ctcUtils.app.opportunity.NTT_ModificacionTelevia__c && !ctcUtils.app.opportunity.NTT_AltaTelevia__c){                            
+                                if (ctcUtils.isProductArg && ctcUtils.isTicketCarArg) {
+                                    urlImage = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/footerTicketCarArg.jpg')}";
+                                    html = '<div class="page-template"><div class="watermark"></div> <div class="footer" style="display: flex; justify-content: center; align-items: center;"> <img src="' + urlImage + '"/></div></div>';
+                                } else if (ctcUtils.isProductArg && soluciones[0].Product2.ProductCode != '710') {
+                                    urlImage = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/footerSFArg.jpg')}";
+                                    html = '<div class="page-template"><div class="watermark"></div> <div class="footer" style="display: flex; justify-content: center; align-items: center;"> <img src="' + urlImage + '"/></div></div>';
+                                } else {
+                                    
+                                    if(soluciones[0].Product2.ProductCode != '710'){
+                                        urlImage = "{!URLFOR($Resource.CotizacionesPDF, '/Encabezados/MonogramColorRGB.png')}";
+                                        html = '<div class="page-template"><div class="watermark"></div> <div class="footer" style="display: flex; justify-content: center; align-items: center;"> <img class="logoFooter" src="' + urlImage + '"/>  <div style="float:right;"><span style="display:block;" class="ligaEdenred">edenred.mx</span></div> </div></div>';
+                                    }
+                                }
+							} // renegociacion - Televia
+                            //$('#valeDespensa2').text($('#valeDespensa').val());
+                            var htmlInject = '<div><p>Prueba</p></div>';
+                            $('#valeDespensa2').html(htmlInject);
+                            //console.log('VALEDESPENSA2',htmlInject);
+                            ctcUtils.renderPDF( 'promiseGeneralID', html, true, vm.margin )
+                                .then( function( pdf ) {
+                                    console.log('pdf response: ', pdf)
+                                    vm.data = pdf.render
+                                    vm.dataRender = true
+                                    vm.processing = false
+                                    ctcUtils.showProcess(false, 'Generando documento')
+                                    vm.msgEnviarCorreo = 'Guardando documento'
+                                    vm.msgEnviarCorreoProcessing = true
+                                    //console.log('PDFOriginal',pdf.original);
+                                    var data = pdf.original.replace('data:application/pdf;base64,', 'data')
+                                    // console.log('DATA 2:',data);
+                                    return ctcUtils.execute('guardaPDFBase64')(QuoteId, data);
+                                })
+                                .then( function( res ) {
+                                    vm.msgEnviarCorreo = 'Enviar por correo electrónico'
+                                    vm.msgEnviarCorreoProcessing = false
+                                    console.log('response save pdf: ', res)
+
+                                    vm.idGenerado = res.Upsert_QuoteDocument.Id
+                                    vm.urlEmail = window['sforce'] && window['sforce']['one'] ? '/one/one.app#/alohaRedirect/_ui/core/email/author/EmailAuthor?p2_lkid=' : '/_ui/core/email/author/EmailAuthor?p2_lkid='
+                                    vm.urlEmail += vm.cotizacion.ContactId
+                                    // vm.urlEmail += '&p3_lkid=' + vm.cotizacion.Id
+                                    // vm.urlEmail += '&p3_lkid=' + vm.cotizacion.OpportunityId
+                                    vm.urlEmail += '&p3_lkid=' + ctcUtils.app.opportunity.Id
+                                    vm.urlEmail += '&doc_id=' + vm.idGenerado
+                                    if(vm.cotizacion.Email && vm.cotizacion.Email.length > 0) {
+                                        vm.urlEmail += '&p24=' + vm.cotizacion.Email 
+                                    }
+                                    if( ctcUtils.app.emailTemplate && ctcUtils.app.emailTemplate.Id ) {
+                                        vm.urlEmail += '&template_id=' + ctcUtils.app.emailTemplate.Id
+                                    }
+                                    vm.urlEmail += '&saveURL=/' + ctcUtils.app.opportunity.Id
+                                    vm.urlFile = '/servlet/servlet.FileDownload?file=' + res.Upsert_QuoteDocument.Id
+                                })
+                                .catch( function( err ) {
+                                    vm.msgEnviarCorreoProcessing = false
+                                    console.log('error save pdf: ', err)
+                                    ctcUtils.showError( err )
+                                })
+                        }, 4700 )
+                    }
+                }
+
+                vm.html = function(textHtml, dataSource) {
+                    var e = document.createElement('div');
+                    e.innerHTML = textHtml;
+                    textHtml = e.childNodes[0].nodeValue;
+        
+                    textHtml = textHtml.replace(/font-family: Calibri;/g, 'font-family: Helvetica;');
+                    textHtml = textHtml.replace(/font-family: Arial;/g, 'font-family: Helvetica;');
+                    textHtml = textHtml.replace(/<ul/g, '<p');
+                    textHtml = textHtml.replace(/<u/g, '<p');
+                    textHtml = textHtml.replace(/<\/u/g, '</p');
+                    textHtml = textHtml.replace(/<\/ul/g, '</p');
+                    textHtml = textHtml.replace(/<li/g, '<p');
+                    textHtml = textHtml.replace(/<\/li/g, '</p');
+                    textHtml = textHtml.replace(/‐/g, '-');
+                    textHtml = textHtml.replace(/<img src\=\"https\:\/\/\:0\/\">/g, '<p></p>');
+                    textHtml = textHtml.replace(/<img src="\/\/\:0"><\/img>/g, '<p></p>');
+                    textHtml = vm.replaceText(textHtml, dataSource);
+        
+                    return textHtml;
+                }
+
+                //Trae el formato del campo
+                vm.replaceText = function(textHtml,datasource){
+                    textHtml = textHtml.replace(/<img src\=\"https\:\/\/\:0\/\">/g, '<p></p>');
+                    textHtml = textHtml.replace(/<img src="\/\/\:0"><\/img>/g, '<p></p>');
+                
+                    var expresiones = vm.getExpresiones(textHtml)
+                    console.log("expresiones: ", expresiones)
+                    Object.keys(expresiones).forEach(function (expresion, index) {
+                        var path = expresion.split('\.');
+                        var data = '';
+                        let valor = undefined;
+                        try{
+                            valor = ctcUtils.path(expresion, datasource);
+                            if (expresion.indexOf('FechaContrato__c') != -1 && valor) {
+                                valor = getDate(valor)
+                            }
+                            if (valor == undefined) {
+                                valor = ''
+                            }
+                        }catch(e){
+                            valor = '';
+                        }
+        
+                        if (typeof (valor) == 'boolean') {
+                            if (valor) {
+                                valor = '<span class="fa fa-check-square-o"></span>';
+                            } else {
+                                valor = '<span class="fa fa-square-o"></span>';
+                            }
+                        }
+        
+                        if (expresion && expresion.indexOf('IMG__c') != -1) {
+                            var resource = 'IMGTARJETASECOVALE/' + expresion.substring(expresion.indexOf('/') + 1, expresion.length)
+                            valor = '<img class="imgInternaEcovale" src="{!URLFOR($Resource.TarjetasContratoEcovale, "' + resource + '" )}" />'
+                        }
+        
+                        expresiones[expresion] = valor;
+                    })
+    
+                    Object.keys(expresiones).forEach(function (expresion, index) {
+                        var reg = new RegExp('\{\!' + expresion + '\}', 'g')
+                        textHtml = textHtml.replace(reg, expresiones[expresion])
+                    })
+                    return textHtml;
+                } 
+
+                vm.getExpresiones = function(html) {
+                    var ret = {};
+                    html.split('\{\!').forEach(function (token, index) {
+                        if (token.indexOf('}') != - 1) {
+                            ret[token.substr(0, token.indexOf('}'))] = ''
+                        }
+                    })
+                    return ret;
+                }
+                
+                vm.paginaPdfMantenimiento = function(producto){
+                    console.log('paginaPdfMantenimiento: ', producto)
+                    var documento = new DocumentoPDF();
+                    var pagina = new Pagina();
+                    
+                    var secciones = [];
+                    var header = new Seccion('HeaderLogo','HeaderLogo',(new Marco(W_CONTENIDO,4.0)));
+                    secciones.push(header);
+                    var cfecha = new Seccion('Fecha','Fecha',(new Marco(W_CONTENIDO,1)));
+                    secciones.push(cfecha);
+                    var tProp = new Seccion('tPropuesta','tPropuesta',(new Marco(W_CONTENIDO,4)));
+                    secciones.push(tProp);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                        var datosCliente = new Seccion('Datos Cliente','Datos Cliente',(new Marco(W_CONTENIDO,2)));
+	                    secciones.push(datosCliente);
+                    }
+                    
+                    var textoPropuesta = new Seccion('textoPropuesta','textoPropuesta',(new Marco(W_CONTENIDO,3.5)));
+                    secciones.push(textoPropuesta);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	if(producto.conceptosFiltrados.length > 0){
+	                        var tablaPrecios = new SeccionTabla('tablaPrecios','tablaPrecios', producto.conceptosFiltrados);
+	                        tablaPrecios.ST_HEADER = 2.2;
+	                        tablaPrecios.size = tablaPrecios.getSize();
+	                        secciones.push(tablaPrecios);
+	                    }
+                    }
+                    else{
+                    	if(producto.productoConcepto && producto.productoConcepto.length > 0){
+	                        var tablaConceptos = new SeccionTabla('tablaConceptos','tablaConceptos', producto.productoConcepto);
+	                        tablaConceptos.size = tablaConceptos.getSize();
+	                        secciones.push(tablaConceptos);
+	                    }
+                    }
+                    
+                    var vigenciaIva = new Seccion('vigenciaIva','vigenciaIva',(new Marco(W_CONTENIDO,1.0)));
+                    secciones.push(vigenciaIva);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	var comentarios = new Seccion('comentarios','comentarios',(new Marco(W_CONTENIDO,1.0)));
+	                    secciones.push(comentarios);
+	                    var formaPago = new Seccion('formaPago','formaPago',(new Marco(W_CONTENIDO,1.5)));
+	                    secciones.push(formaPago);
+	                    var contraprestacion = new Seccion('contraprestacion','contraprestacion',(new Marco(W_CONTENIDO,1.0)));
+	                    secciones.push(contraprestacion);
+	                }
+                    
+                    //Se aplica algoritmo de paginación
+                    vm.paginarDocumentoPdf(secciones, pagina, documento);
+                }
+                
+                vm.paginaPdfValeDespensasEdenred = function(producto){
+                    console.log('paginaPdfValeDespensasEdenred: ', producto)
+                    var documento = new DocumentoPDF();
+                    var pagina = new Pagina();
+                    
+                    var secciones = [];
+                    //27.94
+                    ///////////////////
+                    // PRIMER PÁGINA //
+                    ///////////////////
+
+                    //Sección Header
+                    var Header = new Seccion('HeaderLogo','HeaderLogo',(new Marco(W_CONTENIDO,4)));
+                    secciones.push(Header);
+                    //Sección Fecha
+                    var Fecha = new Seccion('Fecha','Fecha',(new Marco(W_CONTENIDO,1)));
+                    secciones.push(Fecha);
+                    //Sección Titulo
+                    var Titulo = new Seccion('Titulo','Titulo',(new Marco(W_CONTENIDO,4)));
+                    secciones.push(Titulo);
+
+                    if(producto.RecordType != 'RT_Renegotiation'){
+	                    //Sección Datos cliente
+	                    var DatosCliente = new Seccion('DatosCliente','DatosCliente',(new Marco(W_CONTENIDO,2)));
+	                    secciones.push(DatosCliente);
+                    }
+                    
+                    //Sección Texto Inicial
+                    var TextoInicial = new Seccion('TextoInicial','TextoInicial',(new Marco(W_CONTENIDO,5)));
+                    secciones.push(TextoInicial);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	//Sección Tabla Precios
+                    	if(producto.conceptosFiltrados.length > 0) {
+	                        var TablaPrecios = new SeccionTabla('TablaPrecios','TablaPrecios', producto.conceptosFiltrados);
+	                        TablaPrecios.ST_HEADER = 2.2;
+	                        TablaPrecios.size = TablaPrecios.getSize();
+	                        secciones.push(TablaPrecios);
+	                    }
+                    }
+                    else{
+                    	if(producto.productoConcepto && producto.productoConcepto.length > 0){
+	                        var tablaConceptos = new SeccionTabla('tablaConceptos','tablaConceptos', producto.productoConcepto);
+	                        tablaConceptos.size = tablaConceptos.getSize();
+	                        secciones.push(tablaConceptos);
+	                    }
+                    }
+                    
+                    //Sección Vigencia IVA
+                    var VigenciaIVA = new Seccion('VigenciaIVA','VigenciaIVA',(new Marco(W_CONTENIDO,5)));
+                    secciones.push(VigenciaIVA);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	//Sección Comentarios
+	                    var Comentarios = new Seccion('Comentarios','Comentarios',(new Marco(W_CONTENIDO,5)));
+	                    secciones.push(Comentarios);
+                    
+                    	////////////////////
+                    	// SEGUNDA PÁGINA //
+                    	////////////////////
+                    
+                    	//Sección Forma Pago
+                    	var FormaPago = new Seccion('FormaPago','FormaPago',(new Marco(W_CONTENIDO,3)));
+                    	secciones.push(FormaPago);
+	                    
+	                    if(producto.diferenciales.length > 0){
+	                        //Sección Título Diferenciales
+	                        var TituloDiferenciales = new Seccion('TituloDiferenciales','TituloDiferenciales',(new Marco(W_CONTENIDO,4)));
+	                        secciones.push(TituloDiferenciales);
+	                        //Sección Tabla Diferenciales
+	                        var TablaDiferenciales = new SeccionTabla('TablaDiferenciales','TablaDiferenciales', producto.diferenciales);
+	                        TablaDiferenciales.ST_ROW = 0.7;
+	                        TablaDiferenciales.size = TablaDiferenciales.getSize();
+	                        secciones.push(TablaDiferenciales);
+	                        //Sección Footer Diferenciales
+	                        var FooterDiferenciales = new Seccion('FooterDiferenciales','FooterDiferenciales',(new Marco(W_CONTENIDO,1.0)));
+	                        secciones.push(FooterDiferenciales);
+	                    }
+	                    
+	                    //Sección Terminos y Condiciones
+	                    var TerminosCondiciones = new Seccion('TerminosCondiciones','TerminosCondiciones',(new Marco(W_CONTENIDO,10)));
+	                    secciones.push(TerminosCondiciones);
+	                    //Sección Id Clente
+	                    var IdCliente1 = new Seccion('IdCliente1','IdCliente1',(new Marco(W_CONTENIDO,10)));
+	                    secciones.push(IdCliente1);
+	                    var IdCliente2 = new Seccion('IdCliente2','IdCliente2',(new Marco(W_CONTENIDO,10)));
+	                    secciones.push(IdCliente2);
+	                    var IdCliente3 = new Seccion('IdCliente3','IdCliente3',(new Marco(W_CONTENIDO,10)));
+	                    secciones.push(IdCliente3);
+	                    //Sección Documentos Id Cliente
+	                    var DocumentosCliente = new Seccion('DocumentosCliente','DocumentosCliente',(new Marco(W_CONTENIDO,15)));
+	                    secciones.push(DocumentosCliente);
+	                    //Sección Artículo Id Cliente
+	                    var ArticuloCliente = new Seccion('ArticuloCliente','ArticuloCliente',(new Marco(W_CONTENIDO,15)));
+	                    secciones.push(ArticuloCliente);
+	                    //Sección Soluciones
+	                    var Soluciones = new Seccion('Soluciones','Soluciones',(new Marco(W_CONTENIDO,15)));
+	                    secciones.push(Soluciones);
+                    }
+
+                    vm.paginarDocumentoPdf(secciones, pagina, documento);
+                }
+
+                vm.paginaPdfValeDespensasEdenred2 = function(producto){
+                    console.log('paginaPdfValeDespensasEdenred2: ', producto)
+                    var documento = new DocumentoPDF();
+                    var pagina = new Pagina();
+                    
+                    var secciones = [];
+                    
+                    /*var ArticuloCliente = new Seccion('ArticuloCliente','ArticuloCliente',(new Marco(W_CONTENIDO,27)));
+                    secciones.push(ArticuloCliente);*/
+                    //Sección Soluciones
+                    var Soluciones = new Seccion('Soluciones','Soluciones',(new Marco(W_CONTENIDO,10)));
+                    secciones.push(Soluciones);
+
+                    vm.paginarDocumentoPdf(secciones, pagina, documento);
+                }
+
+                vm.paginaPdfComun = function(producto){
+                    console.log('paginaPdfComun: ', producto)
+                    var documento = new DocumentoPDF();
+                    var pagina = new Pagina();
+                    
+                    var secciones = [];
+                    var header = new Seccion('HeaderLogo','HeaderLogo',(new Marco(W_CONTENIDO,4.0)));
+                    secciones.push(header);
+                    var cfecha = new Seccion('Fecha','Fecha',(new Marco(W_CONTENIDO,1)));
+                    secciones.push(cfecha);
+                    var tProp = new Seccion('tPropuesta','tPropuesta',(new Marco(W_CONTENIDO,4)));
+                    secciones.push(tProp);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	var datosCliente = new Seccion('Datos Cliente','Datos Cliente',(new Marco(W_CONTENIDO,2)));
+	                    secciones.push(datosCliente);
+                    }
+                    
+                    var textoPropuesta = new Seccion('textoPropuesta','textoPropuesta',(new Marco(W_CONTENIDO,5)));
+                    secciones.push(textoPropuesta);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	if(producto.conceptosFiltrados.length > 0){
+	                        var tablaPrecios = new SeccionTabla('tablaPrecios','tablaPrecios', producto.conceptosFiltrados);
+	                        tablaPrecios.ST_HEADER = 2.2;
+	                        tablaPrecios.size = tablaPrecios.getSize();
+	                        secciones.push(tablaPrecios);
+	                    }
+                    }
+                    else{
+                    	if(producto.productoConcepto && producto.productoConcepto.length > 0){
+	                        var tablaConceptos = new SeccionTabla('tablaConceptos','tablaConceptos', producto.productoConcepto);
+	                        tablaConceptos.size = tablaConceptos.getSize();
+	                        secciones.push(tablaConceptos);
+	                    }
+                    }
+                    
+                    var vigenciaIva = new Seccion('vigenciaIva','vigenciaIva',(new Marco(W_CONTENIDO,1.0)));
+                    secciones.push(vigenciaIva);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	var comentarios = new Seccion('comentarios','comentarios',(new Marco(W_CONTENIDO,2)));
+	                    secciones.push(comentarios);
+	                    var formaPago = new Seccion('formaPago','formaPago',(new Marco(W_CONTENIDO,3)));
+	                    secciones.push(formaPago);
+	                    
+	                    if(producto.diferenciales.length > 0){
+	                        var pipeDiferenciales = new Seccion('pipeDiferenciales','pipeDiferenciales',(new Marco(W_CONTENIDO,4)));
+	                        secciones.push(pipeDiferenciales);
+	                        var tablaDiferenciales = new SeccionTabla('tablaDiferenciales','tablaDiferenciales', producto.diferenciales);
+	                        tablaDiferenciales.ST_ROW = 0.7;
+	                        tablaDiferenciales.size = tablaDiferenciales.getSize();
+	                        secciones.push(tablaDiferenciales);
+	                        var pipeDiferenciales2 = new Seccion('pipeDiferenciales2','pipeDiferenciales2',(new Marco(W_CONTENIDO,1.0)));
+	                        secciones.push(pipeDiferenciales2);
+	                    }
+	                    if(producto.header == 'EmpresarialEdenred.jpg' && producto.owner.Segmento__c == 'Small'){
+	                        var tDocumentacion = new Seccion('tituloDocumentacion','tituloDocumentacion',(new Marco(W_CONTENIDO,1)));
+	                        secciones.push(tDocumentacion);
+	                        var tablaDocumentacion = new Seccion('tablaDocumentacion','tablaDocumentacion',(new Marco(W_CONTENIDO,6)));
+	                        secciones.push(tablaDocumentacion);
+	                        var infoAdicional = new Seccion('infoAdicional','infoAdicional',(new Marco(W_CONTENIDO,4)));
+	                        secciones.push(infoAdicional);
+	                    }
+	                    if(producto.header == 'ValeDespensasEdenred.png') {
+	                        //console.log('AGREGA PAGINA');
+	                        var firmasComercial = new Seccion('firmasComercial','firmasComercial',(new Marco(W_CONTENIDO,27.94)));
+	                        secciones.push(firmasComercial);
+	                        //var firmasComercial = new Seccion('firmasComercial','firmasComercial',(new Marco(W_CONTENIDO,5)));
+	                        //secciones.push(firmasComercial);
+	                    }
+	                }
+                    
+                    //Se aplica algoritmo de paginación
+                    vm.paginarDocumentoPdf(secciones, pagina, documento);
+                }
+                
+                // SE DESCOMENTA PARA ACTIVAR NECTAR [3374]
+                vm.paginaPdfNectar = function(producto){
+                    console.log('paginaPdfNectar: ', producto)
+
+                    // Televia Inicio 
+                      angular.forEach( producto.conceptosUnicosKey, function( productoCon, index ) {
+                                console.log('NVH- concepto in filter : ', productoCon);
+                                if(productoCon.TipoCargo__c== 'Comisión por Servicio Telepeaje'){
+                                    angular.forEach( producto.conceptosUnicos, function( productoUnicos, item )
+                                    {
+                                        console.log('NVH- productoUnicos in filter : ', productoUnicos);
+                                          if(productoUnicos.TipoCargo__c== 'Comisión por Servicio Telepeaje'){
+                                            if(productoUnicos.Bonificacion__c > 0){
+
+
+                                                if((productoCon.PrecioFinal2__c == 0 || productoCon.PrecioFinal2__c == undefined) && productoUnicos.Bonificacion__c  < 99.7){
+                                                        productoCon.PrecioFinal2__c =  productoUnicos.PrecioFinal__c;
+                                                }else
+                                                if((productoCon.PrecioFinal__c == 0 || productoCon.PrecioFinal__c == undefined) && productoUnicos.Bonificacion__c  < 99.7){
+                                                        productoCon.PrecioFinal__c =  productoUnicos.PrecioFinal2__c;
+                                                }else
+                                                 if(productoUnicos.Bonificacion__c  >= 99.7){
+                                                        productoCon.PrecioFinal2__c = 0;
+                                                        productoCon.PrecioFinal__c = 0;  
+                                                 } 
+                                                else{
+                                                        productoCon.PrecioFinal2__c = productoUnicos.PrecioFinal2__c;
+                                                        productoCon.PrecioFinal__c = productoUnicos.PrecioFinal__c;  
+                                                }
+                                                
+                                                console.log('c PrecioFinal__c', productoCon.PrecioFinal__c);
+                                                console.log('N PrecioFinal__c ', productoCon.PrecioFinal2__c);
+
+                                                productoCon.Bonificacion__c = productoUnicos.Bonificacion__c;
+                                                productoCon.VigenciaDescuento__c = productoUnicos.VigenciaDescuento__c; 
+                                            }else{
+                                                console.log('NVH- ¿¿¿productoUnicos: ', productoUnicos.Importe__);
+                                                console.log('N productoCon ', productoCon.Importe__);
+                                                
+                                                productoCon.PrecioFinal__c = productoUnicos.Importe__c;
+                                                productoCon.PrecioFinal__c = productoUnicos.Importe__c;
+                                            }
+                                          }
+                                          
+                                    });
+                                     console.log('NVH- concepto in filter den : ');
+                                }     
+                                
+                                
+                                if(productoCon.TipoCargo__c== 'Comisión por Servicio Telepeaje'){
+                                            if(productoCon.Bonificacion__c <= 0){
+                                                productoCon.PrecioFinal__c = productoCon.Importe__c;                                            
+                                                productoCon.PrecioFinal2__c = productoCon.Importe__c;     
+                                        }   
+                                    } 
+
+                                if(productoCon.TipoCargo__c== 'Cuota por Renta Mensual Tag Dual'){
+                                            if(productoCon.Bonificacion__c <= 0){
+                                                productoCon.PrecioFinal__c = productoCon.Importe__c;                                            
+                                                productoCon.PrecioFinal2__c = productoCon.Importe__c;     
+                                        }   
+                                    }                
+                                 console.log('NVH- coconceptoUni : '+JSON.stringify(productoCon));
+                        });   
+                            // Televia Fin 
+                    var documento = new DocumentoPDF();
+                    var pagina = new Pagina();
+                    var secciones = [];
+                    var header = new Seccion('HeaderLogo','HeaderLogo',(new Marco(W_CONTENIDO,4.0)));
+                    secciones.push(header);
+                    var cfecha = new Seccion('Fecha','Fecha',(new Marco(W_CONTENIDO,1)));
+                    secciones.push(cfecha);
+                    
+                    var tProp = new Seccion('tPropuesta','tPropuesta',(new Marco(W_CONTENIDO,4)));
+                    secciones.push(tProp);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	var datosCliente = new Seccion('Datos Cliente','Datos Cliente',(new Marco(W_CONTENIDO,2)));
+	                    secciones.push(datosCliente);
+                    }
+                    
+                    var textoPropuesta = new Seccion('textoPropuesta','textoPropuesta',(new Marco(W_CONTENIDO,4.3)));
+                    secciones.push(textoPropuesta);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	var datosPropuesta = new Seccion('datosPropuesta','datosPropuesta',(new Marco(W_CONTENIDO,1.5)));
+	                    secciones.push(datosPropuesta);
+	                    var textoPropuesta2 = new Seccion('textoPropuesta2','textoPropuesta2',(new Marco(W_CONTENIDO,1.5)));
+	                    secciones.push(textoPropuesta2);
+                    
+                    	if(producto.conceptosFiltrados.length > 0){
+	                        var tablaPrecios = new SeccionTabla('tablaPrecios','tablaPrecios', producto.conceptosFiltrados);
+	                        tablaPrecios.size = tablaPrecios.getSize();
+	                        console.log('$$ 1 tablaPrecios :' , tablaPrecios);
+                            secciones.push(tablaPrecios);
+	                    }
+                    }
+                    else{
+                    	if(producto.productoConcepto && producto.productoConcepto.length > 0){
+	                        var tablaConceptos = new SeccionTabla('tablaConceptos','tablaConceptos', producto.productoConcepto);
+	                        tablaConceptos.size = tablaConceptos.getSize();
+	                        secciones.push(tablaConceptos);
+	                    }
+                    }
+                    
+                    var vigenciaIva = new Seccion('vigenciaIva','vigenciaIva',(new Marco(W_CONTENIDO,1.5)));
+                    secciones.push(vigenciaIva);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	var comentarios = new Seccion('comentarios','comentarios',(new Marco(W_CONTENIDO,2)));
+	                    secciones.push(comentarios);
+
+	                    if(producto.diferenciales.length > 0){
+	                        var pipeDiferenciales = new Seccion('pipeDiferenciales','pipeDiferenciales',(new Marco(W_CONTENIDO,4)));
+	                        secciones.push(pipeDiferenciales);
+	                        var tablaDiferenciales = new SeccionTabla('tablaDiferenciales','tablaDiferenciales', producto.diferenciales);
+	                        tablaDiferenciales.ST_ROW = 0.7;
+	                        tablaDiferenciales.size = tablaDiferenciales.getSize();
+	                        secciones.push(tablaDiferenciales);
+	                        var pipeDiferenciales2 = new Seccion('pipeDiferenciales2','pipeDiferenciales2',(new Marco(W_CONTENIDO,1.5)));
+	                        secciones.push(pipeDiferenciales2);
+	                    }
+	
+	                    var contraprestacionSmall = new Seccion('contraprestacionSmall','contraprestacionSmall',new Marco(W_CONTENIDO,2));
+	                    secciones.push(contraprestacionSmall);   
+	
+	                    var formaPagoSmall = new Seccion('formaPagoSmall','formaPagoSmall',(new Marco(W_CONTENIDO,3)));
+	                    secciones.push(formaPagoSmall);
+	
+	                    var tablaDocumentacion = new Seccion('tablaDocumentacion','tablaDocumentacion',(new Marco(W_CONTENIDO,7.5)));
+	                    secciones.push(tablaDocumentacion);
+	                    
+	                    var infoAdicional = new Seccion('infoAdicional','infoAdicional',(new Marco(W_CONTENIDO,4.5)));
+	                    secciones.push(infoAdicional);
+	                }
+                    //Se aplica algoritmo de paginación
+                    vm.paginarDocumentoPdf(secciones, pagina, documento);
+                } //Nectar
+
+                vm.paginaPdfTicketCar = function(producto){
+                    console.log('paginaPdfTicketCar: ', producto)
+                    var documento = new DocumentoPDF();
+                    var pagina = new Pagina();
+                    
+                    var secciones = [];
+                    var header = new Seccion('HeaderLogo','HeaderLogo',(new Marco(W_CONTENIDO,4.0)));
+                    secciones.push(header);
+                    
+                    var cfecha = new Seccion('Fecha','Fecha',(new Marco(W_CONTENIDO,1)));
+                    secciones.push(cfecha);
+                    
+                    var tProp = new Seccion('tPropuesta','tPropuesta',(new Marco(W_CONTENIDO,4)));
+                    secciones.push(tProp);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	var datosCliente = new Seccion('Datos Cliente','Datos Cliente',(new Marco(W_CONTENIDO,2)));
+	                    secciones.push(datosCliente);
+                    }
+                    
+                    if(producto.owner.Segmento__c == 'Small'){
+                        var textoPropuesta = new Seccion('textoPropuesta','textoPropuesta',(new Marco(W_CONTENIDO,4.3)));
+                        secciones.push(textoPropuesta);
+                    }else{
+                        var textoPropuesta = new Seccion('textoPropuesta','textoPropuesta',(new Marco(W_CONTENIDO,3)));
+                        secciones.push(textoPropuesta);
+                    }
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	if(producto.owner.Segemento == 'Small'){
+	                        var datosPropuesta = new Seccion('datosPropuesta','datosPropuesta',(new Marco(W_CONTENIDO,1.5)));
+	                        secciones.push(datosPropuesta);
+	                    }
+	                    var textoPropuesta2 = new Seccion('textoPropuesta2','textoPropuesta2',(new Marco(W_CONTENIDO,1.5)));
+	                    secciones.push(textoPropuesta2);
+                    
+	                    if(producto.conceptosFiltrados.length > 0){
+	                        var tablaPrecios = new SeccionTabla('tablaPrecios','tablaPrecios', producto.conceptosFiltrados);
+	                        tablaPrecios.size = tablaPrecios.getSize();
+                            console.log("$$ Tabla precios : " ,tablaPrecios);
+	                        secciones.push(tablaPrecios);
+	                    }
+                    }
+                    else{
+                    	if(producto.productoConcepto && producto.productoConcepto.length > 0){
+	                        var tablaConceptos = new SeccionTabla('tablaConceptos','tablaConceptos', producto.productoConcepto);
+	                        tablaConceptos.size = tablaConceptos.getSize();
+	                        secciones.push(tablaConceptos);
+	                    }
+                    }
+                    
+                    var vigenciaIva = new Seccion('vigenciaIva','vigenciaIva',(new Marco(W_CONTENIDO,1.5)));
+                    secciones.push(vigenciaIva);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	var comentarios = new Seccion('comentarios','comentarios',(new Marco(W_CONTENIDO,2)));
+	                    secciones.push(comentarios);
+                    
+                    	if(producto.owner.Segemento != 'Small'){
+	                        var formaPago = new Seccion('formaPago','formaPago',(new Marco(W_CONTENIDO,3)));
+	                        secciones.push(formaPago);
+	                    }
+                    
+                    	if(producto.diferenciales.length > 0){
+	                        var pipeDiferenciales = new Seccion('pipeDiferenciales','pipeDiferenciales',(new Marco(W_CONTENIDO,4)));
+	                        secciones.push(pipeDiferenciales);
+	                        var tablaDiferenciales = new SeccionTabla('tablaDiferenciales','tablaDiferenciales', producto.diferenciales);
+	                        tablaDiferenciales.ST_ROW = 0.7;
+	                        tablaDiferenciales.size = tablaDiferenciales.getSize();
+	                        secciones.push(tablaDiferenciales);
+	                        var pipeDiferenciales2 = new Seccion('pipeDiferenciales2','pipeDiferenciales2',(new Marco(W_CONTENIDO,1.5)));
+	                        secciones.push(pipeDiferenciales2);
+	                    }
+                    
+                    	if(producto.owner.Segmento__c == 'Small'){
+	                        var contraprestacionSmall = new Seccion('contraprestacionSmall','contraprestacionSmall',new Marco(W_CONTENIDO,2));
+	                        secciones.push(contraprestacionSmall);
+                        
+                        	var formaPagoSmall = new Seccion('formaPagoSmall','formaPagoSmall',(new Marco(W_CONTENIDO,3)));
+	                        secciones.push(formaPagoSmall);
+	                    }
+                    
+	                    var tablaDocumentacion = new Seccion('tablaDocumentacion','tablaDocumentacion',(new Marco(W_CONTENIDO,7.5)));
+    	                secciones.push(tablaDocumentacion);
+                    
+	                    var infoAdicional = new Seccion('infoAdicional','infoAdicional',(new Marco(W_CONTENIDO,4.5)));
+    	                secciones.push(infoAdicional);
+                    }
+                    
+                    //Se aplica algoritmo de paginación
+                    vm.paginarDocumentoPdf(secciones, pagina, documento);
+                }
+                
+                vm.paginaEcovaleCombustible = function(producto){
+                    console.log('paginaEcovaleCombustible: ', producto)
+                    var documento = new DocumentoPDF();
+                    var pagina = new Pagina();
+                    
+                    var secciones = [];
+                    var header = new Seccion('HeaderLogo','HeaderLogo',(new Marco(W_CONTENIDO,4.0)));
+                    secciones.push(header);
+                    var cfecha = new Seccion('Fecha','Fecha',(new Marco(W_CONTENIDO,1)));
+                    secciones.push(cfecha);
+                    var tProp = new Seccion('tPropuesta','tPropuesta',(new Marco(W_CONTENIDO,4)));
+                    secciones.push(tProp);
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	var datosCliente = new Seccion('Datos Cliente','Datos Cliente',(new Marco(W_CONTENIDO,2)));
+	                    secciones.push(datosCliente);
+                    }
+                    
+                    if(producto.owner.Segmento__c == 'Small'){
+                        var textoPropuesta = new Seccion('textoPropuesta','textoPropuesta',(new Marco(W_CONTENIDO,4.3)));
+                        secciones.push(textoPropuesta);
+                    }else{
+                        var textoPropuesta = new Seccion('textoPropuesta','textoPropuesta',(new Marco(W_CONTENIDO,4.3)));
+                        secciones.push(textoPropuesta);
+                    }
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	if(producto.conceptosFiltrados.length > 0){
+	                        var tablaPrecios = new SeccionTabla('tablaPrecios','tablaPrecios', producto.conceptosFiltrados);
+                            console.log('$$ tablaPrecios : ',tablaPrecios);
+	                        tablaPrecios.size = tablaPrecios.getSize();
+	                        secciones.push(tablaPrecios);
+	                    }
+                    }
+                    else{
+                    	if(producto.productoConcepto && producto.productoConcepto.length > 0){
+	                        var tablaConceptos = new SeccionTabla('tablaConceptos','tablaConceptos', producto.productoConcepto);
+	                        tablaConceptos.size = tablaConceptos.getSize();
+	                        secciones.push(tablaConceptos);
+	                    }
+                    }
+                    
+                    if(producto.owner.Segemento != 'Small'){
+                        var vigenciaIva = new Seccion('vigenciaIva','vigenciaIva',(new Marco(W_CONTENIDO,1.0)));
+                        secciones.push(vigenciaIva);
+                        if(producto.RecordType != 'RT_Renegotiation'){
+                        	var comentarios = new Seccion('comentarios','comentarios',(new Marco(W_CONTENIDO,1.0)));
+	                        secciones.push(comentarios);
+	                        var formaPago = new Seccion('formaPago','formaPago',(new Marco(W_CONTENIDO,3)));
+	                        secciones.push(formaPago);
+                        }
+                    }else{
+                        var vigenciaIva = new Seccion('vigenciaIva','vigenciaIva',(new Marco(W_CONTENIDO,1.5)));
+                        secciones.push(vigenciaIva);
+                    }
+                    
+                    if(producto.RecordType != 'RT_Renegotiation'){
+                    	if(producto.diferenciales.length > 0){
+	                        var pipeDiferenciales = new Seccion('pipeDiferenciales','pipeDiferenciales',(new Marco(W_CONTENIDO,4)));
+	                        secciones.push(pipeDiferenciales);
+	                        var tablaDiferenciales = new SeccionTabla('tablaDiferenciales','tablaDiferenciales', producto.diferenciales);
+	                        tablaDiferenciales.ST_ROW = 0.9;
+	                        tablaDiferenciales.size = tablaDiferenciales.getSize();
+	                        secciones.push(tablaDiferenciales);
+	                        if(producto.owner.Segmento__c != 'Small'){
+	                            var pipeDiferenciales2 = new Seccion('pipeDiferenciales2','pipeDiferenciales2',(new Marco(W_CONTENIDO,1.5)));
+	                            secciones.push(pipeDiferenciales2);
+	                        }
+	                    }
+	                    
+	                    if(producto.owner.Segmento__c == 'Small'){
+	                        var formaPagoSmall = new Seccion('formaPagoSmall','formaPagoSmall',(new Marco(W_CONTENIDO,3)));
+	                        secciones.push(formaPagoSmall);
+	                        var tDocumentacion = new Seccion('tituloDocumentacion','tituloDocumentacion',(new Marco(W_CONTENIDO,1)));
+	                        secciones.push(tDocumentacion);
+	                    
+	                        var tablaDocumentacion = new Seccion('tablaDocumentacion','tablaDocumentacion',(new Marco(W_CONTENIDO,6.5)));
+	                        secciones.push(tablaDocumentacion);
+                    
+                        	var infoAdicional = new Seccion('infoAdicional','infoAdicional',(new Marco(W_CONTENIDO,4.5)));
+                        	secciones.push(infoAdicional);
+                    	}
+                    }
+                    
+                    //Se aplica algoritmo de paginación
+                    vm.paginarDocumentoPdf(secciones, pagina, documento);
+                }
+
+                //CV - EdenredArg
+
+                vm.paginaPdfArg = function(producto) {
+                  console.log('paginaPdfArg: ', producto); 
+                  var documento = new DocumentoPDF();
+                  var pagina = new Pagina();
+
+                  var secciones = [];
+                  var header = new Seccion('HeaderLogo', 'HeaderLogo', (new Marco(W_CONTENIDO, 4.0)));
+                  secciones.push(header);
+
+                  var cfecha = new Seccion('Fecha', 'Fecha', (new Marco(W_CONTENIDO, 1)));
+                  secciones.push(cfecha);
+
+                  var tProp = new Seccion('tPropuesta', 'tPropuesta', (new Marco(W_CONTENIDO, 2)));
+                  secciones.push(tProp);
+
+                  var datosCliente = new Seccion('Datos Cliente', 'Datos Cliente', (new Marco(W_CONTENIDO, 2)));
+                    secciones.push(datosCliente);
+
+                  var textoPropuesta = new Seccion('textoPropuesta', 'textoPropuesta', (new Marco(W_CONTENIDO, 3)));
+                  secciones.push(textoPropuesta);
+
+                  var tPropIntermedio = new Seccion('tPropuestaInter', 'tPropuestainter', (new Marco(W_CONTENIDO, 2)));
+                  secciones.push(tPropIntermedio);
+
+                  var tPropuestaInterTabla = new Seccion('tPropuestaInterTabla', 'tPropuestaInterTabla', (new Marco(W_CONTENIDO, 2)));
+                  secciones.push(tPropuestaInterTabla);
+
+                  var tPropTabla = new Seccion('tPropuestaTabla', 'tPropuestaTabla', (new Marco(W_CONTENIDO, 4)));
+                  secciones.push(tPropTabla);
+
+                  var tablaConceptos = new SeccionTabla('tablaConceptos', 'tablaConceptos', producto.productoConcepto);
+                  tablaConceptos.size = tablaConceptos.getSize();
+                  secciones.push(tablaConceptos);
+
+                  var datosFinales = new Seccion('datosFinales', 'datosFinales', (new Marco(W_CONTENIDO, 4)));
+                  secciones.push(datosFinales);
+
+                  var vigenciaIva = new Seccion('vigenciaIva', 'vigenciaIva', (new Marco(W_CONTENIDO, 1.5)));
+                  secciones.push(vigenciaIva);
+
+                  var datosEjecutivo = new Seccion('datosEjecutivo', 'datosEjecutivo', (new Marco(W_CONTENIDO, 1.5)));
+                  secciones.push(datosEjecutivo);
+
+                  if (producto.RecordType != 'RT_Renegotiation') {
+                    var comentarios = new Seccion('comentarios', 'comentarios', (new Marco(W_CONTENIDO, 2)));
+                    secciones.push(comentarios);
+                  }
+                  //Se aplica algoritmo de paginación
+                  vm.paginarDocumentoPdf(secciones, pagina, documento);
+                }
+                
+                /**
+                * Algoritmo que se encarga de la paginación de las secciones.
+                */
+                vm.paginarDocumentoPdf = function(secciones, pagina, documento){
+                    //console.log(secciones);
+                    for(var i=0; i < secciones.length; i++){
+                        var sectoadd = secciones[i];
+                        console.log("Añadiendo sección");
+                        console.log(sectoadd);
+                        var contador = 0;
+                        while(!pagina.addSeccion(sectoadd) && contador < 10){
+                            console.log("####La seccion no cupo en la pagina. Se creará una nueva paginas");
+                            if(sectoadd instanceof SeccionTabla){
+                                console.log("Partiendo seccion tabla");
+                                console.log(pagina);
+                                var espacioFaltante = pagina.getEspacioFaltante();
+                                var rowsf = sectoadd.getRowsInHeight(espacioFaltante);
+                                console.log('Espacio faltante '+espacioFaltante);
+                                console.log('Numero Rows '+rowsf);
+                                if(rowsf <= 0){
+                                    documento.addPagina(pagina);
+                                    pagina = null;
+                                    pagina = new Pagina();
+                                }else{
+                                    var lsta = sectoadd.partirSeccion(rowsf);
+                                    console.log("Sección tabla partida")
+                                    console.log(lsta);
+                                    if(lsta.length == 1){
+                                        sectoadd = lsta[0];
+                                    }
+                                    if(lsta.length == 2){
+                                        if(pagina.addSeccion(lsta[0])){
+                                            sectoadd = lsta[1];
+                                            documento.addPagina(pagina);
+                                            pagina = null;
+                                            pagina = new Pagina();
+                                        }
+                                    }
+                                }
+                            }else{
+                                documento.addPagina(pagina);
+                                pagina = null;
+                                pagina = new Pagina();
+                            }
+                            contador++;
+                        }
+                    }
+                    
+                    documento.addPagina(pagina);
+                    console.log('#######Documento:');
+                    console.log(documento);
+                    vm.documento = documento;
+                }
+
+                vm.init(vm.soluciones)
+
+                vm.close = function () {
+                    $uibModalInstance.dismiss('cancel')
+                }
+
+                function primoPar(num) {
+                  var prime = num != 1;
+                    for (var i = 2; i < num; i++) {
+                        if (num % i === 0) {
+                            prime = false;
+                            break;
+                        }
+                    }
+                    return prime;
+                }                
+            }
+        })()
+    </script>
+    <style type="text/css">
+        .colorRed {
+            color: red;
+        }
+
+		.ecovaleGreen {
+			color: rgb(2,116,54);
+        }
+
+        .colorMint{
+            color: #3bc2b1;
+        }
+
+        .headerMantenimiento{
+            margin-top: 0.5cm !important;
+        }
+
+        .fontSizeMantenimiento{
+            font-size: 13px;
+        }
+
+        .contenedorSolucionesMantenimiento{
+            margin-left: -6% !important;
+            margin-right: -6% !important;
+            top: 0px !important;
+        }
+
+        .diferencialMantenimiento{
+            top: 0px !important;
+            padding-top: 0 !important;
+
+            /*object-fit: cover;*/
+            
+        }
+        .solucionesMantenimiento1{
+            bottom: 60px;
+        }
+        .solucionesMantenimiento2{}
+
+        .lineaInferior{
+            border-bottom: 1px solid;
+        }
+
+        .barraEncabezado{
+            height: 80px !important;
+        }
+
+        .headerFontSizeTable{
+            font-size: 8px !important;
+        }
+
+        #encabezado.table>thead>tr>th {
+            vertical-align: bottom;
+            border-bottom: 2px solid transparent !important;
+        }
+        .letraTablas{
+            font-size: 10px;
+        }
+        .pipeDiferencial{
+            height: 100px !important;
+        }
+        .anchoTipoConTarjeta{
+            width: 215px !important;
+        }
+        .anchoTipoSinTarjeta{
+            width: 40%;
+        }
+        .bordeTotal{
+          border-style: solid;
+        }
+        .justificado{
+            text-align: justify;
+            text-justify: inter-word;
+        }
+
+        .padre{ 
+          text-align: justify;
+          text-justify: inter-word;
+          margin: 2em;
+          font-size: 1em;
+          line-height: 1.44em;
+          -moz-column-width: 33em;
+          -webkit-column-width: 33em;
+          column-width: 19em;
+          -moz-column-gap: 1.5em;
+          -webkit-column-gap: 1-5em;
+          column-gap:1.5em;
+        }
+        .parrafoTerminos{
+            margin: 0px 31px 10px;
+        }
+        .father{
+         width: 190mm;
+        }
+        .termsBody > div {
+
+            height: 1000px;
+            float: left;
+            width: 25%;
+            text-align: justify;
+            text-justify: inter-word;
+            line-height: 1.3em;
+        }
+        .promiseLine {
+            display: -webkit-inline-box;
+            width: 7cm;
+            border-bottom: 1px solid #000000;
+        }
+        .page-template {
+            position: absolute;
+            width:100%;
+            top: 0;
+            left: 0;
+        }
+        .page-template .header{
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            right: 30px;
+            text-align: right;
+            font-size: 12px;
+            height: 25px;
+            border-bottom: 1px solid #888;
+        }
+        .header img {
+            height: 54px;
+        }
+        .page-template .watermark {
+            font-weight: bold;
+            font-size: 250%;
+            text-align: center;
+            margin-top: 70%;
+            color: #424242;
+            opacity: 0.1;
+            transform: rotate(-55deg) scale(1.7, 1.5);
+        }
+        /*.page-template .footer{
+            position: absolute;
+            bottom: -450px;
+            left: 30px;
+            right: 30px;
+            color: #888;
+            font-size: 10px;
+            text-align: center;
+            border-top: 1px solid #888;
+        }*/
+        .page-template .footer {
+            position: absolute;
+            bottom: -520px;
+            left: 40px;
+            right: 40px;
+            color: #888;
+            font-size: 10px;
+            /*text-align: center;*/
+            /*border-top: 1px solid #888;*/
+        }
+
+        .page-template .footer2{
+            position: absolute;
+            bottom: -820px;
+            left: 30px;
+            right: 30px;
+            color: #888;
+            font-size: 10px;
+            text-align: center;
+            border-top: 1px solid #888;
+        }
+
+        .logoPrincipal {
+            width: 18cm;
+        }
+
+        .logoEmpresarial {
+            left: -60px;
+            position: relative;
+        }
+
+        .pageContainer {
+            margin-left: 1cm;
+            margin-right: 1cm;
+            margin-top: 0.15cm;
+            padding-top: 0;
+            /*border: 1px solid red;*/
+        }
+        .pageContainerMantenimiento {
+            margin-left: 1cm;
+            margin-right: 1cm;
+            margin-top: 0cm !important;
+        }
+        .dateContainer {
+            margin-top: 2px;
+            border-radius: 20px;
+            padding-top: 7.8px;
+        }
+        .seccionFirma {
+            border-radius: 20px;
+            padding: 3px;
+            height: 50px;
+        }
+        .seccionFirmaApoderado {
+            border-radius: 20px;
+            padding: 3px;
+            height: 50px;
+            position: relative;
+            left: 45px;
+        }
+        .dateLabel {
+            position: absolute;
+            top: -10px;
+            background: white;
+            width: 50px;
+            right: 20px;
+            font-size: 9pt;
+        }
+        .dateValue{
+            margin-top: 2px;
+        }
+        
+        div#wallet-mxn-bar {
+            border-radius: 20px;
+            width: 13px;
+            height: 65px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
+            float: left;
+        }
+
+        .seccionDatosCliente {
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            /*border: 1px solid orange;*/
+        }
+
+        .dataLabelPDF {
+            font-weight: bold;
+        }
+
+        .headerTable > tr > th {
+            color: white;
+            height: 37px;
+            vertical-align: middle !important;
+        }
+        .headerLeftBorder{
+            border-top-left-radius: 20px;   
+        }
+        .headerRightBorder{
+            border-top-right-radius: 20px;
+        }
+
+        .tablePDFValores {
+            background-color: #e6e6e6;
+        }
+
+        .tableBordeValores {
+                border-left: 1px dashed #808080;
+        }
+        .tituloSeccion {
+            color: #11204c;
+            font-weight: bold;
+            font-size: 23pt;
+            letter-spacing: -2px;
+            white-space: nowrap;
+        }
+        .tituloSeccionNegro {
+            color: #000000;
+            font-weight: bold;
+            font-size: 23pt;
+            letter-spacing: -2px;
+            white-space: nowrap;
+        }
+        .seccionSoluciones {
+            padding-top: 13px;
+        }
+        .subtituloSeccion {
+            font-size: 28pt;
+            letter-spacing: -2px;
+            display: block;
+            margin-top: -10px;
+        }
+
+        .boldEdenred {
+            color: #11204c;
+            font-weight: bold;
+        }
+        .sizeIva{
+            font-size: 9.5px;
+        }
+        .saltoPagina {
+            page-break-after: always;
+        }
+        .text-purple {
+            color: #70359f;
+        }
+        .text-green {
+            color: green;
+        }
+        .text-black {
+            color: black;
+        }
+        .seccionDiferenciales {
+            /*height: -webkit-fill-available;*/
+            /*position: relative;*/
+            width: 100%;
+            /*padding-left: 10%;*/
+        }
+        .leftLabel{
+            /* Other styling.. */
+            text-align: right;
+            clear: both;
+            float:left;
+            margin-right:10px;
+        }
+
+        .footerPageDiferenciales {
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            padding: 5px;
+            border-radius: 20px;
+            /*position: absolute;*/
+            bottom: 3cm;
+            width: 100%;
+        }
+        .col-sm-5-5 {
+            width: 45%;
+            position: relative;
+            min-height: 1px;
+            padding-right: 15px;
+            padding-left: 15px;
+            float: left;
+        }
+
+        .lineaComentario {
+            display: -webkit-inline-box;
+            width: 100%;
+            border-bottom: 1px solid #000000;
+        }
+
+        .letraNotas{
+            font-size: 8px;
+            color: black;
+        }
+
+        .seccionSolucionesContenedor {
+            border-radius: 60px;
+            background-color: #e6e6e6;
+            padding: 3px;
+            height: 120px;
+            position: relative;
+            right: 70px;
+            padding-left: 85px;
+        }
+        .labelBeneficioEmpleados {
+            font-weight: bold;
+            color: #c23725;
+        }
+        .labelBeneficioEmpleadosEco60t {
+            font-weight: bold;
+            color: rgb(2,116,54);
+        }
+        .labelGastosProfesionales {
+            font-weight: bold;
+            color: #5c5959;
+        }
+        .labelHerramientasTrabajo {
+            font-weight: bold;
+            color: #e46d31;
+        }
+        .labelHerramientasTrabajoEco60t {
+            font-weight: bold;
+            color: rgb(124,185,39);
+        }
+        .labelMotivacionRecompensas {
+            font-weight: bold;
+            color: #1b71c1;
+        }
+        .seccionContactanos {
+            font-size: 11pt;
+        }
+
+        .headersTerminos{
+            color: white;
+            border-radius: 0 150px 150px 0;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-right: 80px !important;
+            left: -40px !important;
+            text-align: right !important;
+            position: relative;
+        }
+
+        .informacionEjecutivo {
+            color: white;
+            border-radius: 150px 0 0 150px;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            padding-left: 90px;
+            right: -30px;
+        }
+        .fontwhite {
+            color: white;
+            text-align:left;
+            padding-left: 60px;
+        }
+        .informacionEjecutivoBP {
+            width:450px;
+            color: white;
+            padding-top: 10px;
+            border-radius: 150px;
+            padding-left:60px;
+            right:-125px;
+        }
+        .logoFooter {
+            height: 20px;
+        }
+        .ligaEdenred {
+            font-weight: bold;
+            color: #808080;
+        }
+
+        .containerHidden {
+            width: 210mm;
+            font-size: 9pt;
+            height: 0px;
+            max-height: 0px;
+            overflow: scroll;
+            font-family: "Helvetica";
+        }
+        .containerHidden > * {
+            font-family: "Helvetica" !important;
+        }
+        .div0pm{
+            min-height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            /*border: 1px solid blue;*/
+        }
+        .row{
+            top-margin: 0 !important;
+            /*border: 1px solid #efe !important;*/
+        }
+        
+        img{
+            /*border: 1px solid #efe !important;*/
+            /*margin-bottom: 0 !important;*/
+        }
+        .separaccionFooterOndulado{
+            padding-bottom: 13px;
+        }
+
+        .campoFechaSF{
+          width: 25%;
+          border-style:solid;
+          border-radius: 300px;
+          border-color: #FFD300;
+          font-family: 'Century Gothic', 'arial';
+          height: 30px;
+        }
+
+        .campoFechaTCA{
+          width: 25%;
+          border-style:solid;
+          border-radius: 300px;
+          border-color: #F72717;
+          font-family: 'Century Gothic', 'arial';
+          height: 30px;
+        }
+
+        .ribbonTituloSF{
+          background-color:#FFD300;
+          height: 60px;
+          width: 20px;
+          border-radius: 300px;
+          display: inline-block;
+        }
+
+        .ribbonTituloTCA{
+          background-color:#F72717;
+          height: 60px;
+          border-radius: 300px;
+          display: inline-block;
+        }
+
+        .headerSFArg{
+          padding-left: 5%;
+          width: 18cm;
+        }
+
+        .divFecha{
+          display: block;
+          width: 100%;
+          text-align: right;
+        }
+        
+        .campos{
+		      width: 100%;
+		      margin: 20px 0;
+		      vertical-align: top;
+	      }
+
+        .labelForm{
+          font-family: 'Century Gothic', 'arial';
+          font-weight: bold;
+          color:black;
+          font-size: 15px;
+        }
+
+        .campoCliente{
+          width: 70%;
+          border-style:solid;
+          border-top-color: transparent;
+          border-left-color: transparent;
+          border-right-color: transparent;
+          border-bottom-color: #DCDCDC;
+          font-family: 'Century Gothic', 'arial';
+        }
+
+        .descCliente{
+          font-family: 'Century Gothic', 'arial';
+          font-size: 15px;
+          font-weight: 100;
+          color:black;
+          text-align: justify;
+        }
+
+        .titulo{
+          display: inline-block;
+          vertical-align: top;
+        }
+        .titulo span{
+          font-family: 'Century Gothic','arial';
+          color:000000;
+          font-size: 22px;
+          font-weight:normal;
+        }
+        .titulo strong{
+          font-family:'Century Gothic','arial';
+          color:000000;
+          font-size: 45px;
+          font-weight: lighter;
+        }
+
+        .divTitulo{
+          display: inline-block;
+          width: 90%;
+        }
+
+        .tabla{
+          width: 90%;
+          height: 100%;
+          margin: auto;
+          padding: 30px 0;
+          border:2px; 
+          border-collapse: collapse;
+        }
+
+        .td-border {
+          border-bottom: 0.5px solid white;
+          border-right: 0.5px solid white;
+          background-color: #f2f2f2;
+          border-collapse: collapse;
+        }
+
+        .td-bordertitulo {
+          border-bottom: 0.5px solid white;
+          border-right: 0.5px solid white;
+          background-color: #E30613;
+          border-collapse: collapse;
+        }
+
+        .rowPDFArg{
+          margin: 10px 5px;
+        }
+        .rowPDFArg span{
+          font-family: 'Century Gothic','arial';
+          font-size: 12px;
+          color:black;
+        }
+
+        .headerArg{
+          display: inline-block;
+          text-align: center;
+          padding:5px 0;
+          width: 100%;
+        }
+        .headerArg span{
+          font-family: 'Century Gothic','arial';
+          font-size: 15px;
+          color:white;
+        }
+
+        .checkBoxes{
+          width: calc(50% - 10px);
+          display: inline-block;
+          margin: 20px 0;
+        }
+
+        .tituloPagos{
+          font-family: 'Century Gothic', 'arial';
+          font-size: 15px;
+          color:#E30613;
+          font-weight: bold;
+          padding-left: 30px;
+        }
+
+        .labelCheck{
+          font-family: 'Century Gothic', 'arial';
+          font-size: 15px;
+          color:black;
+          font-weight: lighter;
+          display: inline-block;
+          padding-left: 30px;
+        }
+
+        .labelComentario{
+          display: inline-block;
+          vertical-align: top;
+          padding-left: 30px;
+        }
+
+        .labelForm2{
+          font-family: 'Century Gothic', 'arial';
+          font-weight: bold;
+          text-transform: uppercase;
+          color:#E30613;
+          font-size: 15px;
+        }
+
+        .campoChiquito{
+          width: 100%;
+          margin: 20px;
+          text-align: right;
+        }
+        .campoChiquito span{
+          font-family: 'Century Gothic', 'arial';
+          color:black;
+          font-weight: 100;
+          font-size: 12px;
+        }
+
+        ol.decimal {list-style-type: decimal; margin-left:5em;}
+        ol.decimal-leading-zero {list-style-type: decimal-leading-zero; margin-left:5em;}
+        ol.lower-alpha {list-style-type: lower-alpha; margin-left:5em;}
+        ol.lower-latin {list-style-type: lower-latin; margin-left:5em;}
+        ol.lower-roman {list-style-type: lower-roman; margin-left:5em;}
+        ol.upper-alpha {list-style-type: upper-alpha; margin-left:5em;}
+        ol.upper-latin {list-style-type: upper-latin; margin-left:5em;}
+        ol.upper-roman {list-style-type: upper-roman; margin-left:5em;}
+        ol.none {list-style-type: none; margin-left:5em;}
+        ul.inside {margin-left:5em;}
+        /*MFG*/
+        .page-template-MFG {
+            position: absolute;
+            width: 100%;
+            top: 0;
+            left: 0;
+        }
+  
+        .page-template-MFG .watermark {
+            font-weight: bold;
+            font-size: 600%;
+            text-align: center;
+            margin-top: 70%;
+            color: #424242;
+            opacity: 0.1;
+            transform: rotate(-55deg) scale(1.7, 1.5);
+        }
+
+        blockquote{
+            font-size: 9pt !important;
+            border-left: 5px solid transparent !important;
+        }
+  
+        #pdfTemplateContenedor {
+            width: 100%;
+            font-size: 9pt;
+            height: 1px;
+            max-height: 1px;
+            overflow: scroll;
+            font-family: "Helvetica" !important;
+            text-align: justify;
+        }
+  
+        .page-template-MFG .headerMFG {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            right: 30px;
+            text-align: right;
+            font-size: 20pt;
+            height: 200px;
+            margin-bottom: 2cm;
+            /*border-bottom: 1px solid #888;*/
+        }
+  
+        .headerMFG .logoEdenredMFG {
+            position: absolute;
+            left: 5px;
+            top: 0px;
+            height: 30px;
+        }
+  
+        .headerMFG .logoFleetMFG {
+            margin-top: 5px;
+            margin-bottom: 5px;
+            left: 5px;
+            top: -5px;
+            height: 25px;
+        }
+  
+        .headerMFG .logoTCMFG {
+            position: absolute;
+            left: 280px;
+            top: 0px;
+            height: 30px;
+        }
+
+        .leyendaHeaderMFG {
+            /*text-align: right;*/
+            font-size: 5pt;
+            position: absolute;
+            right: 5px;
+            top: 0px;
+            height: 20px;
+            line-height: 10pt;
+            margin-bottom: 0;
+        }
+    </style>
+</apex:component>

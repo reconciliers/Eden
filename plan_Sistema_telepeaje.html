@@ -1,0 +1,316 @@
+<apex:component >
+	<div id="{{'markupPDF_' + solucion.producto.IdElement}}">
+		<div class="div0pm" ng-repeat="pagina in sc.documento.paginas">
+            
+            <div class="pageContainer">
+                 <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+                        <tr>                     
+                            <td style="width:55%; vertical-align:top;"> 
+                                <img class="logoPrincipal" ng-src="{{solucion.edenRedLogo}}" style="height:90px; width:auto;" />
+                            </td>                     
+                             <td style="width:45%; text-align:right; vertical-align:top; padding-top:10px;">
+ 
+                                <div style="font-family:Arial, Helvetica, sans-serif; font-size:10px;">
+                                    PROPUESTA DE SERVICIOS DT JUR
+                                </div>
+                             
+                                <div style="font-family:Arial, Helvetica, sans-serif; font-size:10px;">
+                                    FECHA DE ACTUALIZACIÓN
+                                    <span ng-bind="solucion.fechaHoy | date:'dd / MM / yyyy':'UTC'"></span>
+                                </div>
+                             
+                                <div style="font-family:Arial, Helvetica, sans-serif; font-size:10px;">
+                                    DTCOMTC-001-2
+                                </div>
+                         
+                        	</td>                   
+                        </tr>
+                    </table>
+                
+               
+				<div class="row" ng-repeat="seccion in pagina.secciones track by $index" ng-if="seccion.nombre != 'HeaderLogo'">                                       
+					<div class="col-sm-12" ng-if="seccion.nombre == 'tPropuesta'">
+						<div class="col-sm-12">
+							<div ng-style="solucion.titlePipe" id="wallet-mxn-bar" class="barraEncabezado"></div>
+                            <span class="tituloSeccion">PROPUESTA DE SERVICIOS</span>
+							<span class="subtituloSeccion">SISTEMA TELEPEAJE DRIVE TAG</span>
+						</div>
+					</div>
+					
+					<div class="col-sm-12 seccionDatosCliente" ng-if="seccion.nombre == 'tPropuesta'">
+                        <br/>
+                    
+						<div class="col-sm-12">
+							<span class="dataLabelPDF">Representante legal: </span>
+							<span ng-bind="solucion.Quote.Contact.Name"></span>
+							<br/>
+							<!--span class="dataLabelPDF">Puesto: </span> <span ng-bind="solucion.Quote.Contact.Puesto__c"></span><br/-->
+							<span class="dataLabelPDF">No de Client: </span>
+							<span ng-bind="solucion.Quote.Contact.Account.Name"></span>
+							<br/>
+							<span class="dataLabelPDF">Razón social: </span>
+							<span ng-bind="solucion.Quote.Opportunity.Razon_social__c"></span>
+							<br/>
+						</div>
+					</div>
+
+					<div class="col-sm-12 seccionDatosCliente" ng-if="seccion.nombre == 'textoPropuesta'">
+						<br/>
+                    
+                        <div class="col-sm-12">
+							<p>
+								Edenred México, S.A. de C.V., en adelante EDENRED, es tu aliado comercial especializado y orientado a satisfacer las necesidades de tu empresa o negocio.7
+                                Contamos con soluciones exclusivas para incrementar tu competitividad respecto a empresas más grandes. 
+                                Obtén el máximo control de los Servicios del Sistema Ticket Car con el Drive Tag, el cual permite a las empresas gestionar de manera sencilla y eficiente los gastos de peaje y combustible de su flota, reduciendo costos y evitando fugas de dinero.                             
+							</p>
+
+							<br/>
+
+							<p>
+								A continuación, te compartimos la propuesta de servicios <span> del Sistema Telepeaje Drive tag: </span>
+							</p>
+
+							<br/>
+						</div>
+					</div>                    			
+				</div>
+                			<table class="text-center" border="1">
+							<thead>
+								<tr>
+									<th colspan="3">CONCEPTO</th>
+									<th colspan="3">DESCRIPCIÓN</th>
+									<th colspan="3">DEFINICIÓN</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr ng-repeat="concepto in solucion.conceptosUnicosKey" ng-if="solucion.Product2.ProductCode == '33'&&  solucion.Quote.NTT_IsTelepeaje__c && concepto.Render == true">
+                                        <td class="text-center" ng-bind="concepto.TipoCargo__c" colspan="3"></td>									
+                                        <td class="text-center" colspan="3">
+                                                <span ng-bind="(concepto.PrecioLista__c | number: 2) + ' %'" ng-if="(concepto.TipoCargo__c == 'Comisión por el servicio' || concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje')"></span>        
+                                                <span ng-bind="concepto.PrecioLista__c | currency: '$ '" ng-if="concepto.TipoCargo__c != 'Comisión por el servicio' &&  concepto.TipoCargo__c != 'Comisión por Servicio Telepeaje' "></span>        
+                                                <span ng-if="!concepto.PrecioLista__c">-</span>        
+ 										</td>
+                                        <td class="text-center" colspan="3">
+                                            <span ng-if="solucion.conceptosKey[concepto.key].Bonificacion__c && solucion.conceptosKey[concepto.key].Bonificacion__c != 0"
+                                             ng-bind="(solucion.conceptosKey[concepto.key].Bonificacion__c | number: 2) + ' %'"></span>    
+                                            <span ng-if="(concepto.Bonificacion__c == 0 || concepto.Bonificacion__c == undefined)">
+                                                <center>$ {{concepto.Bonificacion__c}} PESOS más IVA</center>
+											</span>
+										</td>                                      
+								</tr>
+							</tbody>
+							</table>
+                			<br/>
+                                <p>
+                                 <strong>CONDICIONES 2:</strong>
+                                </p>
+                			<br/>
+                
+                            <table border="2" class="text-center" >
+							<thead>
+								<tr>
+									<th colspan="3">CONCEPTO</th>
+									<th colspan="3">DESCRIPCIÓN</th>
+									<th colspan="3">DEFINICIÓN</th>
+								</tr>
+							</thead>
+							<tbody>
+ 
+<tr>
+    <td colspan="3" style="border:1px solid #000;padding:4px;vertical-align:middle;">
+        Forma de Pago
+    </td>
+ 
+    <td colspan="3" style="border:1px solid #000;padding:4px;vertical-align:middle;">
+        Medio por el cual el "CLIENTE" realizará los pagos a "EDENRED"
+    </td>
+ 
+    <td colspan="3" style="border:1px solid #000;padding:4px;vertical-align:middle;">
+        <div style="margin:2px 0;">Transferencia Referenciada</div>
+        <div style="margin:2px 0;">Depósito Referenciado</div>
+        <div style="margin:2px 0;">Otro ____________</div> 
+    </td>
+</tr>
+ 
+<tr>
+    <td colspan="3" style="border:1px solid #000;padding:4px;vertical-align:middle;">
+        Periodo de Facturación
+    </td>
+ 
+    <td colspan="3" style="border:1px solid #000;padding:4px;vertical-align:middle;">
+        <div>Periodicidad:</div>
+        <div>Día de Corte: _____________________</div>
+    </td>
+ 
+    <td colspan="3" style="border:1px solid #000;padding:4px;vertical-align:middle;">
+        <div style="margin:2px 0;">Facturación Semanal</div>
+        <div style="margin:2px 0;">Facturación Quincenal</div>
+        <div style="margin:2px 0;">Facturación Mensual</div>
+        <div style="margin:2px 0;">Otra (especificar) _____________</div> 
+    </td>
+</tr>
+ 
+<tr>
+    <td colspan="3" style="border:1px solid #000;padding:4px;vertical-align:middle;">
+        Cargo por re facturación
+    </td>
+ 
+    <td colspan="3" style="border:1px solid #000;padding:4px;vertical-align:middle;">
+        Cantidad que se paga por la emisión de cada CFDI y/o complemento de estado de cuenta refacturado
+    </td>
+ 
+    <td colspan="3" style="border:1px solid #000;padding:4px;vertical-align:middle;">
+        Precio unitario por CFDI y/o complemento de estado de cuenta emitidos $______________ +IVA
+    </td>
+</tr>
+ 
+</tbody>
+ 
+						</table>
+               
+               <p style="font-size: 10px;">
+                    Todos los importes de las Condiciones 1 y 2 son MÁS el Impuesto al Valor Agregado (IVA).
+                </p>
+               
+			</div>
+             <br/>
+             <br/>
+            <div class="pageContainer">
+            <p style="text-align: center; text-decoration: underline;">
+                <strong>TERMINOS Y CONDICIONES DE LA PROPUESTA DE SERVICIOS </strong>
+            </p>
+            <br/>
+            <br/>
+            
+                <p><strong>UNO. SISTEMA TC</strong>. La presente propuesta forma parte de los servicios contratados del Sistema Ticket Car (en adelante “Sistema TC”), por tal motivo, para mantener vigente la presente propuesta es necesario que el CLIENTE cuente con un contrato vigente del Sistema TC, el cual permite que a través de la red de los Establecimientos Afiliados al Sistema TC, los USUARIOS del CLIENTE, puedan llevar a cabo la adquisición de combustibles para vehículos marítimos, aéreos y terrestres, mediante la presentación de los monederos electrónicos y/o dispositivos tecnológicos del Sistema TC. 
+            </p>
+            <br/>
+            <p>
+                <strong>DOS. OPERACIÓN SISTEMA TELEPEAJE DRIVE TAG.</strong> EDENRED ha creado una funcionalidad denominada Sistema Telepeaje Drive Tag, en conjunto con su socio estratégico Operadora Concesionaria Mexiquense, S.A. de C.V. (en adelante “TELEVIA”) para ofrecer a sus clientes la posibilidad de realizar cruces en los distintos concesionarios de vías de peaje en los Estados Unidos Mexicanos (en adelante “CONCESIONARIOS”) con los que TELEVIA tenga firmado un contrato de operación.
+            </p>
+            <br/>
+            <p>
+                Para operar y utilizar correctamente dicho sistema, el CLIENTE conviene en apagarse a las características, funcionalidades y condiciones que EDENRED establezca, dándolas a conocer a través de las siguientes plataformas <a href="https://www.edenred.mx" target="_blank"> www.edenred.mx</a>  y  <a href="https://www.edenredtraining.mx" target="_blank"> www.edenredtraining.mx.</a>
+            </p>
+            <br/>
+            <p>
+                Así mismo, para que el CLIENTE pueda utilizar el Sistema Telepeaje Drive Tag, es necesario contar con la funcionalidad NFC (etiqueta de presencia Drive Tag) por lo que el USUARIO poseedor de dicha etiqueta de presencia Drive Tag, será responsable de pegarla en el parabrisas del vehículo asociado para la correcta operación de la misma, esto con base en los lineamientos establecidos en el manual incluido en la etiqueta de presencia drive tag y en la forma descrita en el numeral TRES de la presente Propuesta. Dicha etiqueta de presencia Drive Tag es un elemento necesario para que los USUARIOS del CLIENTE puedan hacer uso del Sistema Telepeaje Drive Tag a través de TELEVIA en los respectivos puntos de cruces ubicados a lo largo de las vías concesionadas.
+            </p>
+            <br/>
+            <p>
+                EDENRED no será responsable, en caso de que el CLIENTE no pueda utilizar la etiqueta de presencia Drive Tag derivado a un daño y/o por no instalarlo dentro de su vehículo en el lugar indicado en el numeral TRES de los presentes Términos y Condiciones o en el manual incluido en dicha etiqueta de presencia drive tag.
+            </p>
+			<br/>
+			<p>
+			    EDENRED a través de TELEVIA tendrá debidamente identificados y señalados los puntos de cruce ubicados en las vías concesionadas a los CONCESIONARIOS (tanto aquellos que existan al momento de la firma de este Contrato, como aquéllos que se afilien al Sistema Telepeaje Drive Tag a través de TELEVIA), mismos que en cualquier momento podrán modificarse, sin responsabilidad alguna para EDENRED ni para TELEVIA.
+            </p>   
+            <br/>
+            <p>                
+                El CLIENTE está obligado a identificar el monto requerido para todos los consumos de telepeaje del periodo (en adelante los “FONDOS TELEPEAJE”), así mismo, deberá informar a EDENRED el monto de los FONDOS TELEPEAJE solicitados a través de un “Pedido de Fondos Telepeaje” conforme a los procesos operativos que se pueden consultar en las diferentes plataformas mencionadas en el segundo párrafo de este numeral. El monto total solicitado en el “Pedido de Fondos Telepeaje” deberá ser entregado a EDENRED, junto con la contraprestación correspondiente, por lo que el CLIENTE tendrá las siguientes obligaciones: i) Entregar a “EDENRED” el numerario equivalente al valor total de los FONDOS TELEPEAJE solicitados, con por lo menos 24 horas hábiles de anticipación respecto de la fecha de liberación del Pedido de FONNDOS TELEPEAJE. Dicha suma será entregada por el “CLIENTE” mediante transferencia bancaria referenciada, depósito referenciado, o bien, mediante otro medio de pago convenido con “EDENRED”. Este monto será utilizado para liquidar a través de TELEVIA el importe correspondiente a las cuotas de peaje (incluyendo el impuesto al valor agregado y cualesquiera otros impuestos) que se generen a cargo del CLIENTE con motivo del cruce de los puntos en los que esté instalado el sistema Telepeaje Drive Tag a través de TELEVIA a lo largo de las vías de peaje concesionadas a los CONCESIONARIOS; ii) Al día siguiente de recibir el monto total, EDENRED liberará los FONDOS TELEPEAJE para que las etiquetas de presencia Drive Tag puedan ser utilizadas en común de dichos FONDOS TELEPEAJE; el monto total disponible para ser utilizado se denomina “Fondos Disponibles Telepeaje; iii) Liquidar el importe total facturado al CLIENTE en el CFDI, y de cualquier factura (CFDI) presentada por EDENRED. iv) A pagar cualquier cantidad que resulte del mal uso que se le dé al Sistema Telepeaje Drive Tag, siendo que el CLIENTE acepta el producto tal como está especificado en la presente Propuesta; v).- El ADMINISTRADOR GENERAL DEL SISTEMA es el responsable de gestionar de forma inmediata en la Plataforma WEB del Sistema Telepeaje Drive Tag a la que tiene acceso, la baja de las cuentas cuando algún USUARIO deje de ser poseedor de la etiqueta de presencia Drive Tag, con la finalidad de que EDENRED no efectúe cobros que se relacionen con la cuenta activa de dicho USUARIO. En caso de que la baja de las cuentas activas en el sistema no se de en tiempo y forma, EDENRED no será responsable de reembolsar ninguna cantidad que haya sido cobrada a EL CLIENTE por algún concepto sobre cuentas que no hayan sido dadas de baja como corresponde al procedimiento.
+            </p>
+            <br/>
+            <p>
+                Los fondos destinados para la operación de Telepeaje no podrán ser usados para cualquier operación relacionada con combustible y de igual manera los fondos relacionados a la operación de combustible no podrán ser usados para cualquier operación relacionada con Telepeaje. El monto proporcionado por el CLIENTE a EDENRED en virtud de la presente Propuesta no generará intereses a cargo de ninguna de las PARTES.                 
+            </p>
+            <br/>
+            <p>
+                El CLIENTE reconoce que EDENRED no es, ni podrá ser parte de las relaciones jurídicas que se generen entre el CLIENTE y los CONCESIONARIOS por el uso de las vías concesionadas y las cuotas de peaje que se generen por dicho uso. En consecuencia, EDENRED no asume obligación alguna frente a los CONCESIONARIOS con motivo del uso de las vías de peaje concesionadas por parte del CLIENTE
+            </p>
+            <br/>
+			<p>
+                Respecto de los consumos de Telepeaje, al final de cada mes, EDENRED generará un corte de transacciones Telepeaje y un comprobante fiscal digital por internet (CFDI), el cual reunirá todos los requisitos fiscales establecidos por las disposiciones aplicables. El CFDI incluirá los consumos conciliados por los CONCESIONARIOS durante el periodo. En el mismo corte se facturará el importe total de la contraprestación de EDENRED y cualquier otro cargo de contraprestación incurrido. Las transacciones que no hayan sido conciliadas por los CONCESIONARIOS al día de corte de facturación no aparecerán en el CFDI correspondiente a dicho periodo y aparecerán en el periodo en que finalmente sean conciliadas, siendo obligación del CLIENTE pagar dichas operaciones, cualquier otro cargo se facturará por separado                
+            </p>
+            <br/>
+            <p>
+                El CLIENTE acepta y reconoce que únicamente podrá girar instrucciones de pago a EDENRED para que este último a su vez genere la instrucción a TELEVIA para que liquide a los CONCESIONARIOS las cuotas de peaje que se generen a cargo del CLIENTE a razón de la tarifa vigente publicada por el CONCESIONARIO respectivo, de acuerdo con el tipo y número de ejes del vehículo utilizado por el CLIENTE mediante el uso de la etiqueta de presencia Drive Tag. El CLIENTE acuerda y reconoce que dichas cuotas de peaje podrán ser modificadas en cualquier momento por los CONCESIONARIOS, sin que ese hecho afecte la relación que se establece entre EDENRED y el CLIENTE en virtud de este contrato
+            </p>
+            <br/>
+            <p>
+				El CLIENTE deberá respetar y cumplir la señalización correspondiente al Sistema Telepeaje Drive Tag a través de TELEVIA, señalización que se encuentra en los accesos de los enlaces o las casetas, el máximo de velocidad y la instalación de la Etiqueta de Presencia drive tag para el buen funcionamiento de este. Es obligación del CLIENTE conocer las rutas equipadas en el Sistema Telepeaje Drive Tag a través de TELEVIA, así como el número de la etiqueta de presencia Drive Tag instalado en su vehículo. Es obligación del CLIENTE, liquidar el peaje en efectivo cuando la etiqueta de presencia Drive Tag sea inválida, no sea leída por el sistema, o cuando suceda cualquier otra eventualidad. Es obligación del CLIENTE circular a una velocidad máxima de 30 km/hr y con la debida precaución por los carriles exclusivos del Sistema Telepeaje Drive Tag a través de TELEVIA, así como guardar distancia con el vehículo de adelante                
+            </p>
+            <br/>
+            <p>
+                Los usuarios de la etiqueta de presencia Drive Tag, deben circular por los carriles equipados con el "SISTEMA TELEVIA", de lo contrario, si cruzan por otro carril no identificado con el "SISTEMA TELEVIA", deberán cubrir en efectivo el importe de la cuota correspondiente. Es obligación de "EL CLIENTE", capacitar a sus usuarios para el uso adecuado de la etiqueta de presencia Drive Tag. El CLIENTE se encontrará protegido por el seguro de usuario por encontrarse dentro de la autopista, aun cuando no tenga un comprobante impreso del pago del peaje, este seguro es proporcionado por la autopista y no por TELEVIA ni por EDENRED
+            </p>
+			<br/>
+			<p>
+                El CLIENTE será responsable del uso de la etiqueta de presencia Drive Tag y de las instrucciones que gire a EDENRED a través del mismo. Cualquier uso indebido de la etiqueta de presencia drive tag será causa de la suspensión del servicio al que se refiere este contrato y el CLIENTE expresamente autoriza a EDENRED a aplicar los recursos anticipados a los gastos en que incurra EDENRED con motivo de su mal uso. El CLIENTE, en este acto libera a EDENRED de cualquier responsabilidad que pudiera resultar a su cargo en virtud de la ejecución de las instrucciones giradas por el CLIENTE mediante el uso de la etiqueta de presencia Drive Tag y desde ahora conviene en sacarlo en paz y a salvo e indemnizar cualquier reclamación por daños y/o perjuicios causados a terceros por la ejecución de cualesquiera instrucciones del CLIENTE 
+            </p>
+			<br/>
+            <p>
+               En los casos de robo, extravíos o daños, el CLIENTE se obliga a bloquear y/o cancelar la etiqueta de presencia Drive Tag desde la plataforma Ticket Car o comunicándose al número telefónico de Atención a Clientes de EDENRED que aparece al reverso del dispositivo electrónico. EDENRED no dará curso a las instrucciones de pago que se realicen con la etiqueta de presencia Drive Tag a partir de las 24 horas siguientes de haber realizado el bloqueo y/o cancelado dicha etiqueta de presencia drive tag. La ejecución de las instrucciones que EDENRED reciba después del término señalado en este párrafo será responsabilidad de EDENRED.  A partir de la fecha y hora de bloqueo y/o cancelación en un tiempo máximo de 60 minutos, se invalidará la etiqueta de presencia Drive Tag; sin embargo, EL CLIENTE seguirá siendo el responsable de las transacciones realizadas antes de la fecha y hora del bloqueo y/o cancelación.                 
+            </p>
+            <br/>
+            <p>
+                EDENRED podrá suspender el servicio de Telepeaje a que se refiere este Contrato, sin necesidad de notificación previa al CLIENTE, cuando EDENRED detecte que el CLIENTE está haciendo uso incorrecto de la etiqueta de presencia Drive Tag o cuando se solicite por cualquier autoridad competente.
+            </p>
+			<br/>
+			<p>
+                El CLIENTE y/o USUARIO están de acuerdo y autorizan tanto a  EDENRED como TELEVIA para que puedan utilizar, transferir, o compartir sus datos corporativos de contacto, condiciones comerciales e información adicional necesaria y relacionada a la operación de telepeaje, siempre y cuando todos los involucrados, utilicen los citados datos única y exclusivamente para los fines objeto del presente contrato y todos los involucrados cumplan con todas las medidas relacionadas al cuidado de los mismos. EDENRED no se hace responsable en caso de que TELEVIA no cumpla con las medidas relacionadas al cuidado de los datos                
+            </p>
+            <br/>
+            <p>
+                <strong> TRES. USO DE LA ETIQUETA DE PRESENCIA DRIVE TAG.</strong> Instalación de la etiqueta de presencia drive tag:
+            </p>
+               
+                <div style = "margin-left: 20px;">
+                     <br/>
+                     <ul>
+						<li> 1.	Limpiar la superficie interior del parabrisas donde se colocará la etiqueta de presencia drive tag  </li>     
+                        <li> 2.	Separar cuidadosamente la etiqueta de presencia drive tag de la base
+                            <ol>
+                                <li></li>
+                                <li></li>
+                            </ol>
+                        </li>     
+                        <li> 3.	Colocar la etiqueta de presencia drive tag de forma horizontal en el área previamente seleccionada cuidando que no haya pliegues, desgarros o torceduras que limiten la adecuada adherencia. </li>     
+                        <li> 4.	Una vez adherida la etiqueta de presencia drive tag no intentar despegarla ya que las antenas se dañarán y no permitirá el correcto funcionamiento. </li>     
+                        <li> 5.	Una vez instalada la etiqueta de presencia drive tag en el parabrisas del automóvil (y previamente activada), el Usuario podrá hacer uso del Sistema Telepeaje TC a través de TELEVIA, circulando por los carriles habilitados. Estos carriles serán fácilmente identificables por la leyenda TAG VR. Al cruzar por ellos, la antena situada en la parte superior central del carril identificará su etiqueta de presencia drive tag, propiciando la apertura de la barrera de paso. </li>     
+                        
+                	</ul>
+                </div>
+            <br/>
+            <p>
+                IMPORTANTE:
+				Si no se adhiere la etiqueta de presencia drive tag en el parabrisas dentro del vehículo, conforme se indica en el manual, no se garantiza el adecuado funcionamiento de éste. En tal caso, deberá cubrir la tarifa del peaje en efectivo
+            </p>
+                <p>
+                    Condiciones operativas
+                </p>
+            <br/>
+              <div style = "margin-left: 20px;">
+                <ul>
+                     <li>1.	La etiqueta de presencia drive tag se deberá aplicar en el parabrisas al interior del vehículo.</li>
+                     <li>2.	Antes de aplicar la etiqueta de presencia drive tag verificar que el parabrisas tenga una temperatura en su superficie entre los 15°C y 50°C, ya que un parabrisas con temperaturas menores y mayores podría afectar la adecuada adherencia al cristal.</li>
+                     <li>3.	Verificar que el parabrisas del vehículo no tenga aplicado algún recubrimiento o película que limite la adecuada lectura.</li>
+                     <li>4.	Vehículos blindados, con parabrisas más grueso al convencional y/o con compuestos metalizados, así como con película protectora podrían presentar problemas de lectura, por ende, es importante verificar la recomendación de colocación de la etiqueta de presencia drive tag indicada dentro del manual del vehículo. En algunos vehículos existe una antena (película adicional tipo malla) en el parabrisas, que puede afectar la lectura, por lo que le recomendamos que, en este caso, coloque su etiqueta de presencia drive tag unos centímetros por debajo de dicha zona</li>
+                     <li>5.	En caso de existir más de un tag en el vehículo para telepeaje o control de acceso automatizado, deberán estar separados como mínimo 5 cm entre ellos</li>
+                </ul>
+              </div>
+                <br/>
+            <p>
+                <strong>CUATRO. VIGENCIA.</strong> - Las partes convienen que la duración de la presente propuesta será por el tiempo que se encuentre vigente el contrato del Sistema TC que Edenred tiene celebrado con el CLIENTE, no obstante, si el CLIENTE desea dar por terminada la presente propuesta de servicios, deberá informar a EDENRED mediante escrito previo y en forma fehaciente con 30 (treinta) días de anticipación a la fecha de terminación deseada, dando solo así por concluidos los servicios del Sistema Telepeaje Drive Tag.                 
+            </p>
+            <br/>
+            <p>
+              	En caso de que EL CLIENTE solicite el reembolso del saldo remanente de la cuenta de telepeaje o de la cuenta de combustible, el cliente deberá contactar a EDENRED para solicitar el trámite de reembolso, así como proporcionar la documentación requerida por EDENRED. Dicho trámite tomará un tiempo no menor a 45 días hábiles. 
+            </p>
+            <br/>
+            <p>
+                Leída la presente propuesta de servicios, firmo de conformidad en la Ciudad de ____________________, a los ________ de _____________________ de 20_____
+            </p>
+            <br/>
+            <p>
+                <span ng-bind="solucion.Quote.Opportunity.Razon_social__c"></span>
+            </p>
+            
+            <p>
+                ___________________________
+                <br/>                    
+                <span ng-bind="solucion.Quote.Contact.Name"></span>
+            </p>
+            </div>
+            <div class="page-break" ng-if="sc.documento.paginas.numPaginas == pagina.numPagina"></div>
+		</div>
+	</div>
+</apex:component>
