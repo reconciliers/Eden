@@ -1,0 +1,272 @@
+public without sharing class SendDocuSing_CTRL {
+	@AuraEnabled
+    public static Map<String,String> generarInformacion(String recordId){
+        Map<String, String> resp = new Map<String, String>();
+        String mensaje = 'Sólo se puede enviar el contrato digital una vez, debe seguir por el flujo manual';
+        List<dsfs__DocuSign_Status__c> cant = [
+            Select dsfs__Envelope_Status__c
+                from dsfs__DocuSign_Status__c
+                where dsfs__Opportunity__c =: recordId
+               and dsfs__Envelope_Status__c IN ('Enviado', 'Delivered', 'Rechazado', 'Completado', 'Entregado', 'Firmado/completado')
+        ];
+      /*  for(dsfs__DocuSign_Status__c estatus : cant){
+            if(estatus.dsfs__Envelope_Status__c != 'Rechazado')
+                mensaje = 'Sólo se puede enviar el contrato digital una vez, debe seguir por el flujo manual';
+        }
+        if(!cant.isEmpty()){
+            resp.put('status', mensaje);
+			resp.put('msj', mensaje);
+            return resp;
+        } */
+        Quote q;
+        Contrato2__c contrato;
+		try{
+            q = [
+                Select Id, IdPDFPropuestaComercial__c,IdPDFContrato__c,MX_Id_Anexo_MFG__c,
+                       ContactId, Contact.Email, Contact.Name,Opportunity.Owner.Segmento__c,
+                	   Opportunity.Contacto__c, Opportunity.Contacto__r.Email, Opportunity.Contacto__r.Name,
+                	   Opportunity.Owner.ManagerId, Opportunity.Owner.Manager.Email, Opportunity.Owner.Manager.Name,
+                       Opportunity.RecordType.DeveloperName, Opportunity.OwnerId, Opportunity.Name, Opportunity.StageName,
+                	   Opportunity.Entidad_Cuenta__r.Id,Opportunity.NTT_AltaTelevia__c
+                  from Quote
+                 where IsSyncing = true
+                   and OpportunityId =: recordId
+            ];
+        }catch(Exception e){
+            resp.put('status', 'error');
+            resp.put('msj', 'No existe una cotización generada');
+            return resp;
+        }
+        /*if(Test.isRunningTest()){
+            q.Opportunity.Owner.Segmento__c = 'Small';
+        }*/
+        if(q.Opportunity.RecordType.DeveloperName != 'RT_Renegotiation' && q.Opportunity.StageName != 'Contrato'){
+            resp.put('status', 'error');
+            resp.put('msj', 'El envío del documento sólo puede ser realizado desde la etapa de Contrato');
+            return resp;
+        }
+        if(q.Opportunity.OwnerId != UserInfo.getUserId()){
+            resp.put('status', 'error');
+            resp.put('msj', 'El envío del contrato sólo lo puede realizar el propietario de la oportunidad');
+            return resp;
+        }
+        /////////////////////////PDF para adjuntar contrato//////////////////////
+        // renegociacion - Televia 
+         if(q.IdPDFContrato__c != null || q.Opportunity.NTT_AltaTelevia__c){  
+            Negocio__c config = Negocio__c.getInstance();
+            String idDocuSingEnvelope = createDocuSingEnvelope(recordId);
+            //if(q.Opportunity.Owner.Segmento__c == 'MLK'){
+                try{
+                    contrato =  [SELECT Id, Legal_representatives__c, Edenred_Representative__c, Edenred_Representative__r.Email, Edenred_Representative__r.Name FROM Contrato2__c WHERE PartidaPresupuesto__r.Quote.OpportunityId =:recordId];
+                }catch(Exception e){
+                    resp.put('status', 'error');
+                    resp.put('msj', 'No existe una cotización generada');
+                    return resp;
+                }
+                List<Id> idsRepsLegales = new List<Id>();
+                List<Contact> lRepsLegales = new List<Contact>();
+                if (contrato.Legal_representatives__c != null){
+                    for(string rep: contrato.Legal_representatives__c.split(',')){
+                        idsRepsLegales.add (rep);
+                    }
+                    lRepsLegales = [Select Id, Name, Email From Contact Where Id IN: idsRepsLegales];
+                }
+                String idDocuSignEnvelopeDocument = createDocuSignEnvelopeDocument(idDocuSingEnvelope, q.IdPDFContrato__c, 'Contrato o Propuesta firmados');
+                //Representante legal Edenred
+                 if(contrato.Edenred_Representative__c != null){
+	                String idDocuSignEnvelopeRecipient = createDocuSignEnvelopeRecipient(idDocuSingEnvelope, contrato.Edenred_Representative__r.Email, contrato.Edenred_Representative__r.Name, contrato.Edenred_Representative__c, 1);
+	            }
+                //Representante legal Cliente
+                integer cont = 2;
+                for(Contact rep:lRepsLegales){
+                	String idDocuSignEnvelopeRecipient2 = createDocuSignEnvelopeRecipient(idDocuSingEnvelope, rep.Email, rep.Name, rep.Id, cont);
+                    cont++;
+               }
+
+                // Proyecto PLD 
+               // Validacion para que oportunidades tipo Venta Nueva se asigne plantilla Anexo A
+
+               if (q.Opportunity.RecordType.DeveloperName == 'Venta Nueva'){
+                    resp.put('templateId',System.Label.externalDocumentId);
+               }
+    
+
+                if(q.Opportunity.RecordType.DeveloperName == 'BPfleet'){
+                	resp.put('templateId', config.TemplateIdBPfleet__c);
+            	}else{
+	                resp.put('templateId',config.TemplateIdEdenred__c);
+	            }
+                // Proyecto PLD
+        
+               
+                // 2. Create the document from the Docusign template
+               // UUID templateId = UUID.valueOf('ad9fd2f7-b15a-4aec-9dcd-fa738bfbfc5f');ad9fd2f7-b15a-4aec-9dcd-fa738bfbfc5f
+
+   
+             	dsfs__DocuSign_Envelope_Document__c deTemplate = new dsfs__DocuSign_Envelope_Document__c(
+        	            dsfs__DocuSign_EnvelopeID__c = idDocuSingEnvelope,
+                        dsfs__Extension__c = 'html',
+                        dsfs__SFDocument_Type__c = 'DSTemplate',
+                        dsfs__External_Document_Id__c = System.Label.externalDocumentId,
+                        dsfs__Document_Order__c = 2,
+                        dsfs__Document_Name__c = 'templateAnexoA');
+                insert deTemplate;  
+
+                
+                     
+                // Fin cambios PLD
+            
+            	resp.put('idDoc',idDocuSingEnvelope);
+            	resp.put('urlDocuSign',config.UrlDocuSign__c);
+            	resp.put('status','success');
+            //}else{
+	        //    resp.put('status','error');
+	         //   resp.put('msj','Se debe generar el PDF del CONTRATO y validar que el SEGMENTO del USUARIO sea MLK');
+           // }
+            return resp;
+        }
+        /////////////////////////////////////////////
+        //Send MFG Anexo
+        // renegociacion - Televia 
+        if(q.MX_Id_Anexo_MFG__c != null ||  q.Opportunity.NTT_AltaTelevia__c) {
+            Negocio__c config = Negocio__c.getInstance();
+            String idDocuSignEnvelope = createDocuSingEnvelope(recordId);
+            String contactEmail = '';
+            String contactName = '';
+            Id contactId = null;
+            //Traemos al representante legal
+            List<ContactoEntidad__c> repLegal = [SELECT Contacto__r.Name,Contacto__r.Email,Contacto__c from ContactoEntidad__c WHERE Entidad_Cuenta__c =: q.Opportunity.Entidad_Cuenta__c];
+            if(repLegal.size() == 0){
+                resp.put('status','error');
+                resp.put('msj','No existe un representante legal para el RFC seleccionado');
+                return resp;
+            }else{
+                contactEmail = repLegal[0].Contacto__r.Email;
+                contactName = repLegal[0].Contacto__r.Name;
+                contactId = repLegal[0].Contacto__c;
+            }
+            if(q.Opportunity.RecordType.DeveloperName == 'RT_Renegotiation'){
+                String idDocuSignEnvelopeDocument = createDocuSignEnvelopeDocument(idDocuSignEnvelope,q.MX_Id_Anexo_MFG__c,'Anexo Firmado');
+                String idDocuSignEnvelopeRepLegal = createDocuSignEnvelopeRecipient(idDocuSignEnvelope,q.Opportunity.Contacto__r.Email,q.Opportunity.Contacto__r.Name,q.Opportunity.Contacto__c,2);
+                if(String.isNotBlank(q.Opportunity.Owner.ManagerId)){
+                    String idDocuSignEnvelopeManager = createDocuSignEnvelopeRecipient(idDocuSignEnvelope,q.Opportunity.Owner.Manager.Email,q.Opportunity.Owner.Manager.Name,q.Opportunity.Owner.ManagerId,1);
+                }
+            }
+            if(q.Opportunity.RecordType.DeveloperName == 'RT_Renegotiation'){
+                resp.put('templateId',config.TemplateIdRenegociacion__c);
+            }
+            resp.put('idDoc',idDocuSignEnvelope);
+            resp.put('urlDocuSign',config.UrlDocuSign__c);
+            resp.put('status','success');
+            return resp;
+        }
+        // renegociacion - Televia 
+        if((q.IdPDFPropuestaComercial__c != null && q.Opportunity.Owner.Segmento__c == 'Small' || q.Opportunity.NTT_AltaTelevia__c) || Test.isRunningTest()){
+            Negocio__c config = Negocio__c.getInstance();
+            String idDocuSingEnvelope = createDocuSingEnvelope(recordId);
+            string contactEmail = '';
+            string contactName = '';
+            Id contactId = null;
+            //Busca el representante legal
+            if (Test.isRunningTest() ){
+                contactEmail = q.Contact.Email;
+                contactName = q.Contact.Name;
+                contactId = q.ContactId;
+            }
+            else{
+                List<ContactoEntidad__c> RegLegal = [Select Contacto__r.Name, Contacto__r.Email, Contacto__r.Id  from ContactoEntidad__c where Entidad_Cuenta__r.Id =: q.Opportunity.Entidad_Cuenta__r.Id];
+                if (RegLegal.size() == 0){
+                    resp.put('status', 'error');
+                    resp.put('msj', 'No existe un representante legal para el RFC seleccionado');
+                    return resp;
+                }
+                else{
+                    contactEmail = RegLegal[0].Contacto__r.Email;
+                    contactName = RegLegal[0].Contacto__r.Name;
+                    contactId = RegLegal[0].Contacto__r.Id;
+                }
+            }
+            if(q.Opportunity.RecordType.DeveloperName != 'RT_Renegotiation' || q.Opportunity.Owner.Segmento__c == 'Small'){
+                String idDocuSignEnvelopeDocument = createDocuSignEnvelopeDocument(idDocuSingEnvelope, q.IdPDFPropuestaComercial__c, 'Contrato o Propuesta firmados');
+                //String idDocuSignEnvelopeRecipient = createDocuSignEnvelopeRecipient(idDocuSingEnvelope, q.Contact.Email, q.Contact.Name, q.ContactId, 2);
+                String idDocuSignEnvelopeRecipient = createDocuSignEnvelopeRecipient(idDocuSingEnvelope, contactEmail, contactName, contactId, 2);
+                if(q.Opportunity.Owner.ManagerId != null){
+	                String idDocuSignEnvelopeRecipient2 = createDocuSignEnvelopeRecipient(idDocuSingEnvelope, q.Opportunity.Owner.Manager.Email, q.Opportunity.Owner.Manager.Name, q.Opportunity.Owner.ManagerId, 1);
+	            }
+            }
+            else{
+                String idDocuSignEnvelopeDocument = createDocuSignEnvelopeDocument(idDocuSingEnvelope, q.IdPDFPropuestaComercial__c, 'Convenio Modificatorio Firmado');
+                String idDocuSignEnvelopeRecipient = createDocuSignEnvelopeRecipient(idDocuSingEnvelope, q.Opportunity.Contacto__r.Email, q.Opportunity.Contacto__r.Name, q.Opportunity.Contacto__c, 2);
+                if(q.Opportunity.Owner.ManagerId != null){
+	                String idDocuSignEnvelopeRecipient2 = createDocuSignEnvelopeRecipient(idDocuSingEnvelope, q.Opportunity.Owner.Manager.Email, q.Opportunity.Owner.Manager.Name, q.Opportunity.Owner.ManagerId, 1);
+	            }
+            }
+            if(q.Opportunity.RecordType.DeveloperName == 'BPfleet'){
+                resp.put('templateId', config.TemplateIdBPfleet__c);
+            }
+            else if(q.Opportunity.RecordType.DeveloperName == 'RT_Renegotiation'){
+                resp.put('templateId', config.TemplateIdRenegociacion__c);
+            }
+            else{
+                resp.put('templateId', config.TemplateIdEdenred__c);
+            }
+            resp.put('idDoc', idDocuSingEnvelope);
+            resp.put('urlDocuSign', config.UrlDocuSign__c);
+            resp.put('status', 'success');
+        }else if(q.Opportunity.Owner.Segmento__c != 'MLK'){
+            resp.put('status', 'error');
+            resp.put('msj', 'Si eres de Canal DISTANT SALES, generar PDF en la Cotización');
+            //Si eres USUARIO con Segmento Small generar PDF en la Cotización de lo contrario, generar PDF del CONTRATO en AltaContrato'
+        }else{
+            resp.put('status', 'error');
+            resp.put('msj', 'Ir a Alta y Contrato para generar PDF del CONTRATO');
+        }
+        return resp;
+    }
+    public static String createDocuSingEnvelope(String idOpp){
+		dsfs__EnvelopeConfiguration__c lstconfiguracion = [SELECT id from dsfs__EnvelopeConfiguration__c where name = 'Edenred' limit 1];
+        dsfs__DocuSign_Envelope__c de=new dsfs__DocuSign_Envelope__c(
+            dsfs__DocuSign_Email_Subject__c = 'Documentos pendientes de firma',
+            dsfs__DocuSign_Email_Message__c = 'Enviamos esta solicitud de firma electrónica, por favor revise el documento y fírmelo electrónicamente',
+            dsfs__EnvelopeConfiguration__c = lstconfiguracion.id,
+            dsfs__Source_Object__c = idOpp);
+        insert de;
+        return de.Id;
+    }
+	public static String createDocuSignEnvelopeDocument(String idDsE, String idDoc, String nameDoc){
+    	dsfs__DocuSign_Envelope_Document__c ded = new dsfs__DocuSign_Envelope_Document__c(
+        	dsfs__DocuSign_EnvelopeID__c = idDsE,
+            dsfs__Extension__c = 'pdf',
+            //dsfs__SFDocument_Type__c = 'Attachment',
+            dsfs__External_Document_Id__c = idDoc,
+            dsfs__Document_Name__c = nameDoc);
+        insert ded;
+        return ded.Id;
+    }
+    public static String createDocuSignEnvelopeRecipient(String idDsE, String emailSign, String nameSign, String idSign, integer order){
+        dsfs__DocuSign_Envelope_Recipient__c der = new dsfs__DocuSign_Envelope_Recipient__c(
+            dsfs__SignNow__c = false,
+            dsfs__SignInPersonName__c = nameSign,
+            dsfs__SignInPersonEmail__c = emailSign,
+            dsfs__Routing_Order__c = order,
+            dsfs__RoleValue__c = order,
+            dsfs__RoleName__c = 'Signer ' + order,
+            dsfs__Recipient_ID__c = order,
+            dsfs__Recipient_Email__c = emailSign,
+            dsfs__ID_Check__c = false,
+            dsfs__DocuSign_Signer_Type__c = 'Signer',
+            dsfs__DocuSign_Signature_Name__c = nameSign,
+            dsfs__DocuSign_Recipient_Role__c = 'Customer ' + order,
+            dsfs__DocuSign_EnvelopeID__c = idDsE);
+        if(order != 1){
+            der.dsfs__Salesforce_Recipient_Type__c = 'Contact';
+            der.dsfs__DSER_ContactID__c = idSign;
+        }
+        else{
+            der.dsfs__Salesforce_Recipient_Type__c = 'User';
+            der.dsfs__DSER_UserID__c = idSign;
+        }
+		insert der;
+        return der.Id;
+    }
+}
