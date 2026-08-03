@@ -17,6 +17,7 @@ public class GLB_ClientsToMercedes {
     //add Televia 03-03-26
     Public static boolean  is_separated_group;
       //  fix estabilización migración 
+      // fix 2 billings
 		 Public static Integer warrantyTypeCode;
 		 Public static Date warrantyEndDate;
 		 Public static Decimal warrantyValue;
@@ -24,13 +25,14 @@ public class GLB_ClientsToMercedes {
 		 Public static Integer tipoPago = 0;
     	 Public static String warrantyType;
     	 Public static Date infinityDate;
-
+ // fix 2 billings
 
    Public static set<String> idContratosPadre= new set<String>();
     //add Televia 03-03-26
     public static CalloutResult sendToMercedes(NTTER_ClientToMercedesWrappBase.Wrapper originalJSON, Map<Id,Contrato2__c> mapContratos, Boolean sendToMercedes, CalloutResult result) {
 		System.debug('sendToMercedes originalJSON >>> '+originalJSON);
         String agreementCCode = '';
+         // fix 2 billings
         map<integer,integer> aggrems = new  map<integer,integer>();
        
         //Fiscal
@@ -170,7 +172,7 @@ public class GLB_ClientsToMercedes {
             List<NTTER_ClientToMercedesWrapper.BillingContacts> lstContacts = new List<NTTER_ClientToMercedesWrapper.BillingContacts>();
             for(NTTER_ClientToMercedesWrappBase.BillingEntityContact contact : billing.billingEntityContacts){
                 NTTER_ClientToMercedesWrapper.BillingContacts cont = new NTTER_ClientToMercedesWrapper.BillingContacts();
-            	cont.contact_ref = String.isBlank(contact.contactCode) ? '003Pb00001unECMIA2':  contact.contactCode;
+            	cont.contact_ref = contact.contactCode;
                 lstContacts.add(cont);
             }
             bill.contacts = lstContacts;
@@ -192,6 +194,7 @@ public class GLB_ClientsToMercedes {
 				agree.warranty = warranty;
 				agree.service_plan_id = agreement.servicePlanId;
                 System.debug('contratosConTelevia.containskey(agreement.warrantyTypeId)  '+contratosConTelevia.containskey(agreement.agreementCode) );
+                 // fix 2 billings
 				agree.collector_id = contratosConTelevia.containskey(agreement.agreementCode) ?  0 :  agreement.collectorId;
 				agree.approver_id = agreement.approverId;
 				agree.currency_id = agreement.currencyId;
@@ -205,6 +208,7 @@ public class GLB_ClientsToMercedes {
             	for(NTTER_ClientToMercedesWrappBase.AgreementCondition condition : originalJSON.agreementConditions.get(keyAgr)){
                 	NTTER_ClientToMercedesWrapper.Conditions agreCond = new NTTER_ClientToMercedesWrapper.Conditions();
                 	agreCond.identifier = condition.agreementConditionCode;
+                     // fix 2 billings
 					agreCond.plan_type_id = condition.productId == Integer.valueof(productCodeTelevia) ? 5 : condition.salePlanId;
 					agreCond.product_id = condition.productId;
 					agreCond.name = condition.name;
@@ -220,6 +224,7 @@ public class GLB_ClientsToMercedes {
 							billNew.payment_condition_id = billing.payConditionId;
 							billNew.name = billing.name;
                         	List<NTTER_ClientToMercedesWrapper.Charges> charges = new List<NTTER_ClientToMercedesWrapper.Charges>();
+                             // fix 2 billings
                         	List<NTTER_ClientToMercedesWrapper.Charges> chargesTelevia = new List<NTTER_ClientToMercedesWrapper.Charges>();
                             for( NTTER_ClientToMercedesWrappBase.AgreementBillingCharge  charge : originalJSON.agreementBillingCharges.get(keyAgr)){
                                 	//System.debug('charge test '+json.serialize(charge));
@@ -229,7 +234,7 @@ public class GLB_ClientsToMercedes {
                                 	//System.debug('CB charge.charge.chargeId '+charge.chargeId);
                                 	NTTER_ClientToMercedesWrapper.Frecuency frecuency = new NTTER_ClientToMercedesWrapper.Frecuency();
                                 	frecuency.range = charge.chargeFrecuencyDay;//charge.chargeFrecuencyApplicationDay == 'L' && charge.chargeFrecuencyId == 4 ? '1' : charge.chargeFrecuencyApplicationDay;
-									
+									 // fix 2 billings
                                 	frecuency.identifier = charge.chargeFrecuencyDay == '1' ? 4 : charge.chargeFrecuencyId; //
 									//System.debug('CB charge.chargeFrecuencyId '+charge.chargeFrecuencyId);
 								//	System.debug('CB charge.chargeFrecuencyApplicationDay '+charge.chargeFrecuencyApplicationDay);
@@ -257,15 +262,18 @@ public class GLB_ClientsToMercedes {
                                 	chargeNew.payment = payment;
                                 	chargeNew.is_custom_name = charge.isCustomName;
 									chargeNew.custom_name = charge.customName;
+                                 // fix 2 billings
 									chargeNew.price_type_id = /*modificaciones Televia */charge.chargeId == 3007 ? 2 :charge.priceTypeId;
 									chargeNew.price_table_code = charge.priceTableCode;
 									chargeNew.amount = charge.price;
                                 	NTTER_ClientToMercedesWrapper.Discount discount = new NTTER_ClientToMercedesWrapper.Discount();
+                                 // fix 2 billings
                                 	discount.identifier = chargeNew.identifier== 3018 ? 0 : charge.discountTypeId;
 									discount.table_code = charge.discountTableCode;
 									discount.value = charge.discount;
 									discount.start_date = charge.discountStartDate;
 									discount.end_date = charge.discountEndDate;
+                                	
                                 	chargeNew.discount = discount;
                                 	chargeNew.is_separated_invoice =charge.isSeparatedInInvoice;
 									chargeNew.is_separated_group = charge.isSeparatedInGroup;
@@ -321,14 +329,15 @@ public class GLB_ClientsToMercedes {
                         	//billNew.charges = charges;
                         	//agreBillings.add(billNew);
                 		}
-                	if(agreement.agreementCode == condition.agreementConditionCode ){  
+                    
+                	if(agreement.agreementCode == condition.agreementConditionCode ){  // fix 2 billings
                     	agreCond.billings = agreBillings;
-                    }
+                    }// fix 2 billings
                 	List<NTTER_ClientToMercedesWrapper.SteppedTables> stepped_tables = new List<NTTER_ClientToMercedesWrapper.SteppedTables>();
                 	agreCond.stepped_tables = stepped_tables;
-                    if(agreement.agreementCode == condition.agreementConditionCode ){
+                    if(agreement.agreementCode == condition.agreementConditionCode ){// fix 2 billings
                 		conditions.add(agreCond);
-                    }
+                    }// fix 2 billings
             	}
             	  
                	agree.conditions = conditions;
@@ -447,7 +456,7 @@ public class GLB_ClientsToMercedes {
         NTTER_ClientToMercedesWrapper.Client client = new NTTER_ClientToMercedesWrapper.Client();
         client.identifier = originalJSON.entityCode;
 		client.commercial_name = originalJSON.commercialName;
-		client.business_name = String.isblank(originalJSON.businessName) ? 'test' : originalJSON.businessName;
+		client.business_name =  originalJSON.businessName;
 		client.partner_id = originalJSON.partnerId;
 		client.country_id = originalJSON.countryId;
         client.business_unit_id = 2;//originalJSON.businessUnitId;
@@ -585,11 +594,14 @@ public class GLB_ClientsToMercedes {
 		NTTER_ClientToMercedesWrapper.RequestToMercedes request = new NTTER_ClientToMercedesWrapper.RequestToMercedes();
         
         request.client = client;
+         // fix 2 billings
         System.debug('Request Body $$$ ' + JSON.Serialize(request, true).replace('number_x','number'));
+         // fix 2 billings
 		String mercedesRequestBody = JSON.Serialize(request, true).replace('number_x','number');
         if (!Test.IsRunningTest() && sendToMercedes) {
 			// Make the callout
-			Map<String, Object> mpMake = HMAC_EDG_cls.requestEDG('Clients', JSON.Serialize(request).replace('number_x', 'number'));
+			//  // fix 2 billings
+			Map<String, Object> mpMake = HMAC_EDG_cls.requestEDG('Clients', JSON.Serialize(request, true).replace('number_x', 'number'));
 			Object responseBody = mpMake.get('responseBody');
 			Object code = mpMake.get('statusCode');
 			Boolean success = Boolean.valueOf(mpMake.get('success'));
@@ -678,6 +690,20 @@ public class GLB_ClientsToMercedes {
         }
         return catalogCobrAn;
     }
+    
+    public static map<String, Integer > CatalogGarr(){
+         Map<String,Integer> catalogGarr = new Map<String,Integer>{
+        	'SIN GARANTIA' => 0,
+            'PAGARE' =>  1,
+            'DEPOSITO EN EFECTIVO' =>  2,
+			'CARTA STAND BY' =>  3,
+			'FIANZA' =>  4,
+			'GARANTIA MIXTA' =>  5
+        };
+            return catalogGarr;
+    }
+    
+    
     public static map<String, String > ConvertAnalistasCobranzaByName()
     {
      	List< GLB_AnalistasCobranza__mdt> catCodigAnalista = [select MasterLabel, GLB_NombreAnalista__c    from GLB_AnalistasCobranza__mdt ];
@@ -891,14 +917,14 @@ public class GLB_ClientsToMercedes {
 			'SEMESTRAL' => 9,
 			'SEMANAL FRACCIONADO' => 2 // para migracion colocar 7 en caso contrario 2
 		};
-        Map<String,Integer> catalogGarr = new Map<String,Integer>{
+       /* Map<String,Integer> catalogGarr = new Map<String,Integer>{
         	'SIN GARANTIA' => 0,
             'PAGARE' =>  1,
             'DEPOSITO EN EFECTIVO' =>  2,
 			'CARTA STAND BY' =>  3,
 			'FIANZA' =>  4,
 			'GARANTIA MIXTA' =>  5
-        };
+        };*/
         Map<String,Integer> catalogCobrAn = ConvertAnalistasCobranzaByCodigo();
             /*
              * Map<String,Integer> catalogCobrAn  = {
@@ -1143,15 +1169,19 @@ public class GLB_ClientsToMercedes {
 			 infinityDate = Date.newInstance(2099, 12, 31);
 			Date dateT = contrato.FechaFinADC__c;
 			 warrantyType = contrato.PartidaPresupuesto__r.WarrantyType__c;
+             // renegociacion - Televia  
+             map<String, Integer > catalogGarr  = CatalogGarr();        
 			 warrantyTypeCode = catalogGarr.get(warrantyType != null && warrantyType != '' ? warrantyType.toUpperCase(): '0');
 			 warrantyEndDate = contrato.PartidaPresupuesto__r.GLB_FechaFinGarantia__c != null ? contrato.PartidaPresupuesto__r.GLB_FechaFinGarantia__c : infinityDate;
 			 warrantyValue = contrato.PartidaPresupuesto__r.WarrantyValue__c;
 			 analistaCobCode = contrato.GLB_CodAnalistaCobranza__c != null ? contrato.GLB_CodAnalistaCobranza__c : 'DEFAULT';
+             // fix 2 billings
 			//Integer tipoPago = 0;
 			if(contrato.PartidaPresupuesto__r.Product2.ProductCode == '33') {
 				tipoPago = contrato.TipoPago__c == 'Prepago' ? 1 : (contrato.TipoPago__c == 'Pospago' ? 2 : 0);
 			}
             System.debug('tipoPago tev '+tipoPago);
+            // fix 2 billings
 			/*NTTER_ClientToMercedesWrappBase.Agreement aggre =  new NTTER_ClientToMercedesWrappBase.Agreement();
 			aggre.agreementCode = contrato.Id;
 			aggre.entityTypeId = 1;
@@ -1171,6 +1201,8 @@ public class GLB_ClientsToMercedes {
 			aggre.startDate = contrato.CreatedDate.date();//Date.ValueOf(convertDate(contrato.CreatedDate, false, true,false));
 			aggre.endDate =  Date.ValueOf(convertDate(infinityDate, false, false,false));          
 			*/
+            // fix 2 billings
+            // fix 2 billings
             if(!String.isBlank(contrato.NTT_ChildContract__c)){
               NTTER_ClientToMercedesWrappBase.Agreement aggre2 = crearAgrement(contrato,true,catalogCobrAn);
               lstAgreements.add(aggre2);
@@ -1179,7 +1211,8 @@ public class GLB_ClientsToMercedes {
                 
               NTTER_ClientToMercedesWrappBase.agreementBilling agrBilling2 =  crearBilling(contrato, true);
               lstAgreementsBillings.add(agrBilling2);
-            }            
+            }           
+            // fix 2 billings
             NTTER_ClientToMercedesWrappBase.Agreement aggre = crearAgrement(contrato,false,catalogCobrAn);            
             lstAgreements.add(aggre);
             agreements.put(contrato.CodigoAS400__c,lstAgreements);
@@ -1191,7 +1224,7 @@ public class GLB_ClientsToMercedes {
 			 
              NTTER_ClientToMercedesWrappBase.agreementBilling agrBilling =  crearBilling(contrato, false);
              lstAgreementsBillings.add(agrBilling);
-            
+            // fix 2 billings
             //Agreement Billings
 			//String wayPay = contrato.WayPay__c;
 		/*	NTTER_ClientToMercedesWrappBase.agreementBilling agrBilling = new NTTER_ClientToMercedesWrappBase.agreementBilling();
@@ -1204,6 +1237,7 @@ public class GLB_ClientsToMercedes {
 			agrBilling.name = 'FACTURACION';
             */
            // lstAgreementsBillings.add(agrBilling);
+            // fix 2 billings
 			
             agreementsBillings.put(contrato.CodigoAS400__c,lstAgreementsBillings);
 			//AgreementBillingCharges
@@ -1305,10 +1339,12 @@ public class GLB_ClientsToMercedes {
 				lstAgreementsBillingCharges.add(agBCharge);
 				agBChargeTIEE = agBCharge;
 			}
+            // fix 2 billings
             //Se agrega el concepto 32 para interes moratorio
 			if(contrato.PartidaPresupuesto__r.GLB_CobroInteresesMoratorios__c != null && contrato.PartidaPresupuesto__r.GLB_InteresesMoratorios__c == 'Si'){
 				lstAgreementsBillingCharges.add(getConceptoInteresesMoratorio(agBChargeTIEE, contrato));
-			}
+			}// fix 2 billings
+            
            // System.debug('fto antes '+ mapProdConcept.get( contratosConTelevia.get(contrato.NTT_ChildContract__c).PartidaPresupuesto__c));
            // System.debug('mapProdConcept antes '+json.serialize(mapProdConcept));
              /*modificaciones Televia*/
@@ -1581,7 +1617,7 @@ public class GLB_ClientsToMercedes {
 		return daySelected;
 	}
     
-    
+    // fix 2 billings
     public static NTTER_ClientToMercedesWrappBase.Agreement crearAgrement(Contrato2__c contrato,Boolean isSegundoContrato,Map<String,Integer> catalogCobrAn){
 
 			NTTER_ClientToMercedesWrappBase.Agreement aggre =  new NTTER_ClientToMercedesWrappBase.Agreement();
@@ -1595,10 +1631,7 @@ public class GLB_ClientsToMercedes {
 			aggre.collectorId = tipoPago == 2 ? catalogCobrAn.get(analistaCobCode) : 0; //Pospago=>analista de cobranza
         	aggre.approverId = 0;
 			aggre.currencyId = 1;
-        	System.debug('GLB_LineaCreditoAsignada__c test '+contrato.PartidaPresupuesto__r.GLB_LineaCreditoAsignada__c);
-        	System.debug('tipoPago test '+tipoPago);
-        	System.debug('isSegundoContrato test '+isSegundoContrato);
-        
+        	
 			aggre.creditLimit = isSegundoContrato ? 0 : tipoPago == 2 ? contrato.PartidaPresupuesto__r.GLB_LineaCreditoAsignada__c : 0;
 			aggre.agreementNumber = contrato.AsignacionContrato__c;
 			String agreementName = isSegundoContrato ? contratosConTelevia.get(contrato.NTT_ChildContract__c).Name : contrato.Name;
@@ -1608,8 +1641,9 @@ public class GLB_ClientsToMercedes {
 			aggre.endDate =  Date.ValueOf(convertDate(infinityDate, false, false,false));  
         
         return aggre;
-}
+}// fix 2 billings
     
+    // fix 2 billings
     public static NTTER_ClientToMercedesWrappBase.AgreementCondition crearCondition(Contrato2__c contrato,Boolean isSegundoContrato)
 	{
         	Integer packageId =  contrato.Package__c == 'Premium' ? 1 : (contrato.Package__c == 'Premium Plus' ? 2 : 0);
@@ -1627,6 +1661,7 @@ public class GLB_ClientsToMercedes {
         	return aggCondition;
 	}
 
+    // fix 2 billings
     public static NTTER_ClientToMercedesWrappBase.agreementBilling crearBilling(Contrato2__c contrato,Boolean isSegundoContrato)
 {
     		String wayPay = contrato.WayPay__c;
@@ -1660,6 +1695,7 @@ public class GLB_ClientsToMercedes {
                      agBCharge3.price =      agBCharge.price;
                      agBCharge3.discountTypeId =      agBCharge.discountTypeId ;
                      agBCharge3.discountTableCode =      agBCharge.discountTableCode;
+        // fix 2 billings
                      agBCharge3.discount = 0;  // agBCharge.discount ;
                      agBCharge3.discountStartDate =      agBCharge.discountStartDate;
                      agBCharge3.discountEndDate =      agBCharge.discountEndDate;
