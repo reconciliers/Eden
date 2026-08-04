@@ -2236,16 +2236,17 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
           // agregado Estabilizacion
         TratTransacPendientes.clear();
         integer a=0;
+        // renegociacion - Televia 
         if(String.isNotBlank(contrato.GLB_TratTransacPendientes__c)){ 
             TratTransacPendientes.put(contrato.GLB_TratTransacPendientes__c,a);
              a++;
         }
-        
+        // renegociacion - Televia 
         if(String.isNotBlank(contrato.NTT_Facturacion_de_la_comision__c)){ 
             TratTransacPendientes.put(contrato.NTT_Facturacion_de_la_comision__c,a);
 			 a++;
         }
-       
+       // renegociacion - Televia 
         if(String.isNotBlank(contrato.NTT_Facturacion_IVA__c)){   
             TratTransacPendientes.put(contrato.NTT_Facturacion_IVA__c,a);
             a++;
@@ -2408,7 +2409,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
              wrapper.Client.contacts = new List<NTTER_ClientToMercedesWrapper.contacts>();
              wrapper.Client.action_type = 2;
              wrapper.Client.addresses = new List<NTTER_ClientToMercedesWrapper.addresses>();
-             
+             // renegociacion - Televia 
              if(opp.NTT_AltaTelevia__c) {
                	 wrapper.Client.banks[0].action_type=2;
                  wrapper.Client.banks[0].account_name='STP REFERENCIADO';                 
@@ -2426,18 +2427,19 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                  
                  wrapper.Client.billings[0].action_type = 2;
                  wrapper.Client.billings[0].address.action_type = 2;
+                 wrapper.Client.billings[0].business_name = String.isBlank(wrapper.Client.billings[0].business_name) ? wrapper.Client.billings[0].name : wrapper.Client.billings[0].business_name;
                  
                  BillingItem.identifier = getListSnapshop[0].CanonicalSubaccountKey__c+'-TL';
                  BillingItem.bank_ref = BankReturn.identifier;                 
                  BillingItem.contacts = wrapper.Client.billings[0].contacts;
                  BillingItem.address = wrapper.Client.billings[0].address;	
                  BillingItem.action_type = 1;
-                  BillingItem.address.action_type =1;
+                 BillingItem.address.action_type =1;
                  wrapper.Client.billings.add(BillingItem);
              }else{
                  wrapper.Client.banks = new List<NTTER_ClientToMercedesWrapper.Bank>();
                   wrapper.Client.billings = new List<NTTER_ClientToMercedesWrapper.billings>();
-             }
+             }// renegociacion - Televia 
              
              wrapper.Client.corporations = new List<NTTER_ClientToMercedesWrapper.corporations>();
              wrapper.Client.identifier = partsCode[0]+ '-' + partsCode[1];
@@ -2515,22 +2517,35 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                  
                 List< NTTER_ClientToMercedesWrapper.ProductItems> listItemsTL = new List<NTTER_ClientToMercedesWrapper.ProductItems>();
                  
-                NTTER_ClientToMercedesWrapper.ProductItems accItemTL1  = new  NTTER_ClientToMercedesWrapper.ProductItems();
-                accItemTL1.value = 'OK';
-                accItemTL1.action_type = 1;
-                accItemTL1.identifier = 20;
+                NTTER_ClientToMercedesWrapper.ProductItems accItemTL1 = UtilityMercedes.crearAccountsItems('OK',1,20);
+                NTTER_ClientToMercedesWrapper.ProductItems accItemTL2 = UtilityMercedes.crearAccountsItems('OK',1,3001);
                  
-                NTTER_ClientToMercedesWrapper.ProductItems accItemTL2  = new  NTTER_ClientToMercedesWrapper.ProductItems();
-                accItemTL2.value = 'OK';
-                accItemTL2.action_type = 1;
-                accItemTL2.identifier = 3001;
-
                 listItemsTL.add(accItemTL1);
 				listItemsTL.add(accItemTL2);
                  
                 wrapper.Client.accounts[0].products[0].items =listItemsTL;
                 wrapper.Client.accounts[0].products[0].identifier =55;
-                wrapper.Client.accounts[0].products[0].identifier =getListSnapshop[0].CanonicalSubaccountKey__c+'-TL';
+                wrapper.Client.accounts[0].identifier = getListSnapshop[0].CanonicalSubaccountKey__c+'-TL';
+                 
+                 if(Wrapper.Client.accounts.size() >  0){
+                  integer Pos =0;
+                    for( NTTER_ClientToMercedesWrapper.Accounts accItem :  Wrapper.Client.accounts ){
+                         for(NTTER_ClientToMercedesWrapper.ExternalReferences extRef : wrapper.Client.accounts[Pos].external_references){
+                                  extRef.action_type = 2;
+                              }
+                        accItem.action_type =2;
+                        Pos++;
+                    }
+                 NTTER_ClientToMercedesWrapper.ExternalReferences extRef2 = new NTTER_ClientToMercedesWrapper.ExternalReferences();
+                 extRef2.value = getListSnapshop[0].CanonicalSubaccountKey__c+'-TL';
+                 extRef2.identifier = 16;
+                 extRef2.action_type = 1;
+                 wrapper.Client.accounts[0].external_references.add(extRef2);  
+                     
+                 wrapper.Client.accounts[0].users = new List<NTTER_ClientToMercedesWrapper.Users>();  
+                 wrapper.Client.accounts[0].contacts = new List<NTTER_ClientToMercedesWrapper.BillingContacts>(); 
+                 wrapper.Client.accounts[0].address = new List<NTTER_ClientToMercedesWrapper.AccountAddress>();                      
+              } 
                  
              }
              prepareCurrentAgreementForRenegotiation(wrapper, contratoActualId, mercedesConditionRef);
@@ -2598,7 +2613,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                   }
                  recorrer =0;
              }
-             
+             // renegociacion - Televia 
           if(!opp.NTT_AltaTelevia__c){   
              if(listAccounts.isEmpty()){
                  wrapper.Client.accounts = new List<NTTER_ClientToMercedesWrapper.Accounts>();
@@ -2666,19 +2681,20 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
             prepareCurrentAgreementForRenegotiation(wrapper, contratoActualId, mercedesConditionRef);
             normalizeChargeDefaults(wrapper);
             if(LastConfirmedSourceType != 'JsonManual' ){
-                    //jsonFormat = removerCampos(wrapper, isMFG,getListSnapshop[0].contratoFilial__r.Contrato_2__r.TipoPago__c);
-                   // jsonFormat = normalizeRenegotiationAccountsForMercedesUpdate(jsonFormat);
-                	jsonFormat = json.serialize(wrapper);
+                    jsonFormat = removerCampos(wrapper, isMFG,getListSnapshop[0].contratoFilial__r.Contrato_2__r.TipoPago__c);
+                    jsonFormat = normalizeRenegotiationAccountsForMercedesUpdate(jsonFormat);
+                	//jsonFormat = json.serialize(wrapper);
                 
              }
          }
         return jsonFormat;
     }
-    
+    // renegociacion - Televia 
     private static Contrato2__c  getContratoTelevia(){
        Contrato2__c  contratoTL = [SELECT id,PartidaPresupuesto__r.Product2.ProductCode,PartidaPresupuesto__c,TipoPago__c,PartidaPresupuesto__r.GLB_TerminoDePago__c,  PartidaPresupuesto__r.FormaPago__c,NTT_Forma_Pago__c, 
-                                   PartidaPresupuesto__r.OpcionesMetodoPago__c,GLBAr_Countryf__c,GLB_CodAnalistaCobranza__c,GLB_LineaCreditoAsignada__c,CreatedDate,
-                                   PartidaPresupuesto__r.WarrantyType__c,Name,PartidaPresupuesto__r.GLB_FechaFinGarantia__c,PartidaPresupuesto__r.WarrantyValue__c,Package__c,Entidad_Legal__c
+                                   PartidaPresupuesto__r.OpcionesMetodoPago__c,GLBAr_Countryf__c,GLB_CodAnalistaCobranza__c,GLB_LineaCreditoAsignada__c,CreatedDate,ComoFactura__c,NTT_Facturacion_IVA__c, 
+                                   PartidaPresupuesto__r.WarrantyType__c,Name,PartidaPresupuesto__r.GLB_FechaFinGarantia__c,PartidaPresupuesto__r.WarrantyValue__c,Package__c,Entidad_Legal__c,FrecuenciaFacturacion__c,
+                                   GLB_Facturacion_dia_Especifico__c
                                    from Contrato2__c where PartidaPresupuesto__r.Quote.OpportunityId =: opp.Id and PartidaPresupuesto__r.Product2.ProductCode =: productCodeTelevia]; 
       return contratoTL;
     }
@@ -2705,6 +2721,19 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         NTTER_ClientToMercedesWrapper.ConditionsBillings crearBilling = UtilityMercedes.crearBilling(contrato);
         crearBilling.action_type = 1;
         crearBilling.identifier =  snapkey+'-TL';
+        crearBilling.billing_ref =  snapkey+'-TL';
+        
+        if(!wrapper.Client.billings[0].contacts.isEmpty()){
+            for( NTTER_ClientToMercedesWrapper.BillingContacts contactItem : wrapper.Client.billings[0].contacts){
+                contactItem.action_type = 2;
+            }
+        }
+        
+        if(!wrapper.Client.billings[1].contacts.isEmpty()){
+            for( NTTER_ClientToMercedesWrapper.BillingContacts contactItem : wrapper.Client.billings[1].contacts){
+                contactItem.action_type = 1; 
+            }
+        }
         
         wrapper.Client.agreements[1].Conditions[0].billings = new List<NTTER_ClientToMercedesWrapper.ConditionsBillings>{crearBilling};
             
@@ -2712,7 +2741,8 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         List<ProductoConcepto__c> conceptosTL = UtilityMercedes.getConcepto(contrato.PartidaPresupuesto__c);
         if(!conceptosTL.isEmpty()){
             for(ProductoConcepto__c concep : conceptosTL){
-                NTTER_ClientToMercedesWrapper.Charges chargeItem = UtilityMercedes.crearCharges(contrato,concep); 
+                NTTER_ClientToMercedesWrapper.Charges chargeItem = UtilityMercedes.crearCharges(contrato,concep,'55'); 
+                chargeItem.action_type=1;
                 listChargeItem.add(chargeItem);
             }
         }
@@ -2873,6 +2903,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         'business_unit_id',
         'business_name'
     };
+       
     List<String> camposAgreements = new List<String>{
         'approver_id',
         'collector_id',
@@ -2896,6 +2927,8 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         'start_date'
     };
     List<String> camposBillings = new List<String>{};
+    List<String> camposConditionBillings = new List<String>{};
+        
     List<String> camposMFG = new List<String>{
         'address',
         'contacts',
@@ -2941,26 +2974,40 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                   camposConditions.add('stepped_tables');
             }
         }
-    Map<String, Object> data =
-        (Map<String, Object>) JSON.deserializeUntyped(
-            JSON.serialize(wrapper)
-        );
-    Map<String, Object> client =
-        (Map<String, Object>) data.get('client');
-    List<Object> agreements =
-        (List<Object>) client.get('agreements');
+        // renegociacion - Televia 
+         if(opp.NTT_AltaTelevia__c){
+            camposAgreements =  new List<String>();
+            camposBillings.add('fiscal');
+            camposBillings.add('is_default');
+            camposBillings.add('account_ref');
+            camposConditionBillings.add('entities');
+            camposConditions = new List<String>();
+        }
+        
+    Map<String, Object> data =  (Map<String, Object>) JSON.deserializeUntyped( JSON.serialize(wrapper)   );
+    Map<String, Object> client = (Map<String, Object>) data.get('client');
+    List<Object> agreements = (List<Object>) client.get('agreements');
+    List<Object> billingAction = (List<Object>) client.get('billings'); // renegociacion - Televia 
+   
     for(String item : camposClient){
         client.remove(item);
+    } 
+    // renegociacion - Televia 
+    for(Object obj : billingAction){
+            Map<String, Object> billingAct =  (Map<String, Object>) obj;
+            for(String item : camposBillings){
+                billingAct.remove(item);
+            }
     }
+         
     if(agreements != null){
         for(Object obj : agreements){
-            Map<String, Object> agreement =
-                (Map<String, Object>) obj;
+            Map<String, Object> agreement =  (Map<String, Object>) obj;
             for(String item : camposAgreements){
                 agreement.remove(item);
             }
-            List<Object> conditions =
-                (List<Object>) agreement.get('conditions');
+            
+            List<Object> conditions = (List<Object>) agreement.get('conditions');
             if(conditions != null){
                 for(Object condObj : conditions){
                     Map<String, Object> condition =
@@ -2968,13 +3015,12 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                     for(String item : camposConditions){
                         condition.remove(item);
                     }
-                    List<Object> billings =
-                        (List<Object>) condition.get('billings');
+                    List<Object> billings =  (List<Object>) condition.get('billings');
                     if(billings != null){
                         for(Object billObj : billings){
                             Map<String, Object> billing =
                                 (Map<String, Object>) billObj;
-                            for(String item : camposBillings){
+                            for(String item : camposConditionBillings){
                                 billing.remove(item);
                             }
                         }
@@ -2983,7 +3029,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
             }
        }
     }
-       if(MFG || !TratTransacPendientes.isEmpty() || keepSingleAccountIdentifier || Test.isRunningTest()){
+       if( MFG || !TratTransacPendientes.isEmpty() || keepSingleAccountIdentifier || Test.isRunningTest()){
            if((accountCount == 1 && !keepSingleAccountActionType) || Test.isRunningTest()){
                camposMFG.add('credit_limit');
                camposMFG.add('fiscal');
@@ -3003,10 +3049,12 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                    camposMFG.add('is_fiscal_key');
            		}
            }
-       }
-    List<Object> accounts =
-        (List<Object>) client.get('accounts');
-    if(accounts != null){
+       } // renegociacion - Televia 
+    if(opp.NTT_AltaTelevia__c){
+        camposMFG =  new List<String>();
+    }
+    List<Object> accounts =  (List<Object>) client.get('accounts');
+    if(accounts != null && !camposMFG.isEmpty()){ // renegociacion - Televia 
         for(Object accObj : accounts){
             Map<String, Object> account =
                 (Map<String, Object>) accObj;
