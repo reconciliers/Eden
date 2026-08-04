@@ -1,0 +1,321 @@
+public class NTTER_ClientToMercedesWrapper {
+
+    public Class RequestToMercedes{
+        public Client client;
+    }
+    
+	public class Client {
+        public String identifier;
+        public String commercial_name;
+        public String business_name;
+        public Integer partner_id;
+		public Integer country_id;
+		public Integer business_unit_id;
+        public Fiscal fiscal;
+        public Economic economic;
+        public List<ExternalReferences> external_references;
+        public List<Contacts> contacts; 
+        public List<Addresses> addresses;
+        public List<Bank> banks;
+        public List<Billings> billings;
+        public List<Agreements> agreements;
+        public List<Accounts> accounts;
+        public List<Corporations> corporations;
+        // agregado Estabilizacion 
+        public Integer action_type;        
+         // agregado Estabilizacion 
+    }
+
+    public class Contacts {
+        public String identifier;
+        public Integer title_id;
+        public String name;
+        public String last_name;
+        public String email;
+        public String phone;
+        public String mobile_number;
+        public List<Roles> roles;
+    }
+
+    public class Roles {
+        public Integer identifier;
+    }
+
+    public class Addresses { 
+        public String identifier;
+        public String name;
+        public String street;
+        public String street_additional;
+        public String internal_number;
+        public String external_number;
+        public Integer country_id;
+        public PostalCode postal_code;
+        public Zip zip;
+        public Integer type_id;
+        public List<AddressType> types;
+         public Integer action_type;        
+         // renegociacion - Televia  
+    }
+
+    public class PostalCode{
+        public Integer code;
+        public Boolean is_active;
+    }
+
+    public class Zip {
+        public String code;
+        public Boolean is_active;
+        public String reference;
+    }
+
+    public class AddressType{
+        public Integer identifier;
+    }
+
+    public class Billings {
+        public String identifier;
+        public String name;
+        public String bank_ref;
+        public BillingAddress address;
+        public String complement;
+        public List<BillingContacts> contacts;
+         // agregado Estabilizacion 
+        public Integer action_type;
+         // agregado Estabilizacion
+        /* Grupos de facturación */
+        public String account_ref;
+        public FiscalGpo fiscal;
+        public String business_name;
+        public Boolean is_default = true;
+    }
+
+    public class FiscalGpo {
+        public String key_value;
+        public Integer regimen_identifier;
+    }
+
+    public class BillingAddress {
+        public String delivery;
+        public String fiscal;
+         // renegociacion - Televia  
+         public Integer action_type;        
+    }
+
+    public class BillingContacts {
+        public String contact_ref;
+        // renegociacion - Televia  
+         public Integer action_type;
+    }
+
+    public class Agreements {
+        public String identifier;
+        public Integer type_id;
+        public Warranty warranty;
+        public Integer service_plan_id;
+        public Integer collector_id;
+        public Integer approver_id;
+        public Integer currency_id;
+        public Decimal credit_limit;
+        public String number_x; //Revisar
+        public String name;
+        public Date created_date;
+        public Date start_date;
+        public Date end_date;
+        public List<Conditions> conditions;
+        public Integer service_plan_type_identifier;
+        
+         // agregado Estabilizacion 
+        public Integer action_type;
+         // agregado Estabilizacion 
+    }
+
+    public class Warranty {
+        public Integer identifier;
+        public Decimal amount;
+        public Date start_date;
+        public Date end_date;
+    }
+
+    public class Conditions {
+        public String identifier;
+        public Integer plan_type_id;
+        public Integer product_id;
+        public String name;
+        public Date start_date;
+        public Date end_date;
+        public List<ConditionsBillings> billings;
+        public List<SteppedTables> stepped_tables;
+         // agregado Estabilizacion 
+        public Integer action_type;
+         // agregado Estabilizacion 
+    }
+
+    public class ConditionsBillings {
+        public String identifier;
+        public String billing_ref;
+        public Integer payment_method_id;
+        public Integer payment_condition_id;
+        public String name;
+        public List<Charges> charges;
+        public List<BillingEntityGpo> entities;
+         // agregado Estabilizacion 
+        public Integer action_type;
+         // agregado Estabilizacion 
+    }
+
+    public class BillingEntityGpo{
+        public String billing_ref;
+    }
+
+    public class Charges {
+        public Integer identifier;
+        public Frecuency frecuency;
+        public Payment payment;
+        public Boolean is_custom_name;
+        public String custom_name;
+        public Integer price_type_id;
+        public String price_table_code;
+        public Decimal amount;
+        // agregado Estabilizacion 
+        public Integer action_type;
+         // agregado Estabilizacion 
+        public Discount discount;
+        public Boolean is_separated_invoice;
+        public Boolean is_separated_group;
+        public Integer separated_group_id;
+        public Boolean is_printed_group;
+        public Integer printed_group_id;
+        public Boolean is_replicated_billing_group;
+    }
+
+    public class Frecuency {
+        public Integer identifier;
+        public String range;
+        public Integer application_id;
+        public String application_day;
+    }
+
+    public class Payment {
+        public String days;
+        public Decimal deadline_date;
+    }
+
+    public class Discount {
+        public Integer identifier;
+        public String table_code;
+        public Decimal value;
+        public DateTime start_date;
+        public DateTime end_date;
+    }
+
+    public class SteppedTables { }
+
+    public class Accounts {
+                // agregado Estabilizacion 
+        public Integer action_type;
+         // agregado Estabilizacion 
+        public String identifier;
+        public String commercial_name;
+        public String business_name;
+        public Boolean is_fiscal_key;
+        public Fiscal fiscal;
+        public Economic economic;
+        public Integer account_type_id;
+        public Integer segment_type_id;
+        public Integer brand_id;
+        public Integer country_id;
+        public Integer utc_zone_id;
+        public Integer tax_zone_id;
+        public Decimal credit_limit;
+        public Integer latitude;
+        public Integer longitude;
+        public List<ExternalReferences> external_references;
+        public List<CostCenters> cost_centers;
+        public List<DeliverySectors> delivery_sectors;
+        public List<Products> products;
+        public List<Users> users;
+        public List<AccountAddress> address;
+        public List<BillingContacts> contacts; //Mismas propiedades de Billing Contacts
+    }
+
+    public class Fiscal {
+        public FiscalKey key;
+        public Integer regimen_id;
+        public Integer person_id;
+    }
+
+    public class FiscalKey {
+        public Integer identifier;
+        public String value;
+    }
+
+    public class Economic {
+        public Integer sector_id;
+        public Integer activity_id;
+    }
+
+    public class ExternalReferences {
+        
+        // agregado Estabilizacion 
+        public Integer action_type;
+         // agregado Estabilizacion 
+        public Integer identifier;
+        public String value;
+    }
+
+    public class CostCenters { 
+    	public Integer identifier;
+        public String value;
+    }
+
+    public class DeliverySectors {
+        public String identifier;
+        public Integer product_id;
+        public String address_ref;
+        public String name;
+        public List<BillingContacts> contacts; //Mismas propiedades de Billing Contacts
+    }
+
+    public class Products {
+        public Integer identifier; //43
+        public String condition_ref;
+        public List<ProductItems> items;
+        public Integer action_type;
+    }
+
+    public class ProductItems {
+        public Integer identifier;
+        public String value;
+         // agregado Estabilizacion 
+         public Integer action_type;
+    }
+
+    public class Users {
+        public String contact_ref;
+        public Integer product_id;
+        public Integer type_id;
+    }
+
+    public class AccountAddress {
+        public String address_ref;
+    }
+
+    public class Corporations {
+        public String identifier;
+        public String name;
+    }
+
+    public Class Bank {
+        public String identifier;
+		public Integer type_id;
+		public Integer account_type_id;
+		public Integer country_id;
+		public Integer currency_id;
+		public String account_name; 
+		public String account_number;
+		public String other_fiscal_id;
+        public Integer action_type;        
+        // renegociacion - Televia  
+    }
+    
+}
