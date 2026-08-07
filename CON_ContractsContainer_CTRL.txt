@@ -18,9 +18,72 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     private static Opportunity opp;
     private static integer tipoPagoTL;
     private static Contrato2__c contr;
+    private static NTTER_ClientToMercedesWrapper.ConditionsBillings crearBilling;
+    private static NTTER_ClientToMercedesWrapper.Conditions conditionItem;
+    private static NTTER_ClientToMercedesWrapper.Agreements addAgrementTL;   
+        
     
+    @TestVisible private static Boolean snapshotRenegotiationOverride;
+    @TestVisible private static String snapshotRenegotiationPilotKeysOverride;
+
     @TestVisible
-    private static Boolean BLOCK_RENEGOTIATION_WITHOUT_SNAPSHOT = false;
+    private static Boolean isSnapshotRenegotiationEnabled() {
+        if (snapshotRenegotiationOverride != null) {
+            return snapshotRenegotiationOverride;
+        }
+        NTT_MercedesFeatureFlag__mdt config =
+            NTT_MercedesFeatureFlag__mdt.getInstance('RenegociacionSnapshot');
+        return config != null && config.Enabled__c;
+    }
+
+    @TestVisible
+    private static Boolean shouldUseRenegotiationSnapshot(String codigoAS400, String productCode) {
+        return shouldUseRenegotiationSnapshot(codigoAS400, productCode, null);
+    }
+
+    @TestVisible
+    private static Boolean shouldUseRenegotiationSnapshot(
+        String codigoAS400,
+        String productCode,
+        String sourceId
+    ) {
+        NTT_MercedesFeatureFlag__mdt config =
+            NTT_MercedesFeatureFlag__mdt.getInstance('RenegociacionSnapshot');
+        Boolean enabled = snapshotRenegotiationOverride != null
+            ? snapshotRenegotiationOverride
+            : config != null && config.Enabled__c;
+        if (enabled) {
+            return true;
+        }
+        String pilotKeys = snapshotRenegotiationPilotKeysOverride != null
+            ? snapshotRenegotiationPilotKeysOverride
+            : config != null ? config.PilotSnapshotKeys__c : null;
+        if (String.isBlank(pilotKeys) || String.isBlank(productCode)) {
+            return false;
+        }
+        String resolvedCodigoAS400 = String.isNotBlank(codigoAS400)
+            ? codigoAS400.trim()
+            : null;
+        if (String.isBlank(resolvedCodigoAS400) && String.isNotBlank(sourceId)) {
+            List<Contrato2__c> sourceContracts = [
+                SELECT CodigoAS400_Con2_Ori__c, CodigoAS400__c
+                FROM Contrato2__c
+                WHERE Id = :sourceId
+                LIMIT 1
+            ];
+            if (!sourceContracts.isEmpty()) {
+                resolvedCodigoAS400 = String.isNotBlank(sourceContracts[0].CodigoAS400_Con2_Ori__c)
+                    ? sourceContracts[0].CodigoAS400_Con2_Ori__c
+                    : sourceContracts[0].CodigoAS400__c;
+            }
+        }
+        if (String.isBlank(resolvedCodigoAS400)) {
+            return false;
+        }
+        String snapshotKey = resolvedCodigoAS400.trim() + '|' + productCode.trim();
+        return
+            new Set<String>(pilotKeys.split('\\s*[,;\\r\\n]+\\s*')).contains(snapshotKey);
+    }
     @TestVisible
     private static Boolean isMercedesSnapshotProduct(String productCode){
         return productCode == '33' || productCode == '43' || productCode == '60' || productCode == '60-t';
@@ -2253,12 +2316,24 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         }
         
         try{
-            if(isMercedesSnapshotProduct(contr.PartidaPresupuesto__r.Product2.ProductCode)){
+            Boolean useRenegotiationSnapshot = shouldUseRenegotiationSnapshot(
+                contrato.CodigoAS400_Con2_Ori__c,
+                contr.PartidaPresupuesto__r.Product2.ProductCode
+            );
+            for (RenegotiationProduct__c renegotiationProduct : listRenegotiationProduct) {
+                if (!useRenegotiationSnapshot) {
+                    useRenegotiationSnapshot = shouldUseRenegotiationSnapshot(
+                        renegotiationProduct.Name,
+                        contr.PartidaPresupuesto__r.Product2.ProductCode
+                    );
+                }
+            }
+            if(isMercedesSnapshotProduct(contr.PartidaPresupuesto__r.Product2.ProductCode) && useRenegotiationSnapshot){
                 if(!listRenegotiationProduct.isEmpty()) {
-                  contrato.NTT_Nuevo_Json__c =  GenerarJsonRenegociacion(listRenegotiationProduct,contrato,opp.GLB_Cambio_Condiciones_Facturacion__c,opp.GLB_Cambio_Condiciones_Comerciales__c);
+                  contrato.NTT_Nuevo_Json__c =  generarJsonRenegociacionConSnapshot(listRenegotiationProduct,contrato,opp.GLB_Cambio_Condiciones_Facturacion__c,opp.GLB_Cambio_Condiciones_Comerciales__c, true);
                 }else
                 if(!String.isBlank(contrato.CodigoAS400_Con2_Ori__c)){
-                    contrato.NTT_Nuevo_Json__c = GenerarJsonRenegociacionBYCodigo400(contrato.CodigoAS400_Con2_Ori__c,contrato,opp.GLB_Cambio_Condiciones_Facturacion__c,opp.GLB_Cambio_Condiciones_Comerciales__c);
+                    contrato.NTT_Nuevo_Json__c = generarJsonRenegociacionBYCodigo400ConSnapshot(contrato.CodigoAS400_Con2_Ori__c,contrato,opp.GLB_Cambio_Condiciones_Facturacion__c,opp.GLB_Cambio_Condiciones_Comerciales__c, true);
                 }
             }
             // agregado Estabilizacion
@@ -2285,14 +2360,38 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     }
     // agregado Estabilizacion
     public static String GenerarJsonRenegociacionBYCodigo400(String codigo,Contrato2__c contrato, boolean CambioCondicionesFacturacion, boolean CambioCondicionesComerciales){
+        if (!isSnapshotRenegotiationEnabled()) {
+            return null;
+        }
+        return generarJsonRenegociacionBYCodigo400ConSnapshot(
+            codigo,
+            contrato,
+            CambioCondicionesFacturacion,
+            CambioCondicionesComerciales,
+            true
+        );
+    }
+    private static String generarJsonRenegociacionBYCodigo400ConSnapshot(String codigo,Contrato2__c contrato, boolean CambioCondicionesFacturacion, boolean CambioCondicionesComerciales, Boolean requireSnapshot){
         String jsonFormat;
         codigos.add(codigo);
-        jsonFormat = getRecordRenegociacion(codigos,contrato,CambioCondicionesFacturacion,CambioCondicionesComerciales);
+        jsonFormat = getRecordRenegociacion(codigos,contrato,CambioCondicionesFacturacion,CambioCondicionesComerciales,requireSnapshot);
         return   jsonFormat;
     }
     // agregado Estabilizacion
 
     public static String GenerarJsonRenegociacion(List<RenegotiationProduct__c> ContratosRenegociados, Contrato2__c contrato,boolean CambioCondicionesFacturacion, boolean CambioCondicionesComerciales){
+        if (!isSnapshotRenegotiationEnabled()) {
+            return null;
+        }
+        return generarJsonRenegociacionConSnapshot(
+            ContratosRenegociados,
+            contrato,
+            CambioCondicionesFacturacion,
+            CambioCondicionesComerciales,
+            true
+        );
+    }
+    private static String generarJsonRenegociacionConSnapshot(List<RenegotiationProduct__c> ContratosRenegociados, Contrato2__c contrato,boolean CambioCondicionesFacturacion, boolean CambioCondicionesComerciales, Boolean requireSnapshot){
         System.debug('--GenerarJsonRenegociacion ');
         String jsonFormat;
          for(RenegotiationProduct__c item : ContratosRenegociados){
@@ -2300,7 +2399,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
          }
         if(!codigos.isEmpty()){
             System.debug('--GenerarJsonRenegociacion2 ');
-          jsonFormat =  getRecordRenegociacion(codigos,contrato,CambioCondicionesFacturacion,CambioCondicionesComerciales);
+          jsonFormat =  getRecordRenegociacion(codigos,contrato,CambioCondicionesFacturacion,CambioCondicionesComerciales,requireSnapshot);
             System.debug('--GenerarJsonRenegociacion3 ');
         }
         return  jsonFormat;
@@ -2352,12 +2451,24 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     }
   // agregado Estabilizacion
      public static String getRecordRenegociacion(Set<String> codigos , Contrato2__c contrato,boolean CambioCondicionesFacturacion, boolean CambioCondicionesComerciales ){
+        if (!isSnapshotRenegotiationEnabled()) {
+            return null;
+        }
+        return getRecordRenegociacion(
+            codigos,
+            contrato,
+            CambioCondicionesFacturacion,
+            CambioCondicionesComerciales,
+            true
+        );
+     }
+     private static String getRecordRenegociacion(Set<String> codigos , Contrato2__c contrato,boolean CambioCondicionesFacturacion, boolean CambioCondicionesComerciales, Boolean requireSnapshot ){
         System.debug('getRecordRenegociacion'); 
          String jsonFormat;
          boolean nullList=false;
          List<NTT_MercedesSnapshot__c> getListSnapshop  = [SELECT id,LastConfirmedSourceType__c,ProductCode__c,ContratoFilial__r.CreatedDate,contratoFilial__r.Contrato_2__r.TipoPago__c,Contrato2__c, ContratoFilial__r.Contrato_2__r.ComoFactura__c, ContratoFilial__r.Contrato_2__r.FrecuenciaFacturacion__c, ContratoFilial__r.Contrato_2__r.Tipo_de_Facturacion__c, ContratoFilial__r.Contrato_2__r.GLB_Facturacion_dia_Especifico__c, SnapshotKey__c,LastConfirmedPayload__c,CanonicalSubaccountKey__c,SnapshotStatus__c  FROM  NTT_MercedesSnapshot__c where CanonicalSubaccountKey__c IN: codigos ];
          if(getListSnapshop.isEmpty()){
-             if(!BLOCK_RENEGOTIATION_WITHOUT_SNAPSHOT){
+             if(!requireSnapshot){
                  return null;
              }
              String codigoTrace;
@@ -2415,27 +2526,20 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                  wrapper.Client.banks[0].account_name='STP REFERENCIADO';                 
                  wrapper.Client.banks[0].type_id=201;
  
-                 List<NTTER_ClientToMercedesWrapper.Bank>  ListBanks = new List<NTTER_ClientToMercedesWrapper.Bank>();
                  NTTER_ClientToMercedesWrapper.Bank BankReturn = UtilityMercedes.crearBanks(contr);
 				 BankReturn.action_type = 1;    
                  wrapper.Client.banks.add(BankReturn);
                 
-                 List<NTTER_ClientToMercedesWrapper.Billings> listBillings = new List<NTTER_ClientToMercedesWrapper.Billings>();
-                 NTTER_ClientToMercedesWrapper.Billings BillingItem = UtilityMercedes.crearBillingAction(contrato);
-                 BillingItem.action_type = 2;
-                 BillingItem.address.action_type = 2;
-                 
-                 wrapper.Client.billings[0].action_type = 2;
-                 wrapper.Client.billings[0].address.action_type = 2;
-                 wrapper.Client.billings[0].business_name = String.isBlank(wrapper.Client.billings[0].business_name) ? wrapper.Client.billings[0].name : wrapper.Client.billings[0].business_name;
-                 
+                 NTTER_ClientToMercedesWrapper.Billings BillingItem = UtilityMercedes.crearBillingAction(contrato, BankReturn.identifier);
                  BillingItem.identifier = getListSnapshop[0].CanonicalSubaccountKey__c+'-TL';
                  BillingItem.bank_ref = BankReturn.identifier;                 
-                 BillingItem.contacts = wrapper.Client.billings[0].contacts;
-                 BillingItem.address = wrapper.Client.billings[0].address;	
                  BillingItem.action_type = 1;
                  BillingItem.address.action_type =1;
-                 wrapper.Client.billings.add(BillingItem);
+                 if(BillingItem.contacts == null){
+                    BillingItem.contacts =  wrapper.Client.billings[0].contacts;
+                 }
+                 
+                wrapper.Client.billings = new List<NTTER_ClientToMercedesWrapper.Billings>{BillingItem};
              }else{
                  wrapper.Client.banks = new List<NTTER_ClientToMercedesWrapper.Bank>();
                   wrapper.Client.billings = new List<NTTER_ClientToMercedesWrapper.billings>();
@@ -2514,7 +2618,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
              if(opp.NTT_AltaTelevia__c){
                 Contrato2__c contratoTL = getContratoTelevia(); 
                 crearContratoNuevo(contratoTL,wrapper,getListSnapshop[0].CanonicalSubaccountKey__c);  
-                 
+                 wrapper.Client.agreements[0].service_plan_type_identifier  = 0;
                 List< NTTER_ClientToMercedesWrapper.ProductItems> listItemsTL = new List<NTTER_ClientToMercedesWrapper.ProductItems>();
                  
                 NTTER_ClientToMercedesWrapper.ProductItems accItemTL1 = UtilityMercedes.crearAccountsItems('OK',1,20);
@@ -2527,6 +2631,8 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                 wrapper.Client.accounts[0].products[0].identifier =55;
                 wrapper.Client.accounts[0].identifier = getListSnapshop[0].CanonicalSubaccountKey__c+'-TL';
                  
+                wrapper.Client.billings[0].fiscal = wrapper.Client.billings[0].fiscal== null ? UtilityMercedes.crearFiscal(contrato.Entidad_Legal__r.RFC__c,Integer.valueOf(contrato.Entidad_Legal__r.Regimen_Fiscal__c)): wrapper.Client.billings[0].fiscal;
+                  
                  if(Wrapper.Client.accounts.size() >  0){
                   integer Pos =0;
                     for( NTTER_ClientToMercedesWrapper.Accounts accItem :  Wrapper.Client.accounts ){
@@ -2683,8 +2789,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
             if(LastConfirmedSourceType != 'JsonManual' ){
                     jsonFormat = removerCampos(wrapper, isMFG,getListSnapshop[0].contratoFilial__r.Contrato_2__r.TipoPago__c);
                     jsonFormat = normalizeRenegotiationAccountsForMercedesUpdate(jsonFormat);
-                	//jsonFormat = json.serialize(wrapper);
-                
+                	//jsonFormat = json.serialize(wrapper);                
              }
          }
         return jsonFormat;
@@ -2694,7 +2799,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
        Contrato2__c  contratoTL = [SELECT id,PartidaPresupuesto__r.Product2.ProductCode,PartidaPresupuesto__c,TipoPago__c,PartidaPresupuesto__r.GLB_TerminoDePago__c,  PartidaPresupuesto__r.FormaPago__c,NTT_Forma_Pago__c, 
                                    PartidaPresupuesto__r.OpcionesMetodoPago__c,GLBAr_Countryf__c,GLB_CodAnalistaCobranza__c,GLB_LineaCreditoAsignada__c,CreatedDate,ComoFactura__c,NTT_Facturacion_IVA__c, 
                                    PartidaPresupuesto__r.WarrantyType__c,Name,PartidaPresupuesto__r.GLB_FechaFinGarantia__c,PartidaPresupuesto__r.WarrantyValue__c,Package__c,Entidad_Legal__c,FrecuenciaFacturacion__c,
-                                   GLB_Facturacion_dia_Especifico__c
+                                   GLB_Facturacion_dia_Especifico__c,Entidad_Legal__r.RFC__c, Entidad_Legal__r.Regimen_Fiscal__c,AsignacionContrato__c,Tipo_de_Facturacion__c
                                    from Contrato2__c where PartidaPresupuesto__r.Quote.OpportunityId =: opp.Id and PartidaPresupuesto__r.Product2.ProductCode =: productCodeTelevia]; 
       return contratoTL;
     }
@@ -2704,38 +2809,32 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
 			
         tipoPagoTL = contrato.TipoPago__c == 'Prepago' ? 1 : (contrato.TipoPago__c == 'Pospago' ? 2 : 0);
                    
-        NTTER_ClientToMercedesWrapper.Agreements addAgrementTL = UtilityMercedes.crearAgrements(contrato);   
+        addAgrementTL = UtilityMercedes.crearAgreements(contrato);   
         addAgrementTL.action_type = 1;
         addAgrementTL.identifier = snapkey+'-TL';
         
-        wrapper.Client.agreements.add(addAgrementTL);         
+      //  wrapper.Client.agreements.add(addAgrementTL);         
         
-        NTTER_ClientToMercedesWrapper.Conditions conditionItem = UtilityMercedes.crearConditions(contrato);
+        conditionItem = UtilityMercedes.crearConditions(contrato);
         conditionItem.action_type = 1;
         conditionItem.product_id = 55;
         conditionItem.name =  snapkey+'-TL';
         conditionItem.identifier = snapkey+'-TL';
-        
-        wrapper.Client.agreements[1].conditions = new List<NTTER_ClientToMercedesWrapper.Conditions>{conditionItem};   
+        addAgrementTL.conditions =  new List<NTTER_ClientToMercedesWrapper.Conditions>{conditionItem};
+      //  wrapper.Client.agreements[1].conditions = new List<NTTER_ClientToMercedesWrapper.Conditions>{conditionItem};   
 
-        NTTER_ClientToMercedesWrapper.ConditionsBillings crearBilling = UtilityMercedes.crearBilling(contrato);
+        crearBilling = UtilityMercedes.crearBilling(contrato);
         crearBilling.action_type = 1;
         crearBilling.identifier =  snapkey+'-TL';
         crearBilling.billing_ref =  snapkey+'-TL';
-        
-        if(!wrapper.Client.billings[0].contacts.isEmpty()){
+        System.debug('wrapper.Client.billings test '+json.serialize(wrapper.Client));
+        if(wrapper.Client.billings[0].contacts != null){
             for( NTTER_ClientToMercedesWrapper.BillingContacts contactItem : wrapper.Client.billings[0].contacts){
-                contactItem.action_type = 2;
-            }
-        }
-        
-        if(!wrapper.Client.billings[1].contacts.isEmpty()){
-            for( NTTER_ClientToMercedesWrapper.BillingContacts contactItem : wrapper.Client.billings[1].contacts){
                 contactItem.action_type = 1; 
             }
         }
-        
-        wrapper.Client.agreements[1].Conditions[0].billings = new List<NTTER_ClientToMercedesWrapper.ConditionsBillings>{crearBilling};
+        addAgrementTL.conditions[0].billings = new List<NTTER_ClientToMercedesWrapper.ConditionsBillings>{crearBilling};
+      //  wrapper.Client.agreements[1].Conditions[0].billings = new List<NTTER_ClientToMercedesWrapper.ConditionsBillings>{crearBilling};
             
         List<NTTER_ClientToMercedesWrapper.Charges> listChargeItem = new List<NTTER_ClientToMercedesWrapper.Charges>();
         List<ProductoConcepto__c> conceptosTL = UtilityMercedes.getConcepto(contrato.PartidaPresupuesto__c);
@@ -2745,9 +2844,21 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                 chargeItem.action_type=1;
                 listChargeItem.add(chargeItem);
             }
-        }
-        wrapper.Client.agreements[1].Conditions[0].billings[0].Charges = new List<NTTER_ClientToMercedesWrapper.Charges>();
-		wrapper.Client.agreements[1].Conditions[0].billings[0].Charges.addALL(listChargeItem);        
+         
+         NTTER_ClientToMercedesWrapper.Charges chargeTL = UtilityMercedes.AddCargoNoExistentes(listChargeItem[0]);           
+         chargeTL.identifier = 3018;
+         NTTER_ClientToMercedesWrapper.Discount clonDi = getDiscount(listChargeItem[0].discount);
+         clonDi.value =0;
+         clonDi.identifier =0;
+         chargeTL.discount = clonDi;
+         listChargeItem.add(chargeTL);
+            
+         addAgrementTL.conditions[0].billings[0].charges =   listChargeItem;
+            
+        }         
+        
+        //wrapper.Client.agreements[1].Conditions[0].billings[0].Charges = new List<NTTER_ClientToMercedesWrapper.Charges>();
+		//wrapper.Client.agreements[1].Conditions[0].billings[0].Charges.addALL(listChargeItem);        
         System.debug('---Warpper3 TL '+ json.serialize(wrapper.Client));
         System.debug('---listChargeItem TL '+ json.serialize(listChargeItem));
         
@@ -2892,7 +3003,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         //return listAccounts;
     }
       // agregado Estabilizacion
-    public static String removerCampos(NTTER_ClientToMercedesWrapper.RequestToMercedes wrapper, Boolean MFG, String tipoPago){
+    public static String removerCampos(NTTER_ClientToMercedesWrapper.RequestToMercedes wrapper, Boolean MFG, String tipoPago){       
     List<String> camposClient = new List<String>{
         'partner_id',
         'external_references',
@@ -2961,7 +3072,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                   camposClient.add('stepped_tables');
                   camposClient.add('corporations');
                   camposClient.add('contacts');                  
-                  if(!opp.NTT_AltaTelevia__c){
+                  if(!opp.NTT_AltaTelevia__c){                     
                       camposClient.add('billings'); 
                       camposClient.add('banks');
                   }                 
@@ -2976,9 +3087,6 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         }
         // renegociacion - Televia 
          if(opp.NTT_AltaTelevia__c){
-            camposAgreements =  new List<String>();
-            camposBillings.add('fiscal');
-            camposBillings.add('is_default');
             camposBillings.add('account_ref');
             camposConditionBillings.add('entities');
             camposConditions = new List<String>();
@@ -2994,7 +3102,7 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     } 
     // renegociacion - Televia 
     for(Object obj : billingAction){
-            Map<String, Object> billingAct =  (Map<String, Object>) obj;
+            Map<String, Object> billingAct =  (Map<String, Object>) obj;       
             for(String item : camposBillings){
                 billingAct.remove(item);
             }
@@ -3003,18 +3111,20 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     if(agreements != null){
         for(Object obj : agreements){
             Map<String, Object> agreement =  (Map<String, Object>) obj;
+           
             for(String item : camposAgreements){
                 agreement.remove(item);
             }
-            
+
             List<Object> conditions = (List<Object>) agreement.get('conditions');
             if(conditions != null){
                 for(Object condObj : conditions){
-                    Map<String, Object> condition =
-                        (Map<String, Object>) condObj;
+                    Map<String, Object> condition = (Map<String, Object>) condObj;
                     for(String item : camposConditions){
                         condition.remove(item);
                     }
+                    
+                    
                     List<Object> billings =  (List<Object>) condition.get('billings');
                     if(billings != null){
                         for(Object billObj : billings){
@@ -3056,14 +3166,18 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
     List<Object> accounts =  (List<Object>) client.get('accounts');
     if(accounts != null && !camposMFG.isEmpty()){ // renegociacion - Televia 
         for(Object accObj : accounts){
-            Map<String, Object> account =
-                (Map<String, Object>) accObj;
+            Map<String, Object> account = (Map<String, Object>) accObj;
             for(String item : camposMFG){
                     account.remove(item);
             }
         }
     }
-}
+}        // renegociacion - Televia  
+        if(opp.NTT_AltaTelevia__c){
+    		List<Object> agreements2 = (List<Object>) client.get('agreements');
+    		agreements2.add(addAgrementTL);
+            System.debug('date ret '+agreements2);  
+        }   
     return JSON.serialize(data);
 }
       // agregado Estabilizacion
@@ -3369,11 +3483,14 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
         String snapshotRequestBody;
         Boolean useMercedesSnapshot = isMercedesSnapshotProduct(productCode);
         Boolean updateSnapshotValidated = false;
-        Boolean requiresRenegotiationSnapshotPreflight =
+        Boolean isRenegotiationUpdate =
             method == MERCEDES_MOD_CLIENTE &&
-            sourceType == 'Renegociacion' &&
-            useMercedesSnapshot;
-        if (method == MERCEDES_MOD_CLIENTE && sourceType == 'Renegociacion') {
+            sourceType == 'Renegociacion';
+        Boolean requiresRenegotiationSnapshotPreflight =
+            isRenegotiationUpdate &&
+            useMercedesSnapshot &&
+            shouldUseRenegotiationSnapshot(codigoAS400, productCode, sourceId);
+        if (requiresRenegotiationSnapshotPreflight) {
             requestBody = normalizeRenegotiationAccountsForMercedesUpdate(requestBody);
         }
         if (requiresRenegotiationSnapshotPreflight) {
@@ -3389,25 +3506,21 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
                 Boolean missingSnapshot =
                     snapshotEx.getMessage() != null &&
                     snapshotEx.getMessage().contains('No existe snapshot');
-                if(missingSnapshot && !BLOCK_RENEGOTIATION_WITHOUT_SNAPSHOT){
-                    snapshotRequestBody = null;
-                }else{
-                    String reason = NTT_MercedesPayloadTraceService.REASON_PREFLIGHT_FAILED;
-                    if(missingSnapshot){
-                        reason = NTT_MercedesPayloadTraceService.REASON_NO_SNAPSHOT;
-                    }else if(snapshotEx.getMessage() != null && snapshotEx.getMessage().contains('no esta confirmado')){
-                        reason = NTT_MercedesPayloadTraceService.REASON_SNAPSHOT_NOT_CONFIRMED;
-                    }
-                    NTT_MercedesPayloadTraceService.recordBlockedRenegotiation(
-                        reason, sourceType,  sourceId,  codigoAS400,  productCode, contrato2Id, requestBody, snapshotEx
-                    );
-                    return new Map<String, Object>{
-                        'success' => false,
-                        'Error' => 'No se envio a Mercedes porque no fue posible validar el snapshot Mercedes: ' + snapshotEx.getMessage(),
-                        'statusCode' => 0,
-                        'responseBody' => ''
-                    };
+                String reason = NTT_MercedesPayloadTraceService.REASON_PREFLIGHT_FAILED;
+                if(missingSnapshot){
+                    reason = NTT_MercedesPayloadTraceService.REASON_NO_SNAPSHOT;
+                }else if(snapshotEx.getMessage() != null && snapshotEx.getMessage().contains('no esta confirmado')){
+                    reason = NTT_MercedesPayloadTraceService.REASON_SNAPSHOT_NOT_CONFIRMED;
                 }
+                NTT_MercedesPayloadTraceService.recordBlockedRenegotiation(
+                    reason, sourceType,  sourceId,  codigoAS400,  productCode, contrato2Id, requestBody, snapshotEx
+                );
+                return new Map<String, Object>{
+                    'success' => false,
+                    'Error' => 'No se envio a Mercedes porque no fue posible validar el snapshot Mercedes: ' + snapshotEx.getMessage(),
+                    'statusCode' => 0,
+                    'responseBody' => ''
+                };
             }
         }
         Map<String, Object> result = sendClientToMercedes(requestBody, method);
@@ -3434,7 +3547,8 @@ public without sharing class CON_ContractsContainer_CTRL extends CON_OppDocCheck
             result != null &&
             Boolean.valueOf(result.get('success')) &&
             contrato2Id != null &&
-            useMercedesSnapshot
+            useMercedesSnapshot &&
+            (!isRenegotiationUpdate || requiresRenegotiationSnapshotPreflight)
         ) {
             if (snapshotRequestBody == null) {
                 try {
