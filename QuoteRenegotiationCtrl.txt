@@ -17,8 +17,8 @@ public class QuoteRenegotiationCtrl {
         if(oppId == null) throw new AuraHandledException('No se ha recibido Id de la oportunidad');
         InitData initData = new InitData();
         List<QuoteLineItem> listQuoteLine = new List<QuoteLineItem>();
-        Opportunity opportunity = [
-			SELECT Id, Name, Entidad_Cuenta__c, GLB_Cambio_Condiciones_Comerciales__c, GLB_Cambio_Condiciones_Facturacion__c,
+        Opportunity opportunity = [ // renegociacion - Televia  
+			SELECT Id, Name, Entidad_Cuenta__c, GLB_Cambio_Condiciones_Comerciales__c,NTT_AltaTelevia__c, GLB_Cambio_Condiciones_Facturacion__c,
 				StageName, Contrato2__c, Product__c, Product__r.ProductCode,Codigo_Producto_cotizacion__c,SyncedQuoteId,QuotesInApprovalProcess__c,
 				GLB_Contratos_Renegociacion__c, Account.Type, RenegotiationType__c, Account.Status__c, MX_Alta_del_programa_MFG__c,RecordType.DeveloperName
 			FROM Opportunity
@@ -96,12 +96,12 @@ public class QuoteRenegotiationCtrl {
     public static Opportunity getDataOpportunity(String oppId) {
         Opportunity opportunity = [
             // renegociacion - Televia
-			SELECT Id, AccountId,NTT_ContratoRenegociar__c,NTT_AltaTelevia__c, Product__c, BypassRenegotiation__c,RecordType.DeveloperName
+			SELECT Id, AccountId,NTT_AltaTelevia__c, Product__c, BypassRenegotiation__c,RecordType.DeveloperName
 			FROM Opportunity
 			WHERE Id =: oppId
 		] ;
         // renegociacion - Televia
-        if(opportunity.NTT_AltaTelevia__c || String.isBlank(opportunity.NTT_ContratoRenegociar__c)){
+        if(opportunity.NTT_AltaTelevia__c){
             IsRenegociacionTelevia = true;
         }
         
@@ -189,7 +189,7 @@ public class QuoteRenegotiationCtrl {
 			} else {
                 System.debug('IsRenegociacionTelevia te '+IsRenegociacionTelevia);
                 // renegociacion - Televia
-                if(IsRenegociacionTelevia && !String.isBlank(opps[0].NTT_ContratoRenegociar__c)){
+                if(IsRenegociacionTelevia ){
                     listEntidadCuenta = [
                         SELECT Id, Cuenta__c, EntidadLegal__r.Name, EntidadLegal__r.RazonSocial__c,
                             (
@@ -201,7 +201,7 @@ public class QuoteRenegotiationCtrl {
                                 AND Entidad_Cuenta__r.Name != null
                                 AND isActive__c = true
                                 AND	Producto__c =: opps[0].Product__c
-                                and Contrato_2__r.id =: opps[0].NTT_ContratoRenegociar__c
+                                and Contrato_2__r.GLB_Enviado_Mercedes__c  = true
                                 ORDER BY Entidad_Cuenta__r.EntidadLegal__r.Name ASC
                             )
                         FROM EntidadCuenta__c
