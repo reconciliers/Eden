@@ -2349,7 +2349,7 @@
                     if( ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation' && instance.TipoCargo__c == 'Comisión por Servicio Telepeaje'){ 
 
                     if(render && ctcUtils.app.hasSnap == undefined ){
-                      var respuesta =  confirm('¿Deseas continuar con la activación de Televía?  \n\n Tu forma de pago: '+ctcUtils.app.formaPagoSnap +' cambiará a : STP REERENCIADO');
+                      var respuesta =  confirm('¿Deseas continuar con la activación de Televía?  \n\n Tu forma de pago: '+ctcUtils.app.formaPagoSnap +' cambiará a : STP REFERENCIADO');
                       console.log('respuesta test '+respuesta); 
                       console.log('ctcUtils.app.formaPagoSnap test '+ctcUtils.app.formaPagoSnap);
                       console.log('ctcUtils.app.hasSnap test '+ctcUtils.app.hasSnap);                                                                                                                 

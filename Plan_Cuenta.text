@@ -58,6 +58,33 @@
         <title>Bienvenido .:Plan de cuenta:.</title>
     </head>
     <body>
+
+   <div id="miModal" class="modal">
+ 
+    <div class="modal-contenido">
+ 
+        <div class="modal-header">
+            ⚠️ Advertencia
+        </div>
+ 
+        <div class="modal-body">
+            <strong><p id="mensajeModal"></p></strong>
+ 
+            <button type="button" onclick="seleccionarRespuesta('SI')">
+               
+                <strong><p id="mensajeConfirmacion"></p></strong>
+            </button>
+ 
+            <button id="btonNegativo" type="button" onclick="seleccionarRespuesta('NO')">
+                No 
+            </button>
+        </div>
+ 
+    </div>
+ 
+</div>
+ 
+        
         <script type="text/javascript">
 
         (function() {
@@ -301,7 +328,7 @@
 				vm.renderTelepeaje=false; //Ticket: 14363661 booleano para telepeaje
                 // renegociacion - Televia    
                 console.log('vm.hasSnap: ' + JSON.stringify(vm.hasSnap));
-                  
+                vm.mensajeModal=''; 
                 vm.contracts = vm.scontracts ? JSON.parse(vm.scontracts) : '';//CEAM: 3563
                 console.log('vm.contracts: ' + JSON.stringify(vm.contracts));
                 ctcUtils.contractsR = vm.contracts;
@@ -1079,13 +1106,23 @@
                                               ctcUtils.app.hasSnap = snaps;
                                      		 } 
                                          }
-                                    }     
-                                     // renegociacion - Televia 
-                                    if(ctcUtils.app.opportunity.NTT_AltaTelevia__c && ctcUtils.app.hasSnap != undefined && ctcUtils.isnewQuote){
-                                      alert('Ya tiene activo Telepeaje');
-                   					  window.history.back();
-                                    }
+                                    }    
                                     
+                                     // renegociacion - Televia 
+                                    if((ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ) && ctcUtils.app.hasSnap != undefined && ctcUtils.isnewQuote){
+                                        //alert('Ya tiene activo Telepeaje');
+                                        //window.history.back();                                        
+                                               var mensaje = 'test';
+                                               var aceptarMjs = 'Aceptar';
+                                               var botonNo = document.getElementById('btonNegativo');
+                                         
+                                                document.getElementById('mensajeModal').innerHTML = mensaje;
+                                                document.getElementById('mensajeConfirmacion').innerHTML = aceptarMjs;                                         
+                                                botonNo.style.display = 'none';
+                                                document.getElementById('miModal').style.display = 'block';
+                                        		ctcUtils.app.mensajeModal = 'ya tiene';
+                                    }
+                                  
                                 }
                                 //res = ctcUtils.EliminarDuplicados(res,it => it.TipoCargo__c);//Dan
                                 res = ctcUtils.eliminarSegundosValores(res,'Comisión por el servicio');
@@ -1098,6 +1135,8 @@
                                             concepto.Producto__r = res[index-1].Producto__r;
                                         concepto.Producto__c = concepto.Producto__r.Id;
                                     }
+                                    
+                                    
                                     //END Added By Fran Rojas | HU Firma Electronica
                                     console.log('NVH -- concepto before 714: ', concepto);
                                     if( concepto.Producto__c || concepto.Carrier__c == true ) {
@@ -1126,14 +1165,16 @@
                                             }
                                             // if( !tipoCargoConcepto.hasOwnProperty(concepto.TipoCargo__c) ) {
                                              // renegociacion - Televia  
-                                            if (ctcUtils.app.opportunity.NTT_AltaTelevia__c && ctcUtils.isnewQuote) {
-                                               if(concepto.TipoCargo__c  == 'Comisión por Servicio Telepeaje'|| concepto.TipoCargo__c  == 'TAG Dual' || concepto.TipoCargo__c  == 'Cuota por Renta Mensual Tag Dual'){
-                                                 conceptosProducto[concepto.Producto__c].push(concepto)
+                                            console.log('app.opportunity.NTT_AltaTelevia__c '+ctcUtils.app.opportunity.NTT_AltaTelevia__c); 
+                                             if ( (ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ) && ctcUtils.isnewQuote && ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation') {
+                                                console.log('app.opportunity.NTT_AltaTelevia__c dentro ');
+                                                 if(concepto.TipoCargo__c  == 'Comisión por Servicio Telepeaje'|| concepto.TipoCargo__c  == 'TAG Dual' || concepto.TipoCargo__c  == 'Cuota por Renta Mensual Tag Dual'){
+                                                   conceptosProducto[concepto.Producto__c].push(concepto)
                                                }                                                   
                                         	}else{
                                                  conceptosProducto[concepto.Producto__c].push(concepto)
                                             }
-                                           
+                                            //conceptosProducto[concepto.Producto__c].push(concepto)
                                             // tipoCargoConcepto[concepto.TipoCargo__c] = true
                                             // }
                                             if(ctcUtils.app.ApprovalConceProduct.includes(concepto.Producto__r.ProductCode+'-'+concepto.TipoCargo__c)) concepto.ApprovalConceProduct = true; //REQ: 4600
@@ -1184,6 +1225,15 @@
                             * @param productCode Producto a buscar su matriz
                             * @returns void
                         */
+                            
+                        window.seleccionarRespuesta =  function seleccionarRespuesta(respuesta) {
+                                if(ctcUtils.app.mensajeModal == 'ya tiene' && respuesta == 'SI'){
+                               	 window.history.back();  
+                                }
+                                console.log('test '+respuesta);
+                                         
+                        }
+                            
                         ctcUtils.getApprovalMatrix = function(productCode){
                             console.log('GET APPROVAL MATRIX');
                             //Enviamos el código del producto de la opp y la función del owner de la oportunidad para buscar las respectivas matrices
@@ -1309,7 +1359,16 @@
                                     let ownerRole = ctcUtils.ownerRoleToSearch != ''?ctcUtils.ownerRoleToSearch:ctcUtils.app.opportunity.Owner.Role__c.split(' ').join('_');
                                     //ESTA NO let ownerRole = ctcUtils.app.opportunity.Owner.Role__c.split(' ').join('_');
                                     //const APPROVAL_MATRIX_NAME = fieldType+'_'+ownerRole+'_'+ctcUtils.app.ProductCode;
+                                    const APPROVAL_MATRIX_NAMES = fieldType+'_'+ownerRole+'_GE';
+
+                                    if(Object.keys(APPROVAL_MATRIX_NAMES).length > 22 ){
+                                        ownerRole = ownerRole.replaceAll('_', '');
+                                        ownerRole = ownerRole.replaceAll('Combustible', 'Com');
+                                       
+                                    }
+
                                     const APPROVAL_MATRIX_NAME = fieldType+'_'+ownerRole+'_GE';
+                                
                                     //const APPROVAL_MATRIX_NAME = fieldType+'_Move_GE';
                                     const APPROVAL_MATRIX = APPROVALS_MATRIX.find(e => e.DeveloperName === APPROVAL_MATRIX_NAME);
                                     if(Object.keys(APPROVAL_MATRIX).length > 0){
@@ -1380,6 +1439,7 @@
                         */
                         ctcUtils.getTrafficLightStyle = function(approvalLevel){
                             console.log('ELE');
+                            debugger;
                             let trafficLightClass = 'fa fa-circle ';
                             let approvalNumber = Number(approvalLevel);
                             switch (approvalNumber){
@@ -1689,11 +1749,16 @@
                                             conceptosUnicos.push(ctcUtils.app.approvalEFirma);
                                         //END Added By Fran Rojas | HU Firma Electronica
                                         //Inicio Licitación clientes
-                                        } else if(concepto.TipoCargo__c == 'Bonificacion de consumo' && producto.conceptos[0].Producto__r.Name == vm.productLicitacion.clients.name){
-                                            ctcUtils.app.conceptoBonificacion = concepto;
-                                            conceptosUnicos.push(concepto)
+                                        } else if(concepto.TipoCargo__c == 'Bonificación de consumo' && producto.conceptos[0].Producto__r.Name == vm.productLicitacion.clients.name){
+                                            ctcUtils.app.conceptoBonificacion = concepto; 
+                                            conceptosUnicos.push(concepto);                                            
+                                        }
+                                        else if(concepto.TipoCargo__c == 'Cobro por refacturacion' && producto.conceptos[0].Producto__r.Name == vm.productLicitacion.clients.name){
+                                            ctcUtils.app.cobroRefacturacion = concepto;
+                                            conceptosUnicos.push(concepto);
                                             //Fin Licitación clientes
-                                        }else {
+                                        }
+                                        else {
                                             conceptosUnicos.push(concepto)
                                             if (concepto.TipoCargo__c == 'Cobro por gestion de vehiculos') {
                                                 ctcUtils.app.conceptoAprobacionMant = concepto;
@@ -1928,15 +1993,11 @@
                             var todosConceptos = obligatorios.concat(opcionales)
                             todosConceptos = $filter('orderBy')(todosConceptos, 'Orden__c')
                             var ordenados = [];
-                            console.log('NVH-todosConceptos: ', todosConceptos);
 
                             angular.forEach( todosConceptos, function( concepto, index ) {
                                 console.log('[concepto.TipoCargo__c]: ' + concepto.TipoCargo__c);
-                                /* if( 'Comisión por el servicio' == concepto.TipoCargo__c ) {
-                                    ordenados.unshift(concepto);
-                                    console.log('NVH-ordenados in comision: ', ordenados);
-                           
-                                } else */if(concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje') {
+                                
+                                if(concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje') {
                                     ordenados.splice(1, 0, concepto);
                                 } else if(concepto.TipoCargo__c == 'TAG Telepeaje') {
                                     ordenados.splice(2, 0, concepto);
@@ -1948,27 +2009,16 @@
                                     ordenados.splice(index -1, 0, concepto);
                                 }
                                 // Televia fin
-                                 else {
-                                     // renegociacion - Televia  
-                                     /* console.log('NVH-opp: ', ctcUtils.app.opportunity.NTT_AltaTelevia__c);
-                                     if(ctcUtils.app.opportunity.NTT_AltaTelevia__c )                                        
-                                     {
-                                        if(concepto.TipoCargo__c == 'Cuota por Renta Mensual Tag Dual' || concepto.TipoCargo__c == 'Tag Dual' || concepto.TipoCargo__c == 'TAG Dual'  ||   concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje')
-                                        {                                            
-                                        ordenados.push(concepto)
-                                        }
-                                    }else{
-                                         if( 'Comisión por el servicio' == concepto.TipoCargo__c ) {
-                                            ordenados.unshift(concepto);
-                                            console.log('NVH-ordenados in comision: ', ordenados);                                
-                                         }
-                                         ordenados.push(concepto)
-                                    }   */
-                                      ordenados.push(concepto)
-                                                                             
+                                 else {                                     
+                                      ordenados.push(concepto)                                     
                                 } // renegociacion - Televia
+                                // renegociacion - Televia
+                                if((ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ) && ctcUtils.isnewQuote && concepto.TipoCargo__c === 'Comisión por Servicio Telepeaje' && ctcUtils.app.opportunity.RecordType === 'RT_Renegotiation'){
+                               		concepto.Render = true;
+                           		 }// renegociacion - Televia
                             })
-                           
+                            console.log('NVH-todosConceptos: ', todosConceptos);
+
                              
 
                             producto.conceptosUnicos = ordenados
@@ -2484,11 +2534,13 @@
                             console.log('NVH-conceptosUnicos package', package);
                             console.log('NVH-conceptosUnicos tipoPago', tipoPago);
                             console.log('NVH-conceptosUnicos tipoPago', JSON.stringify(tipoPago));
+                                                        console.log('NVH-conceptosUnicos productCode',ctcUtils.app.ProductCode);
                             let generalConcepts = [
                                 'Implementación', 'Tarjetas Virtuales',
                                 'Comisión por el servicio', 'Cuenta Activa',
-                                'Comisión portal por pago','Cargo por refacturacion'
+                                'Comisión portal por pago', ctcUtils.app.ProductCode == '35' ? 'Cobro por refacturacion' : 'Cargo por refacturacion' //'Cargo por refacturacion'
                             ];
+      console.log('generalConcepts',JSON.stringify(generalConcepts));
 
                             // SR - Bonificacion de consumo
                             //descomentar despues de pase a PLD
@@ -3110,7 +3162,7 @@
                                         instance.PrecioFinal__c__approvalLevel = 4;
                                         ctcUtils.app.conceptoBonificacion = instance;
                                         //Fin Licitación clientes
-                                    } else {
+                                    }else {
                                         instance.PrecioFinal__c__approvalLevel = 0;
                                     }
                                 }
@@ -4688,6 +4740,55 @@
             .error-message strong {
                 font-weight: bold;
             }
+            
+            
+          .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        } 
+         .modal-contenido {
+            background-color: white;
+            width: 700px; 
+            padding: 0;
+            margin: 10% auto;
+            border-radius: 10px;
+            text-align: center;
+            overflow: hidden;
+        }
+         
+        .modal-header {
+            background-color: #fff3cd; 
+            color: #856404;
+            padding: 20px;
+            font-size: 24px;  
+            border-bottom: 1px solid #ffeeba;
+        }
+         
+        .modal-body {
+            padding: 40px;
+            font-weight:normal; 
+        }
+         
+        .modal-body p {
+            font-size: 20px;
+        } 
+            
+        .modal-body button {
+            margin-top: 30px;
+            margin-left: 10px;
+            margin-right: 10px;
+            padding: 12px 35px;
+            font-size: 14px;
+            min-width: 120px;
+            cursor: pointer;
+    	}
+            
         </style>
     </body>
 </apex:page>

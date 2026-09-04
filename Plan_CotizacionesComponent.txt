@@ -10,7 +10,7 @@
 
 
     <div ng-controller="cotizacionCtrl as cot" id="cotizacionCtrl" ng-init="cot.leerParams(sc.opportunity, sc.idCot)">
-        <!-- Performance calvarez -->
+        <!-- Performance calvarez -->                 					
         <uib-tabset active="cot.selectedTab" mng-if="sc.opportunity.Performance">
             <uib-tab ng-repeat="cotizacion in cot.quotes track by $index" select="cot.seleccionaCotizacion(cotizacion)">
                 <uib-tab-heading>
@@ -28,6 +28,7 @@
                             <span ng-if = "cotizacion.ApprovalStatus__c == 'Ajuste'"><br/>Tu cotización requiere una ajuste en las Condiciones operativas.</span>
                             <span ng-if = "cotizacion.ApprovalStatus__c == 'Recuperada'"><br/>Tu cotización se encuentra recuperada y requiere aprobación, consulte el historial de aprobación.</span>
                         </div>
+                        
                         <div class="row" description="Datos de la Cotización - Quote" ng-if="sc.opportunity.RecordType == 'RT_Renegotiation'"><!--CEAM: 3563 -->
                             <div class="col-sm-3">
                                 <ctc-form-group 
@@ -39,7 +40,12 @@
                                     ctc-params="{segmento: sc.user.Segmento__c,perfil: sc.user.profile}"
                                     ctc-on-change="cot.getProductsByFamily"></ctc-form-group>
                             </div>
-                            <div class="col-sm-9 text-right">
+                            <!--  // renegociacion - Televia  -->
+                            <div class="col-sm-12 text-right">   
+                                <a ng-if="sc.opportunity.RecordType == 'RT_Renegotiation' && cot.selectTelepeaje" class="btnb btnb-danger" ng-click="cot.visualizarPDF(cotizacion, sc.opportunity.Owner)" uib-tooltip="Ver PDF">
+                                        <span class="fa fa-file-pdf-o"></span>
+                                    </a>
+                            <!--  // renegociacion - Televia  -->
                                 <div class="btnb-group">
                                     <a ng-if="cotizacion.Id && cotizacion.productos.length > 0 && (cotizacion.ApprovalStatus__c == 'Aprobada' || !cotizacion.ApprovalStatus__c) && false" class="btnb btnb-danger" ng-click="cot.visualizarPDF(cotizacion, sc.opportunity.Owner)" uib-tooltip="Ver Convenio modificatorio">
                                         <span class="fa fa-file-pdf-o"></span>
@@ -50,6 +56,7 @@
                                     </a>
                                 </div>
                             </div>
+                          
                         </div><!--CEAM: 3563 -->
                         <div class="row" description="Datos de la Cotización - Quote" ng-if="sc.opportunity.RecordType != 'RT_Renegotiation'"><!--CEAM: 3563 >>>-->
                             
@@ -195,12 +202,12 @@
             CotizacionCtrl.$inject = ['ctcUtils', '$timeout', '$uibModal', '$scope', '$q', '$filter']
             function CotizacionCtrl( ctcUtils, $timeout, $uibModal, $scope, $q, $filter ) {
                 var vm = this
-                
+             
                 vm.quotes = ctcUtils.app.cots || []
                 console.log('@@ Quote 2 @@ ',vm.quotes)
 
                 vm.selectedTab = ctcUtils.app.selectedTab
-
+					
                 vm.isTrue = function(value) {
                     return value === true || value === 'true';
                 }
@@ -233,6 +240,7 @@
                 vm.classAction = 'alert-danger'
                 vm.conceptoAprobacion = ctcUtils.app.conceptoAprobacion;
                 
+                vm.Select
                 //Inicio Flujo de Aprobaciones
                 vm.doesFollowOldApprovalLogic = false;
                 //Fin Flujo de Aprobaciones
@@ -245,7 +253,7 @@
                 //Fin Licitación clientes
 
                 vm.leerParams = function(opportunity, idCot) {
-                    
+
                     vm.cotizaciones = opportunity.cots || []
                     var hasIdCot = typeof idCot != 'undefined' && idCot.length > 0
                     angular.forEach(vm.cotizaciones, function(v, k) {
@@ -275,7 +283,9 @@
                         console.log('>>>ENTRA MAQUILADOR');
                         //vm.Opp.disabled.Maquilador__c = true;
                     }
-                    debugger;*/
+                    */
+                    console.log('tcUtils.app.selectTelepeaje '+JSON.stringify( ctcUtils.selectTelepeaje));
+                   
                 }
             
                 vm.activateSaveButton = function() {
@@ -524,7 +534,7 @@
                                     })
                                 }
                             })
-                            //console.log("VERRRTYC::"+JSON.stringify(codigosTYC));
+                            console.log("VERRRTYC::"+JSON.stringify(codigosTYC));
                             if( Object.keys(codigosTYC).length > 0 ) {
                                 var idsTYC = '';
                                 angular.forEach( Object.keys(codigosTYC), function( id, index ) {
@@ -534,6 +544,7 @@
 
                                      idsTYC += '\'' + codigosTYC[id] + '\'';
                                 });
+                                console.log('idsTYC test '+idsTYC);
                                 return ctcUtils.query('SELECT Id, Name, CodigosTYC__c, Contenido_del__c, AnexoA__c FROM PlantillaContrato__c WHERE Id IN(' + idsTYC + ')')
                             }
                         })
@@ -966,6 +977,8 @@
                 //Inicio Licitación clientes
                 //Valida que soluciones/productos mostrar en la lista nombre producto y cuales no dependiendo de los criterios establecidos por negocio
                 vm.filterSolutions = function(solutions){
+                    console.log('ctcUtils.app.opportunity.Sector_Cuenta__c ' + ctcUtils.app.opportunity.Sector_Cuenta__c);
+                    console.log('ctcUtils.app.opportunity.Account.SegmentoComercial ' + ctcUtils.app.opportunity.Account.SegmentoComercial);
                     if(solutions == undefined || solutions == [] || solutions == null){
                         return null;
                     }
@@ -1455,6 +1468,12 @@
                                 if(ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation' && !ctcUtils.isFleetRenogotation) {
                                     ctcUtils.renderRenegotiation(todosConceptos, cotizacion);
                                 }
+                                 // renegociacion - Televia 
+                                if(ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation' ) {
+                                    ctcUtils.renderRenegotiation2(todosConceptos);
+                                }
+                                
+                                
                                 if(producto.Package__c) {
 
                                     ctcUtils.PackageRenegotiation = producto.Package__c;
@@ -1544,11 +1563,21 @@
                     }
                 }
 
+                 // renegociacion - Televia 
+                ctcUtils.renderRenegotiation2 = function(conceptosUnicos) {//CEAM: 3563
+                        angular.forEach(conceptosUnicos, function(cu) {
+                            console.log('ce te '+JSON.stringify(cu));
+                                if(cu.TipoCargo__c == 'Comisión por Servicio Telepeaje'){
+                                    vm.selectTelepeaje = cu.Render;
+                                }                            
+                      	  })
+                }
 
                 ctcUtils.renderRenegotiation = function(conceptosUnicos, cotizacion) {//CEAM: 3563
                     
                     console.debug('[ctcUtils.renderRenegotiation][cotización]:', cotizacion);
                     console.debug('[ctcUtils.renderRenegotiation][conceptosUnicos]:', conceptosUnicos);
+                    console.log('Se ha colocado el render en false');
                     if(!cotizacion.Id && ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation') {
                         //ctcUtils.isFleetRenogotation = vm.producto.Product2Id__o.ProductCode === '33' || vm.producto.Producto__r.ProductCode === '33';
 
@@ -2163,7 +2192,7 @@
                         console.log('CodeProduc: ', CodeProduc);
                         console.log('cotizacion: ', cotizacion);
                         console.log('tiposCargo.includes: ', tiposCargo.includes('Comisión por Servicio Telepeaje'));
-                        console.log('ctcUtils.app.opportunity.RecordType: ', ctcUtils.app.opportunity.RecordType);
+                        console.log('ctcUtils.app.opportunity: ', ctcUtils.app.opportunity);
                         console.log('cctcUtils.app.modalidadPago: ',ctcUtils.app.modalidadPago);
                         
                         //add Televia
@@ -2174,12 +2203,18 @@
                         }*/
                        // renegociacion - Televia     
                        if(ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation'  && CodeProduc == '33' &&  tiposCargo.includes('Comisión por Servicio Telepeaje')){
+                             ctcUtils.app.comisionTelevia  = true;
                             if(!tiposCargo.includes('Cuota por Renta Mensual Tag Dual') || !tiposCargo.includes('TAG Dual') ) {
                                 ctcUtils.showError('Para activar Televía son necesario los conceptos Cuota por Renta Mensual Tag Dual y Tag Dual');
                         	    return false;
-                            }                           
+                            }
+                           console.log('GLB_Cambio_Condiciones_Comerciales__c '+ctcUtils.app.opportunity.GLB_Cambio_Condiciones_Facturacion__c);
+                           if( ctcUtils.app.opportunity.GLB_Cambio_Condiciones_Facturacion__c === true){
+                            	ctcUtils.showError('No se pueden hacer cambios de Condiciones de Facturacion al seleccionar Telepeaje');
+                        	    return false;
+                            }
                         }
-
+                        	
                         /* if(ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation'  && CodeProduc == '33' &&  tiposCargo.includes('Comisión por Servicio Telepeaje')){
                             console.log('NTT_AltaTelevia__c Cot '+ctcUtils.app.opportunity.NTT_AltaTelevia__c);
                             if(!ctcUtils.app.opportunity.NTT_AltaTelevia__c || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'false') {
@@ -2439,26 +2474,35 @@
                             TransactionsEstimatedNumber__c : cotizacion.TransactionsEstimatedNumber__c,
                             OperationsInDollars__c : cotizacion.OperationsInDollars__c,
                             //SIGLO 3219-->
-
+                            // renegociacion - Televia
+                            NTT_IsTelepeaje__c : ctcUtils.app.comisionTelevia ? true : false,
                             //CONTINGENCIA
                             NoContingencyDispersion__c : cotizacion.NoContingencyDispersion__c,
                             AmountContingency__c : cotizacion.AmountContingency__c,
-
+							CanonicalSubaccountKey__c :   cotizacion?.contracts?.[0]?.Contract,
                             //NVH -- Tarjeta Fisica
                             GLB_designCardType__c: cotizacion.GLB_designCardType__c,
                             GLB_IdDesign__c: cotizacion.GLB_IdDesign__c
 
                         }
+                        //aprobacion.IsApprovalLevelCredit = false;
                         //Inicio Flujo de Aprobaciones
                         //Validamos si se contemplará el nivel de jurídico
                         //Inicio Licitación clientes
                         if(Object.keys(ctcUtils.approvalMatrixFlows).includes(ctcUtils.app.ProductCode) && cotizacion.productos[0].PaymentMethod__c == 'Pospago' && ctcUtils.isStringNotEmpty(ctcUtils.app.approvalFlowName)){
                             //Fin Licitación clientes
                             payloadQuote.NTT_Nombre_Flujo_de_Aprobacion__c = ctcUtils.app.approvalFlowName;
-                            if(aprobacion != null){
+                            if(aprobacion != null){                                
                                 aprobacion.IsApprovalLevelCredit = true;
                             }
+                            //Inicio ajuste bug - Flujo de Aprobaciones
+                        }else if(cotizacion.productos[0].PaymentMethod__c == 'Prepago' && aprobacion != null){
+                            if(aprobacion != null){
+                                aprobacion.IsApprovalLevelCredit = false;
+                             	aprobacion.approvalCredito = null;
+                            }                             
                         }
+                        //Fin ajuste bug - Flujo de Aprobaciones
                         //Fin Flujo de Aprobaciones
 
                         // Verificar que Quote tiene Id y IsClone == false ó IsClone no existe
@@ -2598,13 +2642,36 @@
                                     renegotiationType = vm.getRenegotiationType(producto.conceptosKey, opportunity, cotizacion);//CEAM: 3563
                                 angular.forEach(Object.keys(producto.conceptosKey), function( conceptoKey, index_conceptoKey ) {
                                     var concepto = producto.conceptosKey[conceptoKey]
+                                    //Inicio Ticket: 14363661
+                                    //Se está debuggeando el valor del ConceptoRender
+                                    console.log('SAVE CONCEPTO', {
+                                        key: conceptoKey,
+                                        TipoCargo__c: concepto.TipoCargo__c,
+                                        Render: concepto.Render,
+                                        SinEdicion__c: concepto.SinEdicion__c,
+                                        PrecioFinal2__c: concepto.PrecioFinal2__c,
+                                        PrecioFinal__c: concepto.PrecioFinal__c
+                                        });
                                     // if( concepto.SinEdicion__c || ( !concepto.SinEdicion__c && concepto.Render ) ) {
-									if(concepto.Render){
+                                    if(concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje' && opportunity.RecordType == 'RT_Renegotiation'){
+                                    	 concepto.Render = ctcUtils.app.renderTelepeaje;
+                                         console.log('SAVE CONCEPTO 2', {
+                                        key: conceptoKey,
+                                        TipoCargo__c: concepto.TipoCargo__c,
+                                        Render: concepto.Render,
+                                        SinEdicion__c: concepto.SinEdicion__c,
+                                        PrecioFinal2__c: concepto.PrecioFinal2__c,
+                                        PrecioFinal__c: concepto.PrecioFinal__c
+                                        });
+                                    }
+ 									//Fin Ticket: 14363661                              
+                                    if(concepto.Render){
                                         //MFG Validar si se seleccionó un concepto MFG
                                         if(!isMFGSelected){
                                             isMFGSelected = concepto.TipoCargo__c === vm.mfgConcept50 || concepto.TipoCargo__c === vm.mfgConcepto100;
                                         }
                                         var payloadConcepto = vm.guardaProductoConcepto(concepto, false)
+                                        
                                         if( payloadConcepto && !payloadConcepto.Id || ( payloadConcepto.Id && !uniqueIdProductoConcepto.hasOwnProperty(payloadConcepto.Id) ) ) {
                                             uniqueIdProductoConcepto[payloadConcepto.Id] = true
                                             payloadProductoConcepto__c.push(payloadConcepto)
@@ -2657,6 +2724,8 @@
                                         angular.forEach(Object.keys(comparado.conceptosKey), function( conceptoKey, index_conceptoKey ) {
                                             var concepto = comparado.conceptosKey[conceptoKey]
                                             // if( concepto.SinEdicion__c || ( !concepto.SinEdicion__c && concepto.Render ) ) {
+                                            	console.log('concepto test2 '+ concepto.TipoCargo__c +'= '+concepto.Render);
+                                
                                             if( concepto.Render ) {
                                                 var payloadConcepto = vm.guardaProductoConcepto(concepto, true)
                                                 if( !payloadConcepto.Id || ( payloadConcepto.Id && !uniqueIdProductoConcepto.hasOwnProperty(payloadConcepto.Id) ) ) {
@@ -2676,11 +2745,15 @@
                         payloadOpportunity.MX_Alta_del_programa_MFG__c = isMFGSelected;
                         ctcUtils.app.isMFGSelected = isMFGSelected;
                         // renegociacion - Televia
-                        console.log('ctcUtils.app.hasSnap  '+JSON.stringify (ctcUtils.app.hasSnap));
-                        payloadOpportunity.NTT_AltaTelevia__c = ctcUtils.app.hasSnap != undefined && ctcUtils.app.hasSnap != null ? true : false;
-            			
+                        console.log('ctcUtils.app.comisionTelevia  '+JSON.stringify (ctcUtils.app.comisionTelevia));
+                        console.log('ctcUtils.app.formaPagoSnap  '+JSON.stringify (ctcUtils.app.formaPagoSnap));
+                        if(ctcUtils.app.formaPagoSnap != undefined){
+                            payloadOpportunity.NTT_AltaTelevia__c = (ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP' ||   ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP REFERENCIADO') && ctcUtils.app.comisionTelevia ? ( ctcUtils.app.hasSnap != undefined && ctcUtils.app.hasSnap != null ? false : true) : false;
+                            payloadOpportunity.NTT_ModificacionTelevia__c = (ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP' || ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP REFERENCIADO' ) && ctcUtils.app.comisionTelevia ? ( ctcUtils.app.hasSnap != undefined && ctcUtils.app.hasSnap != null ? true : false) : false;                        
+                         console.log('ctcUtils.app.NTT_ModificacionTelevia__c  '+JSON.stringify (payloadOpportunity.NTT_ModificacionTelevia__c));
+                        }
                         ///ASIGNACION CREDITO
-                        if(ctcUtils.app.opportunity.RecordType == 'RT_ChangeParameters' &&  (ctcUtils.app.ProductCode == '33' || ctcUtils.app.ProductCode == '43') && (cotizacion.contracts !== undefined || ctcUtils.app.contracts !== undefined )){   
+                        if(ctcUtils.app.opportunity.RecordType == 'RT_ChangeParameters' &&  (ctcUtils.app.ProductCode == '33' || ctcUtils.app.ProductCode == '43' || ctcUtils.app.ProductCode == '35') && (cotizacion.contracts !== undefined || ctcUtils.app.contracts !== undefined )){   
                             var contratoFilial = null;
                             var contracts = cotizacion.contracts !== undefined ? cotizacion.contracts : (ctcUtils.app.contracts !== undefined || ctcUtils.app.contracts !== "" ? ctcUtils.app.contracts : null);
                             
@@ -2960,6 +3033,8 @@
                             cotizacion.guardando = false
                         })
                     }
+                 
+                debugger;
                 }
 
                 //NVH -- EdenredArgentina
@@ -3280,7 +3355,9 @@
 
                     //CEAM:3375 <<<<
                     //Asignacion de credito
-                    if(ctcUtils.app.opportunity.RecordType == 'RT_ChangeParameters' && (producto.Product2Id__o.ProductCode === '33' || producto.Product2Id__o.ProductCode === '43')){                        
+                    //Inicio Licitación clientes
+                    if(ctcUtils.app.opportunity.RecordType == 'RT_ChangeParameters' && (producto.Product2Id__o.ProductCode === '33' || producto.Product2Id__o.ProductCode === '43' || producto.Product2Id__o.ProductCode === vm.productLicitacion.clients.code)){                        
+                        //Fin Licitación clientes
                         console.log('producto.NTT_Dia_de_Facturacion__c: ' + producto.NTT_Dia_de_Facturacion__c);
                         ret.NTT_Dia_de_Facturacion__c = producto.NTT_Dia_de_Facturacion__c;
                         
@@ -3641,6 +3718,7 @@
                 }
 
                 vm.setQuoteContracts = function (cotizacion, idsProductos) {
+                    console.log('CONTRACTS');
                     cotizacion.loading = true
                     cotizacion.contracts = []
                     var idRenegotiationProduct = '';
