@@ -5,7 +5,32 @@
   @last modified on  : 05-29-2025
   @last modified by  : Geovanny Peimbert
 -->
-<apex:component >
+        <apex:component >
+             <div id="miModal2" class="modal">
+         
+            <div class="modal-contenido">
+         
+                <div class="modal-header">
+                    ⚠️ Advertencia
+                </div>
+         
+                <div class="modal-body">
+                    <strong><p id="mensajeModal2"></p></strong>
+         
+                    <button type="button" onclick="seleccionarRespuesta('SI')">
+                       
+                        <strong><p id="mensajeConfirmacion2"></p> Si </strong>
+                    </button>
+         
+                    <button id="btonNegativo2" type="button" onclick="seleccionarRespuesta('NO')">
+                        No 
+                    </button>
+                </div>
+         
+            </div>
+         
+        </div>
+ 
     <div ng-controller="costosCtrl as cos" id="costosCtrl" ng-init="cos.leerParams(producto, cot.schema, cotizacion, sc.opportunity.Owner.Segmento__c)" ng-if="(sc.opportunity.RecordType != 'RT_ChangeParameters' && sc.opportunity.RecordType != 'RT_CreditRenewal') || ((sc.opportunity.RecordType == 'RT_ChangeParameters' || sc.opportunity.RecordType == 'RT_CreditRenewal')&&(sc.opportunity.Familia__c == 'Mantenimiento'))">
         <br/>
         <div ng-show="ctcUtils.errorInconcepts"> 
@@ -95,7 +120,7 @@
                                 </td>
                                 <td description="Costo final PrecioFinal__c" class="text-right">
                                     <span ng-if="producto.conceptosKey[concepto.key]">
-                                        
+                                       
                                         <ctc-input
                                           ng-if="!concepto.SinEdicion__c && concepto.NTT_Usar_Valor_Default__c"
                                           ctc-field="cot.schema.ProductoConcepto__c.PrecioFinal__c"
@@ -119,6 +144,7 @@
                                     </span> 
                                 </td>
                                 <td description="Descuento Bonificacion__c" class="text-right">
+                                    
                                     <span ng-if="producto.conceptosKey[concepto.key]">
                                         <ctc-input
                                                 ng-if="!concepto.SinEdicion__c && concepto.NTT_Usar_Valor_Default__c"
@@ -152,6 +178,7 @@
                                     </span>
                                 </td> 
                                 <td description="Vigencia del descuento VigenciaDescuento__c" class="text-center">
+                                   
                                     <!--Input Descuento para producto fleet-->
                                     <div ng-if="producto.isProductFleet">
                                         <ctc-input
@@ -180,6 +207,7 @@
                                     </div>
                                 </td>
                                 <td description="Cantidad de tarjetas o chequeras CantidadTarjetas__c" class="text-right" ng-if="sc.opportunity.RecordType != 'RT_Renegotiation'   &&  !producto.isProductMfa"> <!--CEAM: 3563-->
+                                  
                                     <ctc-input
                                         ng-if="concepto.Render && producto.conceptosKey[concepto.key].CantidadTarjetas__c__render"
                                         ctc-field="producto.conceptosKey[concepto.key].schema.CantidadTarjetas__c"
@@ -358,13 +386,20 @@
                                 <!--Fin Licitación clientes, primer punto sprint 13/04/2026 - 24/04/2026-->
                                 <td description="Editar Concepto" ng-if="sc.opportunity.RecordType == 'RT_Renegotiation'"> <!--CEAM: 3563 >>> -->
                                     <div class="checkbox text-center">
-                                        
                                         <label ng-if="!producto.isFleetRenogotation">
-                                            <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-required="conceptoRenegotiation.required" ng-disabled="(!cotizacion.Editable||concepto.RenderDisabled)?true:false"/>
+                                            <!--// renegociacion - Televia  -->
+                                            <div class="checkbox" ng-if="!cos.ActivarGuadarTL" >
+                                               <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-required="conceptoRenegotiation.required" ng-disabled="true"/>
+                                            </div>
+                                            <div class="checkbox" ng-if="cos.ActivarGuadarTL" >
+                                               <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-required="conceptoRenegotiation.required" ng-disabled="(!cotizacion.Editable ||concepto.RenderDisabled)?true:false"/>
+                                            </div>
+                                            
                                             <!--<input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-disabled="true" ng-if="concepto.SinEdicion__c" old-ctc-params="{concepto: concepto}"/>-->
                                             <!--<input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-checked="false" ng-if="(!concepto.PrecioFinal__c || !cotizacion.Id) && !concepto.SinEdicion__c" old-ctc-params="{concepto: concepto}"/>-->
                                         </label>
                                         <label ng-if="producto.isFleetRenogotation">
+                                            
                                             <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-required="conceptoRenegotiation.required" ng-disabled="(!cotizacion.Editable)"/>
                                         </label>
                                         
@@ -1514,6 +1549,8 @@
                  // televia add
                 vm.isTelepeaje = false;
                 vm.isInfoValida = false;
+                // renegociacion - Televia  
+                vm.ActivarGuadarTL =true;
                  // televia add
                 //CambiosHUCPRM (Cambios directos en Parcial)
                 //Si se necesitan agregar más conceptos con Nivel de Aprobación, añadirlos
@@ -1535,7 +1572,8 @@
                     'TAG Regular',
                     'Cargo por envío estándar',
                     'Implementación',
-                    'Cargo por refacturacion',                    
+                    'Cargo por refacturacion',    
+                    'Cobro por refacturacion',
                     ];
                 //CambiosHUCPRM (Cambios directos en Parcial)
 
@@ -1560,7 +1598,11 @@
                console.log('sc.opportunityproductCodeMantenimiento : ' + JSON.stringify(ctcUtils.app.opportunity.productCodeMantenimiento));
 
                 vm.leerParams = function(producto, schema, cotizacion, segmento ) {
-
+					// renegociacion - Televia
+                    if( (ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ) && ctcUtils.isnewQuote && ctcUtils.app.opportunity.RecordType === 'RT_Renegotiation'){
+                       vm.ActivarGuadarTL =false;
+                       ctcUtils.app.renderTelepeaje = true;
+                     }// renegociacion - Televia
                      console.log('NVH-cotizacion: ', cotizacion);
                     if(cotizacion.NTT_IsTelepeaje__c == "true" || cotizacion.NTT_IsTelepeaje__c == true /*ctcUtils.app.opportunity.NTT_CheckTelepeaje__c === true*/){
                     	vm.isTelepeaje = true;
@@ -2307,6 +2349,44 @@
                     ctcUtils.changeButtonStatus();
                     ctcUtils.changedByUser = true;
                 }
+                                                                                                                      
+               window.seleccionarRespuesta =  function seleccionarRespuesta(respuesta) {
+                      
+                      console.log('test '+ctcUtils.app.mensajeModal); 
+                      if(ctcUtils.app.mensajeModal == 'VolverOpp'  && respuesta == 'SI'){
+                            window.history.back();
+                            window.history.back(); 
+                       }
+                                                                                                                     
+                      if(ctcUtils.app.mensajeModal == 'Activacion' && respuesta == 'SI'){
+                             var aceptarMjs = 'Aceptar';
+                             var mensaje = 'Este cliente ya tiene activa la funcionalidad de Televia, selecciona otro contrato.';
+                             document.getElementById('mensajeModal2').innerHTML = mensaje;  
+                             document.getElementById('mensajeConfirmacion2').innerHTML = aceptarMjs;  
+                             var botonNo = document.getElementById('btonNegativo2');
+                             botonNo.style.display = 'none';
+ 							 document.getElementById('miModal2').style.display = 'block';
+                             ctcUtils.app.mensajeModal = 'VolverOpp';  
+                      }
+                     if(ctcUtils.app.mensajeModal == 'Activacion' && respuesta == 'NO'){
+                       ctcUtils.app.renderTelepeaje = false; 
+                       ctcUtils.app.mensajeModal = '';
+                         document.getElementById('miModal2').style.display = 'none'; 
+                           if(vm.producto.conceptos != undefined){
+                                vm.producto.conceptosUnicos.forEach(function (concepto){
+                                   
+                                    if(concepto.NombreSistemas__c === 'Comisión por Servicio Telepeaje'){
+                                        concepto.Render = false;
+                                        console.log('concepto.seleccionarRespuesta: ' + concepto.Render );
+                                    }                                   
+                            });
+                              $scope.$apply();                                                                                   
+                        }
+                     }
+                    console.log('test2 '+ctcUtils.app.mensajeModal); 
+                   console.log('test '+respuesta); 
+                  
+               }
                 
                 vm.enableOrDisableToMoveForGood = function(conceptoSeleccionado, conceptos){
                     console.log('entro al metodo:');
@@ -2349,13 +2429,25 @@
                     if( ctcUtils.app.opportunity.RecordType == 'RT_Renegotiation' && instance.TipoCargo__c == 'Comisión por Servicio Telepeaje'){ 
 
                     if(render && ctcUtils.app.hasSnap == undefined ){
-                      var respuesta =  confirm('¿Deseas continuar con la activación de Televía?  \n\n Tu forma de pago: '+ctcUtils.app.formaPagoSnap +' cambiará a : STP REFERENCIADO');
+                      
+                                                                                                                 var mensaje = 'Al activar Televia el método de pago de tu cliente cambiará de <strong>'+ctcUtils.app.formaPagoSnap +'</strong> a <strong> STP Referenciado </strong>. <br><br> ¿Deseas continuar con la activación de Televía?';
+                     document.getElementById('mensajeModal2').innerHTML = mensaje;                                         
+                     document.getElementById('miModal2').style.display = 'block';
+                     ctcUtils.app.mensajeModal = 'Activacion';                                                                                      
+                                                                                                            
+                       /*var respuesta =  confirm('¿Deseas continuar con la activación de Televía?  \n\n Tu forma de pago: '+ctcUtils.app.formaPagoSnap +' cambiará a : STP REFERENCIADO');
                       console.log('respuesta test '+respuesta); 
                       console.log('ctcUtils.app.formaPagoSnap test '+ctcUtils.app.formaPagoSnap);
-                      console.log('ctcUtils.app.hasSnap test '+ctcUtils.app.hasSnap);                                                                                                                 
+                      console.log('ctcUtils.app.hasSnap test '+ctcUtils.app.hasSnap);
+                      if(respuesta || respuesta == 'true'){
+                          alert('Para la activación de Telepeaje, debe marcar el check Alta Telepeaje en la oportunidad \n');
+                          //ctcUtils.app.renderTelepeaje = false; 
+                          window.history.back();
+                          window.history.back();                                                                                     
+                      }                                                                                                                 
                       ctcUtils.app.renderTelepeaje = respuesta; 
                       instance.Render = respuesta;
-                      render =respuesta;
+                      render =respuesta;*/
                                                                                                               
                      }else{
                          ctcUtils.app.renderTelepeaje = render; 
@@ -2436,6 +2528,7 @@
                                 concepto.Render = isRender;
                                 console.log('concepto.Render: ' + concepto.Render );
                             }
+                            
                         });
                     
                         console.log('conceptosUnicos.forEach '+JSON.stringify( vm.producto.conceptosUnicos));
@@ -2443,14 +2536,19 @@
                     }else if(vm.producto.conceptos != undefined)
                     { 
                         console.log('concepto.Render1: ' );
+                        console.log('concepto.Render1: ' +JSON.stringify(vm.producto.conceptos));
+                         
+                                    
                         if(vm.producto.conceptos != undefined){
 
                                 vm.producto.conceptosUnicos.forEach(function (concepto){
+                                    console.log('concepto.Render2: ' + concepto.TipoCargo__c );
                                 if(concepto.NombreSistemas__c === 'Comisión por Servicio Telepeaje'){
                                     console.log('concepto.TipoCargo__c: ' + concepto.NombreSistemas__c );
                                     concepto.Render = false;
-                                    console.log('concepto.Render: ' + concepto.Render );
+                                    console.log('concepto.Render conceptosUnicos: ' + concepto.Render );
                                 }
+                                   
                             });
                         }
                     }
@@ -2654,7 +2752,8 @@
                         // Televia Fin
                         //Caso SWAT Telepeaje: se cambia concepto.PrecioFinal2__c por instanciaConcepto.PrecioFinal2__c
                         else if(concepto.Render && !cuotaMensualConceptos.includes(concepto.TipoCargo__c) && concepto.Id == idConcept && (ctcUtils.formatFloat(instanciaConcepto.PrecioFinal2__c) > ctcUtils.formatFloat(Price) || ctcUtils.formatFloat(concepto.PrecioFinal__c) > ctcUtils.formatFloat(Price))) {
-                            console.debug('[1 concepto cargo]', concepto.TipoCargo__c);
+                            debugger;
+                        	console.debug('[1 concepto cargo]', concepto.TipoCargo__c);
                             console.debug('[1 concepto PrecioFinal2__c]', concepto.PrecioFinal2__c);
                             console.debug('[1 concepto PrecioFinal__c]', concepto.PrecioFinal__c);
                             console.debug('[1 Price]', Price);
@@ -2665,17 +2764,20 @@
                             //Comienzo Ticket 30 revisión de renegociacion de cotización / HU_CasoSwat: faltaba guardar el nivel de aprobación
                             vm.producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevelConcepto = approvalLevel; // HU_CasoSwat: faltaba guardar el nivel de aprobación
                             vm.producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevel = approvalLevel; // HU_CasoSwat: faltaba guardar el nivel de aprobación
-                            vm.producto.conceptosKey[concepto.key]
+                        //vm.producto.conceptosKey[concepto.key]
                             console.log('revisión cotización: '+ ctcUtils.app.approvalConceptRenegotiation);
                             console.log('[1 concepto cargo]', concepto.TipoCargo__c);
                             console.log('[1 concepto PrecioFinal2__c]', concepto.PrecioFinal2__c);
                             console.log('[1 concepto PrecioFinal__c]', concepto.PrecioFinal__c);
+                        	console.log('[1 concepto.NombreSistemas__c] ' , concepto.NombreSistemas__c);
                             console.log('[1 Price]', Price);
+                        	console.log('[1 concepto.PrecioFinal__c__approvalLevelConcepto] ' , concepto.PrecioFinal__c__approvalLevelConcepto);
 
                             //Fin Ticket 30 revisión de renegociacion de cotización
                             ctcUtils.app.approvalConceptRenegotiation = approvalLevel;
+                        	concepto.PrecioFinal__c__approvalLevelConcepto = approvalLevel;
                             console.log('revisión cotización 2: '+ ctcUtils.app.approvalConceptRenegotiation);
-                            ctcUtils.app.approvalBonification = concepto.NombreSistemas__c === 'Bonificación de consumo'?4:undefined;
+                            ctcUtils.app.approvalBonification = concepto.NombreSistemas__c === 'Bonificación de consumo'?4:approvalLevel;
                             if(mfgConceptos.includes(concepto.TipoCargo__c)){
                                 ctcUtils.app.approvalMFG = 1;
                             }
@@ -2896,6 +2998,17 @@
                             //$scope.producto.conceptosKey[BONIFICATION_KEY].schema.NTT_Descuento_Extra__c = angular.copy(ctcUtils.app.schema.ProductoConcepto__c.NTT_Descuento_Extra__c);
                             //FIELDS_REQUIRED.date = true;
                             $scope.producto.conceptosKey[BONIFICATION_KEY].schema.NTT_Descuento_Extra__c.required = vm.producto.conceptosKey[BONIFICATION_KEY].NTT_Descuento_Extra__c == 0 && !vm.producto.conceptosKey[BONIFICATION_KEY].disabled.NTT_Descuento_Extra__c;
+                        }else{                            
+                                $scope.producto.conceptosKey[BONIFICATION_KEY].schema.VigenciaDescuento__c.required = false;
+                                $scope.producto.conceptosKey[BONIFICATION_KEY].schema.Bonificacion__c.required = false;
+                                $scope.producto.conceptosKey[BONIFICATION_KEY].schema.NTT_Descuento_Extra__c.required = false;
+
+                                vm.bonification.hasError = false;
+
+                                $scope.cotizacion.formCotiza.$setValidity(
+                                    'faltaInformacionBonificacion',
+                                    true
+                                );
                         }
                         vm.bonification.areFieldsRequired.bonification = FIELDS_REQUIRED.discountOne;
                         vm.bonification.areFieldsRequired.extra = FIELDS_REQUIRED.discountTwo;
