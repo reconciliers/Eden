@@ -1,0 +1,1771 @@
+/**
+ * @description       :
+ * @author            : Santiago Rodriguez
+ * @group             :
+ * @last modified on  : 02-27-2025
+ * @last modified by  : Noe Vasquez
+**/
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// TODO:
+//  P  Contrato filial existente codigo AS400 -> actualizacion y remapeo de campos migracion
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+@RestResource(urlMapping='/GLB_ClientReplication/*')
+global with sharing class  GLB_ClientReplication {
+    public static Product2 producto33;
+     /* Televia Modificaciones*/
+    public static Product2 productoTelevia;
+    public static Map<String, String> quoteIdTelevia = new Map<String, String>();
+    public static Map<String, Contrato2__c> contratosTelevia = new Map<String, Contrato2__c>();
+    public static Map<String, Contrato2__c> contratosTeleviaByLegalEntityCode = new Map<String, Contrato2__c>();
+    // modificaciones Fix Name Migracion
+    //public static String idContratoPadre = '';
+    public static String nameOpp = '';
+    public static String firstPart = '';
+    public static String Empresa = '';
+    public static String codigoUniqueGenerado = '';
+
+    public static List<Opportunity> opps = new List<Opportunity>();
+    // modificaciones Fix Name Migracion
+     /* Televia Modificaciones*/
+    public static PricebookEntry PricebookEntryRec;
+    public static ContratoFilial__c alreadyMigratedCF;
+    public static List<String> successListglobal = new List<String>();
+    public static List<String> errorListglobal = new List<String>();
+    @HttpPost
+    global static void clientReplication() {
+        try {
+            producto33 = new Product2();
+            producto33 = [SELECT Id, Family FROM Product2 WHERE ProductCode = '33' AND Name = '33-Ticket Car Edenred' Limit 1];
+            productoTelevia = new Product2();
+            productoTelevia = [SELECT Id, Family FROM Product2 WHERE ProductCode = '55' Limit 1];
+            PricebookEntryRec = new PricebookEntry();
+            PricebookEntryRec = [
+                SELECT Id, Pricebook2Id
+                FROM PricebookEntry
+                WHERE Product2.ProductCode = '33' AND Pricebook2.Name = 'Edenred' AND Product2.Name = '33-Ticket Car Edenred'
+                LIMIT 1
+            ];
+            RestResponse response = RestContext.response;
+            RestRequest request = RestContext.request;
+            Blob body = request.requestBody;
+            String requestString = body.toString();
+            String cli = init(requestString);
+            response.statusCode = 200;
+            response.addHeader('Content-Type', 'application/json');
+            response.responseBody = Blob.valueOf(cli);
+        } catch (Exception e) {
+            RestContext.response.addHeader('Content-Type', 'application/json');
+            RestContext.response.statusCode = 500;
+            RestContext.response.responseBody = Blob.valueOf('{"error": "Internal Server Error"}');
+        }
+        String status = RestContext.response.statusCode.toString();
+        String request = RestContext.request.requestBody.toString();
+        String response = RestContext.response.responseBody.toString();
+        generateLog('Clients Migration - TCPlus', status, request, response);
+    }
+    @TestVisible
+    private static void generateLog(String name, String status, String request, String response) {
+        String requestValidation = request.length() > 32000 ? request.substring(0, 32000) : request;
+        String responseValidation = response.length() > 32000 ? request.substring(0, 32000) : response;
+        Log__c log = new Log__c(
+            Nombre_aplicacion__c = name,
+            EstatusLlamado_WS__c = status,
+            ResquestWS__c = requestValidation,
+            ResponseWS__c = responseValidation
+        );
+        insert log;
+    }
+    //Crear cuenta (nombre, rfc, legal name)
+    @TestVisible
+    public static String init(String requestString) {
+        SavePoint sp = DataBase.setSavepoint();
+        String message ='';
+        System.debug('requestString fe '+requestString);
+        try {
+            GLB_ClientReplicationWrapper contratoJSON = GLB_ClientReplicationWrapper.parse(requestString.Replace('Import','ImportSF'));
+
+			    /* Televia Modificaciones */
+            if(contratoJSON.Records == null || contratoJSON.Records.isEmpty() || String.isBlank(contratoJSON.Records[0].FlagTelevia)){
+                successListglobal = new List<String>();
+                DataBase.RollBack(sp);
+                errorListglobal.add('Añadir valor en Televia ');
+                message = createResponseBody(false, 400, new List<String>(), errorListglobal);
+            }
+            if( String.isBlank(contratoJSON.Records[0].PlasticOfBilling)){
+                successListglobal = new List<String>();
+                DataBase.RollBack(sp);
+                errorListglobal.add('Añadir valor en PlasticOfBilling');
+                message = createResponseBody(false, 400, new List<String>(), errorListglobal);
+            } 
+                /* Televia Modificaciones */
+            CreateClients(contratoJSON);
+            if(errorListglobal != null && !errorListglobal.IsEmpty()){
+                successListglobal = new List<String>();
+                DataBase.RollBack(sp);
+                message = createResponseBody(true, 400, successListglobal, errorListglobal);
+            }
+            else{
+                message = createResponseBody(true, 200, successListglobal, errorListglobal);
+            }
+        }
+        catch (Exception e){
+            DataBase.RollBack(sp);
+            errorListglobal.add('Error al crear Contrato: ' + e.getMessage());
+            message = createResponseBody(false, 400, new List<String>(), errorListglobal);
+        }
+        return message;
+    }
+    private static Boolean validateIfClientIsAlreadyMigrated(List<GLB_ClientReplicationWrapper.Records> records) {
+        Boolean existing = false;
+        Set<String> recordAS400Ids = new Set<String>();
+        List<ContratoFilial__c> cfList = new List<ContratoFilial__c>();
+        alreadyMigratedCF = new ContratoFilial__c();
+        for(GLB_ClientReplicationWrapper.Records record : records) {
+            recordAS400Ids.add(record.LegalEntityCode);
+        }
+        cfList = [
+            SELECT Id, Name, GLB_MigratedAs400ClientId__c
+            FROM ContratoFilial__c
+            WHERE GLB_MigratedAs400ClientId__c IN :recordAS400Ids
+            LIMIT 1
+        ];
+        if(!cfList.isEmpty()) {
+            alreadyMigratedCF = cfList[0];
+            existing = true;
+        }
+        return existing;
+    }
+ 	@TestVisible
+    private static Map<String,ContratoFilial__c> CreateClients(GLB_ClientReplicationWrapper payload){
+        List<GLB_ClientReplicationWrapper.Records> records = (payload != null && payload.Records != null) ? payload.Records : new List<GLB_ClientReplicationWrapper.Records>();
+        if(validateIfClientIsAlreadyMigrated(records)) {
+            String errorMessage = 'ERROR - El cliente (' + alreadyMigratedCF.GLB_MigratedAs400ClientId__c + ') ya ha sido migrado - Id: ' + alreadyMigratedCF.Name;
+            errorListglobal.add(errorMessage);
+            return null;
+        }
+        //Cuentas - TODO: Check some fields
+        Map<String,Account> mapCuentas = creaCuentas(records);
+        //Direcciones
+        Map<String,CatalogoDirecciones__c> mapDirecciones = creaDirecciones(records,mapCuentas);
+        //Entidades Cuenta y Entidades legales
+        Entidades entidadesLeg = creaEntidadesCuentaLegales(records,mapCuentas,mapDirecciones);
+        //Contactos
+        Map<String,Contact> mapContacts = creaContactos(records,mapCuentas);
+        //Oportunidades
+        Map<String,Opportunity> mapOpps = creaOpps(records,mapCuentas,mapContacts,entidadesLeg);
+        //Cotizaciones
+        Map<String,Quote> MapQuotes = creaQuotes(records, mapCuentas, mapOpps);
+        //Partidas de cotizaciones
+        Map<String,QuoteLineItem> mapQuotesLine = creaQuoteLineItems(records,mapCuentas,mapQuotes,mapOpps);
+        //Terminos comerciales
+        Map<String,ProductoConcepto__c> mapComercialTerms = creaComercialTerms(records,mapQuotesLine);
+        // modificaciones Fix Name Migracion
+        // checksOpps
+        // NOTE: No hacemos query adicional a Opportunity para obtener el nombre.
+        // El cálculo del firstPart se deriva del Name que ya construimos en creaOpps.
+        // (Evita consumir la query #101 cuando ya vienen límites altos por automatización externa)
+        checkOppsEmptyContracts(mapOpps);
+
+        // Grupos de facturación (nueva funcionalidad)
+        // Solo se ejecuta cuando el contrato viene configurado para facturación por grupo.
+        Boolean ejecutarGpoFact = false;
+        for (GLB_ClientReplicationWrapper.Records r : records) {
+            if (r == null) continue;
+            String comoFactura = normaliceString(r.CompanyInvoices).toUpperCase();
+            if (String.isNotBlank(comoFactura) && comoFactura.trim() == 'POR GRUPO DE FACTURACION') {
+                ejecutarGpoFact = true;
+                break;
+            }
+            // fallback: algunos payloads usan el campo dentro de Contracts.HowToBill
+            if (r.Contracts != null) {
+                for (GLB_ClientReplicationWrapper.Contracts c : r.Contracts) {
+                    if (c == null) continue;
+                    String comoFacturaBill = normaliceString(c.HowToBill).toUpperCase();
+                    if (String.isNotBlank(comoFacturaBill) && comoFacturaBill.trim() == 'POR GRUPO DE FACTURACION') {
+                        ejecutarGpoFact = true;
+                        break;
+                    }
+                }
+                if (ejecutarGpoFact) break;
+            }
+        }
+
+          //Administracion de ventas -> GLB_MigrationToMercedes__c
+        Map<String,Contrato2__c> adminVent = creaAdministracionVenta(records,mapCuentas,mapDirecciones,mapContacts,entidadesLeg,mapQuotesLine,mapComercialTerms);
+        //Contratos filiales
+        Map<String,ContratoFilial__c> contrFilial = creaContratosFiliales(records,mapCuentas,mapOpps,mapDirecciones,mapContacts,entidadesLeg,mapQuotesLine,mapComercialTerms,adminVent);
+
+        if (ejecutarGpoFact) {
+            List<Grupo_de_facturacion__c> grupos = processBillingGroups(payload, mapCuentas, mapOpps, entidadesLeg);
+            enqueueBillingGroupsPhantom(payload, grupos, contrFilial, mapOpps);
+        }
+
+        // Ejecutar el update consolidado de Opportunity (SyncedQuoteId y SubCuentaMigracion__c) una sola vez.
+        flushPendingOppUpdates();
+
+        // call async process
+        if(contrFilial != null) {
+            for(String key : adminVent.keyset()){
+                System.enqueueJob(new AsyncExecutionExample(adminVent.get(key), mapOpps.get(key), key));
+            }
+        }
+        return null;
+    }
+    // modificaciones Fix Name Migracion
+    // Evita query adicional a Opportunity (el nombre ya está en memoria en mapOpps).
+    public static void checkOppsEmptyContracts(Map<String,Opportunity> mapOpps){
+        if(mapOpps == null || mapOpps.isEmpty()){
+            return;
+        }
+
+        // Para compatibilidad con el comportamiento actual (payload típico 1 registro),
+        // tomamos el firstPart del primer elemento.
+        for(Opportunity oppItem : mapOpps.values()){
+            if(String.isNotBlank(oppItem.Name) && oppItem.Name.contains('-')){
+                firstPart = oppItem.Name.split('-')[0];
+            } else {
+                firstPart = String.isNotBlank(oppItem.Name) ? oppItem.Name : '';
+            }
+            break;
+        }
+    }
+    public class AsyncExecutionExample implements Queueable {
+        public String jsonADV;
+        public String jsonOportunidad;
+        public String extras;
+        public String key;
+        // public String estabs;
+        // public String filialesEx;
+        public AsyncExecutionExample(Contrato2__c adv, Opportunity opp, String key) {
+            this.jsonADV = JSON.serialize(adv);
+            this.jsonOportunidad = JSON.serialize(opp);
+            this.extras = '[]';
+            this.key = key;
+        }
+        public void execute(QueueableContext context) {
+            if(!Test.isRunningTest())
+                LegalEntititiesPhantom_cls.calloutPhantomClients_Migration(this.jsonADV, this.jsonOportunidad, this.extras, '[]', '[]', key);
+        }
+    }
+    @TestVisible
+    private static Map<String,Account> creaCuentas(List<GLB_ClientReplicationWrapper.Records> records){
+        Id clientRecordTypeId =  Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Edenred').getRecordTypeId();
+        List<String> lstNamesRFC = new List<String>(); // RFC list
+        for(GLB_ClientReplicationWrapper.Records recordDataAc1 : records) {
+            lstNamesRFC.add(recordDataAc1.RFC);
+        }
+        Map<String, Account> mapAccountByRFC = new Map<String, Account>(); // Accounts by RFC
+
+        // OPT: Evitar segundo SOQL a Account. Traer la cuenta directamente desde EntidadCuenta__c (Cuenta__r).
+        for(EntidadCuenta__c ec : [
+            SELECT Id, Name, Cuenta__c, Cuenta__r.Id, Cuenta__r.Name, Cuenta__r.RecordTypeId
+            FROM EntidadCuenta__c
+            WHERE Cuenta__c != null AND Name IN :lstNamesRFC
+        ]){
+            if(ec.Cuenta__r != null){
+                mapAccountByRFC.put(ec.Name, ec.Cuenta__r);
+            }
+        }
+
+        //Cuentas
+        Map<String,Account> mapNewAccounts = new Map<String,Account>();
+        for(GLB_ClientReplicationWrapper.Records recordDataAc : records) {
+            if(!mapAccountByRFC.ContainsKey(recordDataAc.RFC)){
+                Account aco = new Account();
+                aco.RecordTypeId = clientRecordTypeId;
+                aco.Name = recordDataAc.ContactLegalEntity[0].AccountName; // ContactLegalEntity[] -> Always at least 1?
+                aco.esConversionLead_Checkbox__c = true;
+                aco.Nombre_Grupo_AS400__c = recordDataAc.LegalEntityCode != null && recordDataAc.LegalEntityCode != '' ? recordDataAc.LegalEntityCode.split('-')[1] : ''; // TODO: "01-30-02516-002" o Group "2516"?? / Save complete?
+                aco.Sector__c = 'Público' ; // TODO: Check (Siempre privado?) / recordDataAc.FID_EconomicSector == 2 ? 'Privado' : 'Público'
+                aco.GLBAr_Country__c = 'México';
+                //  modificacion televia
+                aco.NTT_IsMigratedAcc__c = true;
+                //  modificacion televia
+                mapNewAccounts.put(recordDataAc.RFC, aco);
+            }
+        }
+        if(!mapNewAccounts.IsEmpty()){
+            insert mapNewAccounts.Values();
+        }
+        if(!mapAccountByRFC.IsEmpty()){
+            mapNewAccounts.putAll(mapAccountByRFC);
+        }
+        return mapNewAccounts;
+    }
+    @TestVisible
+    private static Map<String,CatalogoDirecciones__c> creaDirecciones(List<GLB_ClientReplicationWrapper.Records> records, Map<String,Account> mapCuentas){
+        Map<String,CatalogoDirecciones__c> mapDirecciones = new Map<String,CatalogoDirecciones__c>();
+        Set<String> dirProccessed = new Set<String>();
+        for(GLB_ClientReplicationWrapper.Records recordData : records) {
+        	for(GLB_ClientReplicationWrapper.AddressEntitys dir : recordData.AddressEntitys){
+            	if(mapCuentas.containsKey(recordData.RFC)){
+                	CatalogoDirecciones__c address = new CatalogoDirecciones__c();
+                	address.CuentaID__c = mapCuentas.get(recordData.RFC).Id;
+                	address.Estado_Tt__c = dir.State;
+                	address.Ciudad_Tt__c = dir.City;
+                	address.Name = dir.AddressName;
+                	address.Colonia_Tt__c = dir.Cologne;
+                	address.CodigoPostal_Tt__c = dir.ZipCode != null ? dir.ZipCode.toString() : '';
+                	address.Country__c = dir.Country;
+                	address.Calle_Tt__c = dir.Street;
+                	address.NumeroExterior_Tt__c = dir.ExternalNumber;
+                	address.NumeroInterior_Tt__c = dir.InnerNumber;
+                	address.NTT_Tipo__c = getSFAddressTypeFromCatalogue(dir.AddressEntityId);
+                	mapDirecciones.put(recordData.RFC + '-' + dir.AddressEntityId , address);
+                    dirProccessed.add(recordData.RFC);
+                }
+            }
+            for(GLB_ClientReplicationWrapper.FiscalAddress dirF : recordData.FiscalAddress){
+                if(mapCuentas.containsKey(recordData.RFC)){
+                    CatalogoDirecciones__c address = new CatalogoDirecciones__c();
+                	address.CuentaID__c = mapCuentas.get(recordData.RFC).Id;
+                	address.Estado_Tt__c = dirF.State;
+                	address.Ciudad_Tt__c = dirF.City;
+                	address.Name = dirF.Street;
+                	address.Colonia_Tt__c = dirF.Cologne;
+                	address.CodigoPostal_Tt__c = dirF.ZipCode != null ? dirF.ZipCode.toString() : '';
+                	address.Country__c = dirF.Country;
+                	address.Calle_Tt__c = dirF.Street;
+                	address.NumeroExterior_Tt__c = dirF.ExternalNumber;
+                	address.NumeroInterior_Tt__c = dirF.InnerNumber;
+                	address.NTT_Tipo__c = getSFAddressTypeFromCatalogue('Fiscal');
+                	mapDirecciones.put(recordData.RFC + '-' + address.NTT_Tipo__c , address);
+                    dirProccessed.add(recordData.RFC);
+                }
+            }
+            if(recordData.AddressBillingGroupFact != null){
+                for (GLB_ClientReplicationWrapper.AddressBillingGroupFact dirIn : recordData.AddressBillingGroupFact) {
+                    if (dirIn == null || String.isBlank(dirIn.FiscalAddressRfc) || dirProccessed.contains(dirIn.FiscalAddressRfc)) continue;
+                    CatalogoDirecciones__c d = new CatalogoDirecciones__c();
+                    d.CuentaID__c = mapCuentas.get(recordData.RFC).Id;
+                    d.Name = dirIn.AddressName;
+                    d.Calle_Tt__c = dirIn.Street;
+                    d.Ciudad_Tt__c = dirIn.City;
+                    d.Colonia_Tt__c = dirIn.Cologne;
+                    d.CodigoPostal_Tt__c = dirIn.ZipCode != null ? String.valueOf(dirIn.ZipCode) : '';
+                    d.DelegacionMunicipio_Tt__c = dirIn.Municipality;
+                    d.Estado_Tt__c = dirIn.State;
+                    d.NumeroExterior_Tt__c = dirIn.ExternalNumber;
+                    d.NumeroInterior_Tt__c = dirIn.InnerNumber;
+                    d.Country__c = dirIn.Country;
+                    d.NTT_Tipo__c = 'Grupo';
+                    mapDirecciones.put(dirIn.FiscalAddressRfc + '-Grupo',d);
+                }
+            }
+        }
+        Database.SaveResult[] saveResults = Database.insert(mapDirecciones.Values(), false);
+       	for (Integer i = 0; i < saveResults.size(); i++) {
+            if (saveResults[i].isSuccess()) {
+                successListglobal.add(mapDirecciones.Values()[i].id + ': ' + saveResults[i].getId());
+            } else {
+                for (Database.Error error : saveResults[i].getErrors()) {
+                   errorListglobal.add(error.getMessage());
+                }
+            }
+        }
+        return mapDirecciones;
+    }
+    @TestVisible
+    private static Entidades creaEntidadesCuentaLegales(List<GLB_ClientReplicationWrapper.Records> records, Map<String,Account> mapCuentas, Map<String,CatalogoDirecciones__c> mapDirecciones){
+        Entidades entReturn = new Entidades();
+        List<EntidadLegal__c> listLegalEntity = new List<EntidadLegal__c>();
+        Map<String,EntidadCuenta__c> MapEntidadCuentaExt = new Map<String,EntidadCuenta__c>();
+        for(EntidadCuenta__c eC : [SELECT id, Name, Cuenta__c, Cuenta__r.Name, EntidadLegal__c, EntidadLegal__r.Regimen_Fiscal__c FROM EntidadCuenta__c WHERE Name IN :mapCuentas.keySet() FOR UPDATE]){
+            MapEntidadCuentaExt.put(eC.Name, eC);
+        }
+        Set<String> rfcsInfo = new Set<String>();
+        rfcsInfo.addAll(mapCuentas.keySet());
+        for(GLB_ClientReplicationWrapper.Records recordDataEnt : records){
+            if(recordDataEnt.EntityLegalGroupFact != null){
+                for (GLB_ClientReplicationWrapper.EntityLegalGroupFact elIn : recordDataEnt.EntityLegalGroupFact){
+                    if(mapCuentas.containsKey(elIn.RFC)) continue;
+                    rfcsInfo.add(elIn.RFC);
+                }
+            }
+        }
+        Map<String,EntidadLegal__c> MapEntidadLegalExt = new Map<String,EntidadLegal__c>();
+        for(EntidadLegal__c eL : [SELECT id, Name, Regimen_Fiscal__c FROM EntidadLegal__c WHERE Name IN :rfcsInfo FOR UPDATE ]){
+        	MapEntidadLegalExt.put(eL.Name,eL);
+        }
+        Map<String,EntidadCuenta__c> mapEntidadesCuenta = new Map<String,EntidadCuenta__c>();
+        Map<String,EntidadLegal__c> mapEntidadesLegales = new Map<String,EntidadLegal__c>();
+        for(GLB_ClientReplicationWrapper.Records recordDataEnt : records){
+            EntidadLegal__c legalEntity = new EntidadLegal__c();
+            if (!MapEntidadLegalExt.containsKey(recordDataEnt.RFC)) {
+                legalEntity = new EntidadLegal__c();
+                legalEntity.Name = recordDataEnt.RFC;
+            } else {
+                legalEntity = MapEntidadLegalExt.get(recordDataEnt.RFC);
+            }
+            legalEntity.Regimen_Fiscal__c = getTaxRegimeFromCatalogue(recordDataEnt.FiscalAddress[0].TaxRegime);
+            legalEntity.RazonSocial__c = recordDataEnt.FiscalAddress[0].LegalEntityName;
+            legalEntity.Estatus__c = 'Completa';
+            legalEntity.RecordTypeId = getSFTypeOfPersonFromCatalogue(recordDataEnt.FiscalAddress[0].TypeOfPerson);
+            legalEntity.RazonSocial__c = recordDataEnt.FiscalAddress[0].LegalEntityName;
+            legalEntity.Calle__c = recordDataEnt.FiscalAddress[0].Street;
+            legalEntity.NumeroExterior__c = recordDataEnt.FiscalAddress[0].ExternalNumber;
+            legalEntity.NumeroInterior__c = recordDataEnt.FiscalAddress[0].InnerNumber;
+            legalEntity.Colonia__c = recordDataEnt.FiscalAddress[0].Cologne;
+            legalEntity.Ciudad__c = recordDataEnt.FiscalAddress[0].City;
+            legalEntity.Estado__c = recordDataEnt.FiscalAddress[0].State;
+            legalEntity.CodigoPostal__c = String.valueOf(recordDataEnt.FiscalAddress[0].ZipCode);
+            //  fix estabilizacion migracion
+            legalEntity.NTT_IsMigrated__c = true;
+              //  fix estabilizacion migracion
+            legalEntity.Address__c = mapDirecciones.get(legalEntity.Name + '-Fiscal').Id;
+            //legalEntity.Cuenta__c = mapCuentas.get(legalEntity.Name).Id;
+            mapEntidadesLegales.put(recordDataEnt.RFC, legalEntity);
+            if(recordDataEnt.EntityLegalGroupFact != null){
+                for (GLB_ClientReplicationWrapper.EntityLegalGroupFact elIn : recordDataEnt.EntityLegalGroupFact) {
+                    if (elIn == null || String.isBlank(elIn.RFC) || mapEntidadesLegales.containsKey(elIn.RFC)) continue;
+                    EntidadLegal__c newEntity = new EntidadLegal__c();
+                    if (MapEntidadLegalExt.containsKey(elIn.RFC)) {
+                        newEntity = MapEntidadLegalExt.get(elIn.RFC);
+                    }else{
+                        newEntity.Name = elIn.RFC;
+                    }
+                    newEntity.RFC__c = elIn.RFC;
+                    newEntity.RazonSocial__c = elIn.Razon_Social;
+                    newEntity.Regimen_Fiscal__c = elIn.RegimenFiscal;
+                    newEntity.Estatus__c = 'Completa';
+                    newEntity.NTT_IsMigrated__c = true;
+                    newEntity.isCFDIValidated__c = 'Validado';
+                    newEntity.statusCFDIValidated__c = 'datos validados correctamente';
+                    if (mapDirecciones.containsKey(elIn.RFC + '-Grupo')) {
+                        newEntity.Address__c = mapDirecciones.get(elIn.RFC + '-Grupo').Id;
+                    }
+                    newEntity.Cuenta__c = mapCuentas.get(recordDataEnt.RFC).Id;
+                    mapEntidadesLegales.put(elIn.RFC, newEntity);
+                }
+            }
+        }
+       if(!mapEntidadesLegales.isEmpty()){
+            List<Database.UpsertResult> saveResultsEntLeg = Database.upsert(mapEntidadesLegales.values(), false);
+            for (Integer i = 0; i < saveResultsEntLeg.size(); i++) {
+            	if (saveResultsEntLeg[i].isSuccess()) {
+                	successListglobal.add('Cliente: ' + mapEntidadesLegales.Values()[i].Name + ' Creado con el ID: ' + saveResultsEntLeg[i].getId());
+                    MapEntidadLegalExt.put(mapEntidadesLegales.Values()[i].Name,mapEntidadesLegales.Values()[i]);
+            	} else {
+                	for (Database.Error error : saveResultsEntLeg[i].getErrors()) {
+                    	errorListglobal.add(error.getMessage());
+                	}
+            	}
+        	}
+        }
+       for(GLB_ClientReplicationWrapper.Records recordDataEnt2 : records){
+            if(MapEntidadLegalExt.containsKey(recordDataEnt2.RFC)){
+                if(!MapEntidadCuentaExt.containsKey(recordDataEnt2.RFC)){
+                    EntidadCuenta__c entCuent = new EntidadCuenta__c();
+                    entCuent.Name = recordDataEnt2.RFC;
+                    entCuent.EntidadLegal__c = MapEntidadLegalExt.get(recordDataEnt2.RFC).Id;
+                    entCuent.isActive__c = true;
+                    entCuent.RFC_IDExterno__c = recordDataEnt2.RFC;
+                    entCuent.Cuenta__c = mapCuentas.get(recordDataEnt2.RFC).Id;
+                    mapEntidadesCuenta.put(recordDataEnt2.RFC,entCuent);
+                }
+            }
+        }
+        if(!mapEntidadesCuenta.isEmpty()){
+            Database.SaveResult[] saveResultsEntCue = Database.insert(mapEntidadesCuenta.Values(), false);
+            for (Integer i = 0; i < mapEntidadesCuenta.size(); i++) {
+                if (saveResultsEntCue[i].isSuccess()) {
+                    successListglobal.add('Cliente: ' + mapEntidadesCuenta.Values()[i].Name + ' Creado con el ID: ' + saveResultsEntCue[i].getId());
+                    MapEntidadCuentaExt.put(mapEntidadesCuenta.Values()[i].Name, mapEntidadesCuenta.Values()[i]);
+                } else {
+                    for (Database.Error error : saveResultsEntCue[i].getErrors()) {
+                        errorListglobal.add(error.getMessage());
+                    }
+                }
+            }
+        }
+        entReturn.entidadesLegales = MapEntidadLegalExt;
+        entReturn.entidadesCuenta = MapEntidadCuentaExt;
+        return entReturn;
+    }
+    public static void validarContactLegalEntity(GLB_ClientReplicationWrapper.ContactLegalEntity contDec, String contactId) {
+        if (String.isBlank(contDec.ContactFirstName)) {
+            errorListglobal.add('El campo ContactFirstName es obligatorio para el contacto: ' + contactId);
+        }
+        if (String.isBlank(contDec.ContactLastName) && String.isBlank(contDec.ContactFirstName)) {
+            errorListglobal.add('Debe existir al menos un apellido o nombre para el contacto: ' + contactId);
+        }
+        if (String.isBlank(contDec.TitleRoleCode)) {
+            errorListglobal.add('La función (TitleRoleCode) debe existir con valor: ' + contactId);
+        }
+    }
+    @TestVisible
+    private static Map<String,Contact> creaContactos(List<GLB_ClientReplicationWrapper.Records> records, Map<String,Account> mapCuentas){
+        Map<String,Contact> contactsToCreate = new Map<String,Contact>();
+        for(GLB_ClientReplicationWrapper.Records recordDataEnt : records){
+            boolean hasAdministrador = false;
+            boolean hasContactoFacturacion = false;
+            boolean hasRepLegal = false;
+            String IdAccount = '';
+            for( GLB_ClientReplicationWrapper.ContactLegalEntity contDec : recordDataEnt.ContactLegalEntity ){
+                String contactId = mapCuentas.get(recordDataEnt.RFC).Id;
+                validarContactLegalEntity(contDec, contactId);
+                Contact contactInsertDec = new Contact();
+               	contactInsertDec.AccountId = mapCuentas.get(recordDataEnt.RFC).Id;
+                contactInsertDec.Salutation = contDec.TitleRoleCode; // TODO: can it be used as Salutation? // chequear si es mandatorio
+                contactInsertDec.FirstName = contDec.ContactFirstName;
+                contactInsertDec.LastName = contDec.ContactLastName != null && contDec.ContactLastName != '' ? contDec.ContactLastName : contDec.ContactFirstName;
+                contactInsertDec.MX_SubcuentaOrigen__c =  contDec.LegalEntityCode;
+                if(contDec.Email != null){
+                    contactInsertDec.Email = contDec.Email;
+                }
+                if(contDec.PhoneNumber != null && contDec.CellularPhone != null){
+                    contactInsertDec.Phone = contDec.PhoneNumber;
+                    contactInsertDec.OtherPhone = contDec.CellularPhone;
+                } else if(contDec.PhoneNumber != null){
+                    contactInsertDec.Phone = contDec.PhoneNumber;
+                    // contactInsertDec.OtherPhone = contDec.CellularPhone; // TODO: Check if needed
+                } else if(contDec.CellularPhone != null){
+                    contactInsertDec.Phone = contDec.CellularPhone;
+                } else {
+                    contactInsertDec.Phone = '520000000000';
+                }
+                contactInsertDec.NTT_Id_Group_Code__c = contDec.ContactGroup != null ? String.valueOf(contDec.ContactGroup) : '';
+                /*if(contDec.TitleRoleCode!= NULL && !contDec.TitleRoleCode.contains('RECIBE FACTURA') && !contDec.TitleRoleCode.contains('ADMINISTRADOR')){
+                    contDec.TitleRoleCode = 'REPRESENTANTE LEGAL';
+                }*/
+                contactInsertDec.Funcion__c = contDec.TitleRoleCode != null ? GLB_ClientReplication.contactRoleCatalogue(contDec.TitleRoleCode) : null;
+                contactInsertDec.GLBAr_Country__c = 'México';
+                String funcion = contactInsertDec.Funcion__c;
+                hasAdministrador = funcion != null && funcion.contains('Administrador');
+                if(hasAdministrador){
+                     contactsToCreate.put('ADMINISTRADOR' + '-' + contactInsertDec.AccountId, contactInsertDec);
+                }
+                hasContactoFacturacion = funcion != null && funcion.contains('Contacto de facturación');
+                if(hasContactoFacturacion){
+                     contactsToCreate.put(contDec.TitleRoleCode + '-' + contactInsertDec.AccountId, contactInsertDec);
+                }
+                hasRepLegal = funcion != null && funcion.contains('Representante Legal');
+                if(hasRepLegal){
+                     contactsToCreate.put('REPRESENTANTE LEGAL' + '-' + contactInsertDec.AccountId, contactInsertDec);
+                }
+                IdAccount = mapCuentas.get(recordDataEnt.RFC).Id;
+                //contactsToCreate.put(contDec.TitleRoleCode.toUpperCase() + '-' + contactInsertDec.AccountId, contactInsertDec);
+            }
+            /*if(!hasAdministrador){
+                String representanteKey = 'REPRESENTANTE LEGAL' + '-' + IdAccount;
+                Contact contactoTemporal = contactsToCreate.get(representanteKey);
+                Contact contactInsertAdmin = contactoTemporal.clone(false,false,false,false);
+                contactInsertAdmin.Funcion__c = 'Administrador de plataforma';
+                contactsToCreate.put('ADMINISTRADOR' + '-' + contactInsertAdmin.AccountId, contactInsertAdmin);
+            /*
+            /*if(!hasAdministrador && !hasContactoFacturacion && !hasRepLegal) {
+                errorListglobal.add('Se debe contar con al menos un contacto de Funcion: Administrador de Plataforma, Representante Legal y Contacto de Facturación.');
+            }*/
+        }
+        Database.SaveResult[] saveResults = Database.insert(contactsToCreate.values(), false);
+        for (Integer i = 0; i < saveResults.size(); i++) {
+            if (saveResults[i].isSuccess()) {
+                successListglobal.add(contactsToCreate.values()[i].id + ': ' + saveResults[i].getId());
+            } else {
+                for (Database.Error error : saveResults[i].getErrors()) {
+                    errorListglobal.add(error.getMessage());
+                }
+            }
+        }
+        return contactsToCreate;
+    }
+    @TestVisible
+    private static Map<String,Opportunity> creaOpps(List<GLB_ClientReplicationWrapper.Records> records, Map<String,Account> mapCuentas, Map<String,Contact> mapContacts, Entidades entidadesLeg){
+        // newOpp.Competidor__c = recordDataEnt.Competidor;  -> MANUAL
+        // Type, Origin,                   -> MANUAL
+    	Id opportunityRecordType =  Schema.SObjectType.Opportunity.getRecordTypeInfosByDeveloperName().get('Migracion').getRecordTypeId();
+        Map<String,Opportunity> mapOpps = new Map<String,Opportunity>();
+        String adminKey;
+        for(GLB_ClientReplicationWrapper.Records recordDataEnt : records){
+            if(!mapOpps.ContainsKey(recordDataEnt.LegalEntityCode)){ //recordDataEnt.GroupB?
+                Opportunity newopp = new Opportunity();
+                newopp.Name = recordDataEnt.LegalEntityCode.split('-')[1] +'-'+ recordDataEnt.GroupB +'-'+ producto33.Family;
+                // modificaciones Fix Name Migracion
+                nameOpp = recordDataEnt.LegalEntityCode.split('-')[1] +'-'+ producto33.Family;
+                newopp.AccountId = mapCuentas.get(recordDataEnt.RFC).Id;
+                newopp.StageName = 'Ganada';
+                newopp.Familia__c='Combustible';
+                newopp.CloseDate = System.today();
+                newopp.DocCompletos__c = true;
+                newopp.Product__c = producto33.Id;
+                newopp.RecordTypeId = opportunityRecordType;
+                newopp.Empresa__c = recordDataEnt.FiscalAddress[0].LegalEntityName;
+                // modificaciones Fix Name Migracion
+                Empresa= recordDataEnt.FiscalAddress[0].LegalEntityName;
+            	newopp.NTT_Nombre_comercial__c = recordDataEnt.ComercialName;
+                adminKey = 'ADMINISTRADOR' + '-' + mapCuentas.get(recordDataEnt.RFC).Id;
+                if(mapContacts.ContainsKey(adminKey)){// role ADMINISTRADOR-IdAccount -> Administrador de Plataforma/ Contacto
+                    newopp.Contacto__c = mapContacts.get(adminKey).Id;
+                }
+              newopp.Entidad_Cuenta__c = entidadesLeg.entidadesCuenta.get(recordDataEnt.RFC).Id;
+                //TODO: Check if needed for operation.
+                newopp.LeadSource = recordDataEnt.Type;
+                newopp.Producto_cotizacion__c = recordDataEnt.Product; //33-Fleet Edenred - Ticket Car Edenred
+                newopp.SubOrigen__c = recordDataEnt.SubOrigin == 'Migracion' ? 'Migracion 33' : null;
+                newopp.TipoVenta__c = 'Migracion';
+                newopp.NTT_IsMigratedOpp__c = true;
+                if(recordDataEnt.FlagTelevia == '1'){
+                  newopp.NTT_CheckTelepeaje__c = true;
+                  newopp.NTT_ConceptosCostos__c = '[{"VigenciaDescuento":null,"Descuento":0.0,"CostoFinal":1.5,"Concepto":"Comisión por Servicio Telepeaje"}]';
+                }
+                /* Televia Modificaciones*/
+                mapOpps.put(recordDataEnt.LegalEntityCode, newopp);
+            }
+        }
+        Database.SaveResult[] saveResults = new List<Database.SaveResult>();
+        if(!Test.isRunningTest()){
+            saveResults = Database.insert(mapOpps.values(), false);
+        }
+        for (Integer i = 0; i < saveResults.size(); i++) {
+            if (saveResults[i].isSuccess()) {
+                successListglobal.add(mapOpps.values()[i].id + ': ' + saveResults[i].getId());
+            } else {
+                for (Database.Error error : saveResults[i].getErrors()) {
+                    errorListglobal.add(error.getMessage());
+                }
+            }
+        }
+        return mapOpps;
+    }
+    @TestVisible
+    private static Map<String,Quote> creaQuotes(List<GLB_ClientReplicationWrapper.Records> records, Map<String,Account> mapCuentas, Map<String,Opportunity> mapOpps){
+        Map<String,Quote> mapQuote = new Map<String,Quote>();
+        for(GLB_ClientReplicationWrapper.Records recordDataEnt : records){
+            if(!mapQuote.ContainsKey(recordDataEnt.LegalEntityCode)){
+                Quote newQuote = new Quote();
+                newQuote.Name = mapOpps.get(recordDataEnt.LegalEntityCode).Name;
+                newQuote.OpportunityId = mapOpps.get(recordDataEnt.LegalEntityCode).Id;
+                newQuote.Pricebook2Id = PricebookEntryRec.Pricebook2Id;
+                newQuote.Familia__c = 'Combustible'; //recordDataEnt.Solution
+                newQuote.VigenciaCotizacion__c = getSFVigenciaCotizacionFromCatalogue(recordDataEnt.ValidityOfQuotation);
+                newQuote.GLB_designCardType__c = 'Tarjeta Negra';
+                newQuote.GLB_IdDesign__c = 13;
+                mapQuote.put(recordDataEnt.LegalEntityCode, newQuote);
+            }
+        }
+        Database.SaveResult[] saveResults = Database.insert(mapQuote.values(), false);
+        for (Integer i = 0; i < saveResults.size(); i++) {
+            if (saveResults[i].isSuccess()) {
+                successListglobal.add(mapQuote.values()[i].id + ': ' + saveResults[i].getId());
+            } else {
+                for (Database.Error error : saveResults[i].getErrors()) {
+                    errorListglobal.add(error.getMessage());
+                }
+            }
+        }
+        return mapQuote;
+    }
+    @TestVisible
+    private static Map<String,QuoteLineItem> creaQuoteLineItems(List<GLB_ClientReplicationWrapper.Records> records, Map<String,Account> mapCuentas, Map<String,Quote> mapQuotes, Map<String, Opportunity> mapOpps){
+        // 28 querys
+          //  system.debug('>>> test init '+Limits.getLimitQueryRows()+'|'+Limits.getQueryRows()+'|'+(Limits.getLimitQueryRows() - Limits.getQueryRows())+'|'+Limits.getQueries()+'|'+Limits.getDmlRows());
+        Map<String,QuoteLineItem> mapQl = new Map<String,QuoteLineItem>();
+        /*Modificaciones Televia */
+        List<QuoteLineItem> mapQlTelevia = new List<QuoteLineItem>();
+        /*Modificaciones Televia */
+        Map<String, Opportunity> mapOppsToSyncQuote = new Map<String, Opportunity>();
+        String recordLegalEntityCode;
+        for(GLB_ClientReplicationWrapper.Records record : records){
+            recordLegalEntityCode = record.LegalEntityCode;
+            if(!mapQl.ContainsKey(recordLegalEntityCode)){
+                QuoteLineItem newQli = new QuoteLineItem();
+                newQli.Product2Id = producto33.Id;
+                newQli.QuoteId = mapQuotes.get(recordLegalEntityCode).Id;
+                newQli.UnitPrice = record.AnnualIssueVolume; // 0?
+                newQli.PricebookEntryId = PricebookEntryRec.Id;
+                newQli.Quantity = 1;
+                newQli.PaymentMethod__c = record.PaymentMethod == 'Consumo' ? 'Pospago' : record.PaymentMethod ; // Prepago
+                  // add televia fix External Reference
+                newQli.FormaPago__c = record.FlagTelevia == '1' ? 'STP REFERENCIADO' : record.MethodOfPayment == 'Transferencia Bancomer' ? 'STP': 'American Express';// Antes -> 'STP';
+                  // add televia fix External Reference
+                newQli.Package__c = record.PackageB; // Premium Plus
+                // newQli.meanType__c = record.TypeOfMedia != '' ? record.TypeOfMedia.replaceAll(',', ';') : ''; // -> multipicklist, check catalogue
+                newQli.meanType__c = 'Tarjetas Virtuales;Tag regular;Tarjetas Físicas';
+                newQli.CantidadTarjetas__c = record.NumberOfPhysicalCards; // NumberOfPhysicalCards - NumberOfVirtualCards - RegularTagQuantity
+                newQli.virtualCardQuantity__c = record.NumberOfVirtualCards;
+                newQli.physicalCardQuantity__c = record.NumberOfPhysicalCards;
+                newQli.regularTagQuantity__c = record.RegularTagQuantity;
+                newQli.VigenciaCotizacion__c = mapQuotes.get(recordLegalEntityCode).VigenciaCotizacion__c;
+                mapQl.put(recordLegalEntityCode, newQli);
+                mapOppsToSyncQuote.put(recordLegalEntityCode, new Opportunity (Id = mapOpps.get(recordLegalEntityCode).Id, SyncedQuoteId = mapQuotes.get(recordLegalEntityCode).Id));
+                  /*Modificaciones Televia */
+                   if(record.FlagTelevia == '1'){
+                        QuoteLineItem newQliTelevia = duplicarQuoteLine(record,recordLegalEntityCode, mapQuotes);
+                        newQliTelevia.Product2Id = productoTelevia.Id;
+                        mapQlTelevia.add(newQliTelevia);
+                    }
+                  /*Modificaciones Televia */
+            }
+        }
+        Database.SaveResult[] saveResults = Database.insert(mapQl.values(), false);
+        for (Integer i = 0; i < saveResults.size(); i++) {
+            if (saveResults[i].isSuccess()) {
+                successListglobal.add(mapQl.values()[i].id + ': ' + saveResults[i].getId());
+            } else {
+                for (Database.Error error : saveResults[i].getErrors()) {
+                    errorListglobal.add(error.getMessage());
+                }
+            }
+        }
+      /* Modificaciones Televia  */
+        if(!mapQlTelevia.isEmpty()){
+            try{
+                 insert mapQlTelevia;
+                 String conceptoFromAS400;
+                 Map<String,Concepto__c> mapConceptos = getConceptosByProduct(productoTelevia.Id);
+                 List<ProductoConcepto__c> mapPCToInsert = new List<ProductoConcepto__c>();
+                for(QuoteLineItem itemQLi : mapQlTelevia ){
+                    quoteIdTelevia.put(itemQLi.QuoteId, itemQLi.Id);
+                    ProductoConcepto__c pc = new ProductoConcepto__c();
+                    for(String itemConcepto : mapConceptos.keyset() ){
+                        conceptoFromAS400 = getSFConceptFromCatalogue(itemConcepto.toUpperCase());
+                        if(mapConceptos.ContainsKey(conceptoFromAS400)){
+                            pc.Concepto__c =mapConceptos.get(conceptoFromAS400).Id;
+                            pc.Name =  mapConceptos.get(conceptoFromAS400).TipoCargo__c;
+                            pc.Solucion_del__c = productoTelevia.Id;
+                            pc.PartidaPresupuesto__c = itemQLi.Id;
+                            pc.Bonificacion__c = 0;
+                            pc.VigenciaDescuento__c =  null ;
+                            pc.PrecioLista2__c = mapConceptos.get(conceptoFromAS400).Importe__c;
+                            pc.PrecioFinal__c = mapConceptos.get(conceptoFromAS400).Importe__c;
+                            mapPCToInsert.add(pc);
+                    	}
+                	}
+                }
+                if(!mapPCToInsert.isEmpty()){
+                    try{
+                         insert mapPCToInsert;
+                    }catch(Exception e){
+                        System.debug('error itemQLi '+e);
+                    }
+                }
+            }catch(Exception e)
+            {
+                System.debug('mensaje Televia '+e);
+            }
+            /* Modificaciones Televia  */
+            //  system.debug('>>> test2 '+Limits.getLimitQueryRows()+'|'+Limits.getQueryRows()+'|'+(Limits.getLimitQueryRows() - Limits.getQueryRows())+'|'+Limits.getQueries()+'|'+Limits.getDmlRows());
+        }
+        // Update Opps to properly sync Quote
+        // NOTE: Se difiere el update de Opportunity para consolidarlo en un solo DML al final del proceso.
+        // Esto reduce ejecuciones de flows/triggers y por ende la probabilidad de alcanzar 101 queries.
+        if(!mapOppsToSyncQuote.values().isEmpty()){
+            upsertPendingOppUpdates(mapOppsToSyncQuote.values());
+        }
+
+    //       system.debug('>>> test3 '+Limits.getLimitQueryRows()+'|'+Limits.getQueryRows()+'|'+(Limits.getLimitQueryRows() - Limits.getQueryRows())+'|'+Limits.getQueries()+'|'+Limits.getDmlRows());
+        return mapQl;
+    }
+    /* Modificaciones Televia  */
+    public static QuoteLineItem  duplicarQuoteLine( GLB_ClientReplicationWrapper.Records record,  String recordLegalEntityCode, Map<String,Quote> mapQuotes){
+        				QuoteLineItem newQliTelevia =new QuoteLineItem();
+                        newQliTelevia.QuoteId = mapQuotes.get(recordLegalEntityCode).Id;
+                        newQliTelevia.UnitPrice = record.AnnualIssueVolume; // 0?
+                        newQliTelevia.PricebookEntryId = PricebookEntryRec.Id;
+                        newQliTelevia.Quantity = 1;
+        				// fix 2 billings
+                        newQliTelevia.PaymentMethod__c ='Prepago';
+      				  // fix 2 billings
+                        newQliTelevia.FormaPago__c ='STP REFERENCIADO';
+          // fix 2 billings
+                        newQliTelevia.Package__c = record.PackageB; // Premium Plus
+                        newQliTelevia.meanType__c = 'Tarjetas Virtuales;Tag regular;Tarjetas Físicas';
+                        newQliTelevia.CantidadTarjetas__c = record.NumberOfPhysicalCards; // NumberOfPhysicalCards - NumberOfVirtualCards - RegularTagQuantity
+                        newQliTelevia.virtualCardQuantity__c = record.NumberOfVirtualCards;
+                        newQliTelevia.physicalCardQuantity__c = record.NumberOfPhysicalCards;
+                        newQliTelevia.regularTagQuantity__c = record.RegularTagQuantity;
+                        newQliTelevia.VigenciaCotizacion__c = mapQuotes.get(recordLegalEntityCode).VigenciaCotizacion__c;
+        				newQliTelevia.NTT_IsMigratedQli__c = true;
+        return newQliTelevia;
+    }
+ /* Modificaciones Televia  */
+    @TestVisible
+    private static map<string,ProductoConcepto__c> creaComercialTerms(List<GLB_ClientReplicationWrapper.Records> records, Map<String,QuoteLineItem> mapQuotesLine){
+        // 82 querys
+         Map<string,ProductoConcepto__c> mapPCToInsert = new map<string,ProductoConcepto__c>();
+        Map<String,Concepto__c> mapConceptos = getConceptosByProduct(producto33.Id);
+        //add Televia 03-03-26
+        Map<String,String> legalCodeByConcep  = new  Map<String,String>();
+         //add Televia 03-03-26
+        String conceptoFromAS400;
+        for(GLB_ClientReplicationWrapper.Records record : records){
+            for(GLB_ClientReplicationWrapper.CommercialTerm ct : record.CommercialTerms){
+                if(ct.CommercialTerm == null || ct.CommercialTerm == '') {
+                    continue;
+                }
+                conceptoFromAS400 = getSFConceptFromCatalogue(ct.CommercialTerm);
+                if(mapConceptos.ContainsKey(conceptoFromAS400)){
+                    ProductoConcepto__c pc = new ProductoConcepto__c();
+                    pc.Concepto__c = mapConceptos.get(conceptoFromAS400).Id;
+                    pc.Name = mapConceptos.get(conceptoFromAS400).TipoCargo__c;
+                    pc.Solucion_del__c = producto33.Id;
+                    pc.PartidaPresupuesto__c = mapQuotesLine.get(record.LegalEntityCode).Id;
+                    pc.Bonificacion__c = ct.Discount != '' ? Decimal.ValueOf(ct.Discount.replace('%', '')) : 0;
+                    pc.VigenciaDescuento__c = pc.Bonificacion__c > 0 ? Date.valueOf(ct.DiscountEndDate) : null;
+                    pc.PrecioLista2__c = Decimal.ValueOf(ct.ListPrice.replace('$', '').replace('%', ''));
+                    if( mapConceptos.get(conceptoFromAS400).TipoCargo__c == 'Comisión por el servicio' ){
+                        pc.PrecioLista2__c = (pc.PrecioLista2__c / 100);
+                    }
+                    pc.PrecioFinal__c = Decimal.ValueOf(ct.FinalPrice.replace('$', '').replace('%', ''));
+                    mapPCToInsert.put(record.LegalEntityCode + '-' + pc.Concepto__c, pc);
+                }
+                 //add Televia 03-03-26
+                if(mapConceptos.ContainsKey('TAG DUAL'))
+                {
+                    ProductoConcepto__c pc = conceptoNuevoTicketCar(producto33 ,mapQuotesLine.get(record.LegalEntityCode).Id,ct);
+                    pc.Concepto__c = mapConceptos.get('TAG DUAL').Id;
+                    pc.Name = 'TAG Dual';
+                    mapPCToInsert.put(record.LegalEntityCode + '-' + pc.Concepto__c, pc);
+            	}
+                 if(mapConceptos.ContainsKey('CUOTA POR RENTA MENSUAL TAG DUAL'))
+                {
+                    ProductoConcepto__c pc = conceptoNuevoTicketCar(producto33 ,mapQuotesLine.get(record.LegalEntityCode).Id,ct);
+                    pc.Concepto__c = mapConceptos.get('CUOTA POR RENTA MENSUAL TAG DUAL').Id ;
+                    pc.Name  ='Cuota por Renta Mensual Tag Dual';
+                    mapPCToInsert.put(record.LegalEntityCode + '-' + pc.Concepto__c, pc);
+            	}
+                 //add Televia 03-03-26
+            }
+        }
+        Database.SaveResult[] saveResults = Database.insert(mapPCToInsert.values(), false);
+        for (Integer i = 0; i < saveResults.size(); i++) {
+            if (saveResults[i].isSuccess()) {
+                successListglobal.add(mapPCToInsert.values()[i].id + ': ' + saveResults[i].getId());
+            } else {
+                for (Database.Error error : saveResults[i].getErrors()) {
+                    errorListglobal.add(error.getMessage());
+                }
+            }
+        }
+        return mapPCToInsert;
+    }
+    public static ProductoConcepto__c conceptoNuevoTicketCar(Product2  producto33, String LegalEntityCodeId, GLB_ClientReplicationWrapper.CommercialTerm ct){
+         ProductoConcepto__c pc = new ProductoConcepto__c();
+         pc.Solucion_del__c = producto33.Id;
+         pc.PartidaPresupuesto__c = LegalEntityCodeId;
+    	 pc.Bonificacion__c = ct.Discount != '' ? Decimal.ValueOf(ct.Discount.replace('%', '')) : 0;
+         pc.VigenciaDescuento__c = pc.Bonificacion__c > 0 ? Date.valueOf(ct.DiscountEndDate) : null;
+         pc.PrecioLista2__c = Decimal.ValueOf(ct.ListPrice.replace('$', '').replace('%', ''));
+         pc.PrecioFinal__c = Decimal.ValueOf(ct.FinalPrice.replace('$', '').replace('%', ''));
+        return pc;
+    }
+    @TestVisible
+    private static Map<String,Contrato2__c> creaAdministracionVenta(List<GLB_ClientReplicationWrapper.Records> records, Map<String,Account> mapCuentas,Map<String,CatalogoDirecciones__c> mapDirecciones, Map<String,Contact> mapContacts, Entidades entidadesLeg,Map<String,QuoteLineItem> mapQli, map<string,ProductoConcepto__c> comTerms){
+ 	// 85 querys
+        String legalRep = '';
+		String typoFact='';
+        String EmailFact = '';
+        String contLegalRep = '';
+        Contact contAd = new Contact();
+        String adminKey = '';
+        Id ficalAddress;
+        boolean withValor =false;
+        Map<String, List<Contrato_Direccion__c>> mapContratoDirecciones = new Map<String, List<Contrato_Direccion__c>>();
+        Set<Id> addressMissing = new Set<Id>();
+        // for(String keys : mapDirecciones.keySet()){
+        // }
+        for(CatalogoDirecciones__c dir : mapDirecciones.values()){
+            addressMissing.add(dir.Id);
+            if('Fiscal'.equalsIgnoreCase(dir.NTT_Tipo__c.trim())){
+                ficalAddress = dir.Id;
+            }
+        }
+        map<string,Contrato2__c> mapADV = new map<string,Contrato2__c>();
+        for(GLB_ClientReplicationWrapper.Records record : records){
+            if(!mapADV.containsKey(record.LegalEntityCode)){
+                String adminRepresentante = 'REPRESENTANTE LEGAL' + '-' + mapCuentas.get(record.RFC).Id;
+                contLegalRep = mapContacts.ContainsKey(adminRepresentante) ? mapContacts.get(adminRepresentante).Id : ''; // REP LEGAL ->  record.LegalRepresentativeId ????
+                // EmailFact = mapContacts.ContainsKey(key) ? mapContacts.get(key).Email : 'correo@correo.com';
+                adminKey = 'ADMINISTRADOR' + '-' + mapCuentas.get(record.RFC).Id;
+                contAd = mapContacts.ContainsKey(adminKey) ? mapContacts.get(adminKey) : new Contact();
+                EmailFact = record.MailReceivesInvoice != '' ? record.MailReceivesInvoice : 'correo@correo.com';
+                Contrato2__c adv = new Contrato2__c();
+                // adv.CodigoAS400__c = record.LegalEntityCode; // TODO: PhantomId/LegalEntityCode //Pendiente pensar ActionMethod / idUnique / CodigoAS400_Con2_Ori__c
+                // modificaciones Fix Name Migracion
+                adv.Name =	firstPart + '-'+Empresa+ '-'+ nameOpp.split('-')[1];// record.LegalEntityCode;
+                adv.Cuenta__c = mapCuentas.get(record.RFC).Id;
+                adv.Entidad_Legal__c = entidadesLeg.entidadesLegales.get(record.RFC).Id;
+                adv.Entidad_Cuenta__c = entidadesLeg.entidadesCuenta.get(record.RFC).Id;
+                adv.PartidaPresupuesto__c = mapQli.get(record.LegalEntityCode).Id;
+                adv.FiscalAddress__c = ficalAddress;
+                adv.Legal_representatives__c = contLegalRep != '' ? contLegalRep.removeEnd(',') : ''; // concat Ids record.LegalRepresentativeId ????
+                adv.PlatformAdministrator__c = contAd != null ? contAd.Id : null;
+                adv.CorreoRecibeFactura__c ='correo@correo.com';
+                adv.Contacto__c = contAd.Id;
+                adv.EtapaContrato__c = 'Autorizado';
+                  //  fix estabilizacion migracion
+                adv.NTT_IsMigrated__c = true;
+                  //  fix estabilizacion migracion
+                adv.TipoPago__c = record.PaymentMethod == 'Consumo' ? 'Pospago' : record.PaymentMethod;
+                adv.Package__c = record.PackageB; // Premium Plus / Premium
+                // adv.Nombre_de_Personalizacion__c = record.LegalEntityCode;
+                /* modificaciones MIGRACION JSON as400 */
+                 adv.NTT_Facturacion_IVA__c = record.SeparateIVA == '0' ||  integer.valueOf(record.SeparateIVA) == 0 ? 'Junto' : 'Separado';
+                 adv.NTT_Facturacion_de_la_comision__c = record.TypeOfBilling == 'Separada' ? 'Junto a los servicios' : 'Junto a los consumos';
+                /* modificaciones MIGRACION JSON as400 */
+                adv.GLB_MigrationToMercedes__c = true; // FLAG
+                for(GLB_ClientReplicationWrapper.Contracts contract : record.Contracts){
+                    if(contract.KeyPosition == '') {
+                        continue;
+                    }
+                    adv.ComoFactura__c = getSFComoFacturaFromCatalogue(contract.HowToBill);
+                    adv.Tipo_de_Facturacion__c = getSFTipoFactFromCatalogue(contract.BillingType);
+					typoFact =  getSFTipoFactFromCatalogue(contract.BillingType);
+                   // adv.Facturacion_Comision__c= getSFTipoFactFromCatalogue(contract.BillingType) == 'consolidado' ?  'junto a los consumos'; 
+                    if( contract.SpecificBillingDay.contains('de mes')   || contract.SpecificBillingDay.contains('DE MES') ||  contract.SpecificBillingDay.contains('del mes') ||  contract.SpecificBillingDay.contains('DEL MES') || contract.SpecificBillingDay.contains('ULTIMO DIA DEL MES') ){
+                        adv.FrecuenciaFacturacion__c = 'Mensual';
+                        adv.GLB_Facturacion_dia_Especifico__c = '1'; 
+                        withValor = true;
+                    }else{
+                         adv.FrecuenciaFacturacion__c =   getSFFrecFactFromCatalogue(contract.BillingFrequency); 
+                         adv.GLB_Facturacion_dia_Especifico__c = getSFTipoFactFromCatalogue(contract.BillingType) == 'Mensual' ? '1' : getSFFactDiaEspecificoFromCatalogue(contract.SpecificBillingDay);                   
+                    }
+                  	
+                    adv.Frecuencia_de_Pedido__c = getSFFrecPedidoFromCatalogue(contract.OrderFrequency);
+                    // adv.GLB_LineaCreditoAsignada__c =  record.CreditLimitAmount != null && record.CreditLimitAmount != '' ? Decimal.ValueOf(record.CreditLimitAmount) : 0;
+                    adv.GLB_LineaCreditoAsignada__c = contract.CreditLine; // Prepago???
+                    // adv.CondicionesPago__c
+                    // adv.CondicionesPagoPlazo__c
+                    // adv.isVirtualCard__c
+                    // adv.AmountContingency__c
+                    break;
+                }
+                String plasticos = record.PlasticOfBilling.toLowerCase();
+                plasticos = normaliceString(plasticos);
+                String tipoFact = record.TypeOfBilling.toLowerCase();
+                tipoFact = normaliceString(tipoFact);
+                System.debug('plasticos '+plasticos);
+                System.debug('tipoFact '+tipoFact);
+                
+                if(plasticos.contains('eparad')){
+                    adv.Facturacion_Plasticos__c = String.isBlank(typoFact) ? (tipoFact.contains('eparad') ? 'Separado del Consumo' : 'Junto al Consumo') : (typoFact.contains('eparad') ? 'Separado del Consumo' : 'Junto al Consumo') ; 
+                }
+                if(plasticos.contains('unt')){
+                     adv.Facturacion_Plasticos__c = String.isBlank(typoFact) ? (tipoFact.contains('unt') ? 'Junto al Consumo' : 'Separado del Consumo') : (typoFact.contains('unt') ? 'Junto al Consumo' : 'Separado del Consumo');
+                }
+                
+                  //  fix estabilización migración
+                    if(record.BillingFrequency.contains('DEMANDA') ||record.BillingFrequency.contains('demanda') || record.BillingFrequency.toUpperCase() == 'MENSUAL' ){
+                        adv.FrecuenciaFacturacion__c = 'Mensual';
+                        adv.GLB_Facturacion_dia_Especifico__c =withValor ? '1' : ( record.BillingDay.contains('de mes') || record.BillingDay.contains('DE MES') ||  record.BillingDay.contains('del mes') ||  record.BillingDay.contains('DEL MES') || record.BillingDay.contains('ULTIMO DIA DEL MES') ? '1' : record.BillingDay );
+                    }else if(withValor){
+                         adv.GLB_Facturacion_dia_Especifico__c = '1';
+                    }
+                    else if(record.Contracts.isEmpty()){
+                        adv.FrecuenciaFacturacion__c = getSFFrecFactFromCatalogue(record.BillingFrequency.toUpperCase());
+                    }  //  fix estabilización migración
+
+                mapADV.put(record.LegalEntityCode, adv);
+                    /* Televia Modificaciones */
+                if(record.FlagTelevia == '1'){
+                    adv.Telepeaje__c = true;
+                    adv.NTT_ChildContract__c= null;
+                    Contrato2__c getContrato = DuplicarContratoTelevia(adv);
+                    getContrato.Name =   record.LegalEntityCode;
+                    getContrato.CodigoAS400__c =  record.LegalEntityCode+'-TL';
+                    contratosTelevia.put(mapQli.get(record.LegalEntityCode).QuoteId,getContrato);
+                  	contratosTeleviaByLegalEntityCode.put(record.LegalEntityCode, getContrato);
+                }
+                    /* Televia Modificaciones */
+            }
+        }
+        List<Contrato_Direccion__c> listCDToInsert = new List<Contrato_Direccion__c>();
+        Set<Id> contratoIds = new Set<Id>();
+        Database.SaveResult[] saveResults = Database.insert(mapADV.values(), false);
+        for (Integer i = 0; i < saveResults.size(); i++) {
+            if (saveResults[i].isSuccess()) {
+                //idContratoPadre = saveResults[i].getId();
+                successListglobal.add(mapADV.values()[i].id + ': ' + saveResults[i].getId());
+                contratoIds.add(mapADV.values()[i].id );
+            } else {
+                for (Database.Error error : saveResults[i].getErrors()) {
+                    errorListglobal.add(error.getMessage());
+                }
+            }
+        }
+        if(!addressMissing.isEmpty()){
+            for(Id contractId : contratoIds){
+                for(Id idsAddress : addressMissing){
+                    Contrato_Direccion__c newAddressCDTInsert = new Contrato_Direccion__c( ContratoID__c = contractId, DireccionID__c = idsAddress);
+                    listCDToInsert.add(newAddressCDTInsert);
+                }
+            }
+        }
+        if(!listCDToInsert.isEmpty()){
+            Database.SaveResult[] saveResultsCDs = Database.insert(listCDToInsert, false);
+            for (Integer j = 0; j < saveResultsCDs.size(); j++) {
+                if (saveResultsCDs[j].isSuccess()) {
+                    successListglobal.add(listCDToInsert[j].id + ': ' + saveResultsCDs[j].getId());
+                } else {
+                    for (Database.Error error : saveResultsCDs[j].getErrors()) {
+                        errorListglobal.add(error.getMessage());
+                    }
+                }
+            }
+        }
+            /* Televia Modificaciones */
+       if(!contratosTelevia.isEmpty()){
+            // OPT: Evitar SOQL a QuoteLineItem; ya tenemos en memoria el QLI Televia por QuoteId (quoteIdTelevia).
+            List<Contrato2__c> contratosInsert = new List<Contrato2__c>();
+            Map<Id, String> legalEntityByQuoteId = new Map<Id, String>();
+            Map<String, Id> quoteIdByLegalEntityCode = new Map<String, Id>();
+
+            for(GLB_ClientReplicationWrapper.Records record : records){
+                if(record == null) continue;
+                if(String.isNotBlank(record.LegalEntityCode) && mapQli != null && mapQli.containsKey(record.LegalEntityCode)){
+                    Id qId = mapQli.get(record.LegalEntityCode).QuoteId;
+                    if(qId != null){
+                        legalEntityByQuoteId.put(qId, record.LegalEntityCode);
+                        quoteIdByLegalEntityCode.put(record.LegalEntityCode, qId);
+                    }
+                }
+            }
+
+            for(Id qId : contratosTelevia.keySet()){
+                Contrato2__c contratoTelevia = contratosTelevia.get(qId);
+                if(contratoTelevia == null) continue;
+
+                if(quoteIdTelevia != null && quoteIdTelevia.containsKey(String.valueOf(qId))){
+                    contratoTelevia.PartidaPresupuesto__c = quoteIdTelevia.get(String.valueOf(qId));
+                } else if(quoteIdTelevia != null && quoteIdTelevia.containsKey((String)qId)){
+                    // fallback (por si el map se llena con Id directo en lugar de String)
+                    contratoTelevia.PartidaPresupuesto__c = quoteIdTelevia.get((String)qId);
+                } else {
+                    // No rompemos; solo registramos para diagnóstico.
+                    errorListglobal.add('Televia: No se encontró QuoteLineItem para QuoteId ' + String.valueOf(qId));
+                }
+
+                contratosInsert.add(contratoTelevia);
+            }
+
+            if(!contratosInsert.isEmpty()){
+                insert contratosInsert;
+
+                List<Contrato2__c> contratosActualizar = new List<Contrato2__c>();
+                for(Contrato2__c insertedChild : contratosInsert){
+                    // Nota: tras insert, insertedChild.Id ya existe. Recuperamos el QuoteId desde el map original.
+                    // No tenemos el QuoteId en el registro insertado, por eso mapeamos por orden: usamos contratoTelevia original del loop.
+                    // Para mantenerlo simple y estable: recalculamos con quoteIdByLegalEntityCode.
+                    // Asignamos el child contract al contrato 33 (mapADV) usando el record.LegalEntityCode.
+                }
+                for(String legalEntityCode : quoteIdByLegalEntityCode.keySet()){
+                    Id qId = quoteIdByLegalEntityCode.get(legalEntityCode);
+                    if(qId == null) continue;
+
+                    // encontrar el contrato hijo insertado asociado a ese QuoteId
+                    Contrato2__c child = contratosTelevia.get(qId);
+                    if(child == null || child.Id == null) continue;
+
+                    if(mapADV != null && mapADV.containsKey(legalEntityCode)){
+                        Contrato2__c parent = mapADV.get(legalEntityCode);
+                        parent.NTT_ChildContract__c = child.Id;
+                        contratosActualizar.add(parent);
+                    }
+                }
+
+                if(!contratosActualizar.isEmpty()){
+                    Database.update(contratosActualizar, false);
+                }
+            }
+        }
+            /* Televia Modificaciones */
+        return mapADV;
+    }
+    /* Televia Modificaciones */
+    public static Contrato2__c DuplicarContratoTelevia (Contrato2__c adv){
+       		Contrato2__c  contratoTelevia = new Contrato2__c();
+             // modificaciones Fix Name Migracion
+        	  contratoTelevia.Name =  adv.Name.split('-')[0] + '-TL '+Empresa+'-'+nameOpp.split('-')[1];
+              contratoTelevia.Cuenta__c =  adv.Cuenta__c;
+              contratoTelevia.Entidad_Legal__c =  adv.Entidad_Legal__c;
+              contratoTelevia.Entidad_Cuenta__c =  adv.Entidad_Cuenta__c;
+              contratoTelevia.PartidaPresupuesto__c =null;//  adv.PartidaPresupuesto__c;
+              contratoTelevia.FiscalAddress__c =  adv.FiscalAddress__c;
+              contratoTelevia.Legal_representatives__c =  adv.Legal_representatives__c;
+              contratoTelevia.PlatformAdministrator__c =  adv.PlatformAdministrator__c;
+              contratoTelevia.CorreoRecibeFactura__c =  adv.CorreoRecibeFactura__c;
+              contratoTelevia.Contacto__c =  adv.Contacto__c;
+              contratoTelevia.EtapaContrato__c =  adv.EtapaContrato__c;
+              contratoTelevia.Facturacion_Plasticos__c =  adv.Facturacion_Plasticos__c;        
+        	  // fix 2 billings
+              contratoTelevia.TipoPago__c ='Prepago'; // adv.TipoPago__c;
+              contratoTelevia.Package__c =  adv.Package__c;
+              contratoTelevia.GLB_MigrationToMercedes__c =  adv.GLB_MigrationToMercedes__c;
+              contratoTelevia.ComoFactura__c =  adv.ComoFactura__c;
+              contratoTelevia.Tipo_de_Facturacion__c =  adv.Tipo_de_Facturacion__c;
+              contratoTelevia.FrecuenciaFacturacion__c = String.isBlank(adv.FrecuenciaFacturacion__c) ? null : adv.FrecuenciaFacturacion__c;
+              contratoTelevia.Frecuencia_de_Pedido__c =  adv.Frecuencia_de_Pedido__c;
+              contratoTelevia.GLB_Facturacion_dia_Especifico__c = String.isBlank(adv.GLB_Facturacion_dia_Especifico__c) ? null : adv.GLB_Facturacion_dia_Especifico__c;
+			  // fix 2 billings
+        	  contratoTelevia.GLB_LineaCreditoAsignada__c = null;//adv.GLB_LineaCreditoAsignada__c;
+        	  contratoTelevia.NTT_IsMigrated__c = true;
+       		  contratoTelevia.Telepeaje__c = true;
+              return contratoTelevia;
+    }
+        /* Televia Modificaciones */
+    /* Televia Modificaciones */
+    public static ContratoFilial__c DuplicarContratoFilialTelevia (ContratoFilial__c contratoFilial){
+       		ContratoFilial__c  cf = new ContratoFilial__c();
+            cf.Entidad_Cuenta__c  = contratoFilial.Entidad_Cuenta__c;
+            cf.Producto__c  =   productoTelevia.Id;
+            cf.isActive__c  =  contratoFilial.isActive__c;
+            cf.Distintivo__c  =  contratoFilial.Distintivo__c; // Check
+            cf.isPrime__c  =  contratoFilial.isPrime__c;
+            cf.NTT_IdPrime__c  =  contratoFilial.NTT_IdPrime__c;
+            cf.Representantelegal__c  =  contratoFilial.Representantelegal__c;
+            cf.PlatformAdministrator__c  =  contratoFilial.PlatformAdministrator__c;
+		//cf.GLB_MigratedAs400ClientId__c  =  contratoFilial.GLB_MigratedAs400ClientId__c;
+          //  cf.GLB_Unique_ID_Generator__c  =  contratoFilial.GLB_Unique_ID_Generator__c;
+            cf.Migration_Contract__c  =  contratoFilial.Migration_Contract__c = true;
+            cf.MigrationOpportunity__c  =  contratoFilial.MigrationOpportunity__c;
+            cf.SourceSubaccount__c  =  contratoFilial.SourceSubaccount__c;
+            cf.NTT_IsMigratedContF__c  =  contratoFilial.NTT_IsMigratedContF__c = true;
+              return cf;
+    }
+        /* Televia Modificaciones */
+    @TestVisible
+    private static Map<String,ContratoFilial__c> creaContratosFiliales(List<GLB_ClientReplicationWrapper.Records> records, Map<String,Account> mapCuentas,Map<String,Opportunity> mapOpps,Map<String,CatalogoDirecciones__c> mapDirecciones, Map<String,Contact> mapContacts, Entidades entidadesLeg,Map<String,QuoteLineItem> mapQli, map<string,ProductoConcepto__c> comTerms, Map<String,Contrato2__c> mapADV){
+        // Id ContratoFilialRecordType = Schema.SObjectType.ContratoFilial__c.getRecordTypeInfosByDeveloperName().get('NTTER_Migracion_Clientes_43').getRecordTypeId();
+        map<Id,String> idContratos = new  map<Id,String>();
+
+        for(Contrato2__c item : mapADV.values()){
+            idContratos.put(item.Id,item.Id);
+        }
+
+        List<ContratoFilial__c> cfTeleviaInsert = new List<ContratoFilial__c>();
+        String advKey;
+        String EmailFact = '';
+        Contact contLegalRep = new Contact();
+        Contact contAd = new Contact();
+        String adminKey = '';
+        String adminRepresentante = '';
+        // CatalogoDirecciones__c dirLeg = new CatalogoDirecciones__c();
+        // for(CatalogoDirecciones__c dir : mapDirecciones.Values()){
+        //     if(dir.NTT_Tipo__c == 'Fiscal'){
+        //         dirLeg  = dir;
+        //     }
+        // }
+
+        map<string,ContratoFilial__c> mapCF = new map<string,ContratoFilial__c>();
+        Set<String> ids400 = new Set<String>();
+        Boolean isMotherRecordMigration = true;
+        for(GLB_ClientReplicationWrapper.Records record : records){
+            ids400.add(record.LegalEntityCode);
+            if(record.IsMother == false){
+                isMotherRecordMigration = false;
+                ids400.add(record.LegalEntityCodeMother);
+            }
+        }
+        Map<String,ContratoFilial__c> mapaContratosFialesAnteriores = getOldsContratosFilialesInfo(ids400);
+        for(GLB_ClientReplicationWrapper.Records record : records){
+            advKey = record.LegalEntityCode;
+            //maybe create principal CF with as400 Id.
+            ContratoFilial__c contratoFilial = new ContratoFilial__c();
+            // ContratoFilial.RecordTypeId = ContratoFilialRecordType;
+            contratoFilial.Contrato_2__c = mapADV.get(advKey).Id;
+            contratoFilial.Entidad_Cuenta__c = entidadesLeg.entidadesCuenta.get(record.RFC).Id;
+            // contratoFilial.CodigoAS400__c = mapADV.get(advKey).CodigoAS400__c;
+            contratoFilial.Name = mapADV.get(advKey).CodigoAS400__c;
+            contratoFilial.Producto__c = Producto33.Id;
+            // contratoFilial.GLB_Unique_ID_Generator__c = mapADV.get(advKey).CodigoAS400__c;
+            contratoFilial.isActive__c = true;
+            contratoFilial.Distintivo__c = 'Principal'; // Check
+            contratoFilial.isPrime__c = true;
+            contratoFilial.NTT_IdPrime__c= record.IDPrime;
+            // String key ='DECIDE' + 'true' + 'true';
+            // contLegalRep = mapContacts.ContainsKey(key) ? mapContacts.get(key) : new Contact();
+            // contAd = mapContacts.ContainsKey(key) ? mapContacts.get(key) : new Contact();
+            // EmailFact = mapContacts.ContainsKey(key) ? mapContacts.get(key).Email : 'correo@correo.com';
+            adminKey = 'ADMINISTRADOR' + '-' + mapCuentas.get(record.RFC).Id;
+            contAd = mapContacts.ContainsKey(adminKey) ? mapContacts.get(adminKey) : new Contact();
+            EmailFact = record.MailReceivesInvoice != '' ? record.MailReceivesInvoice : 'correo@correo.com'; // OR -> contracts.EmailReceivesnvoice
+            adminRepresentante = 'REPRESENTANTE LEGAL' + '-' + mapCuentas.get(record.RFC).Id;
+            contLegalRep = mapContacts.ContainsKey(adminRepresentante) ? mapContacts.get(adminRepresentante) : new Contact();
+            contratoFilial.Representantelegal__c = contLegalRep.Id;
+            contratoFilial.PlatformAdministrator__c = contAd.Id;
+            // Migrated From and To data -> remap with alreadyMigratedCF and add it to the map?
+            contratoFilial.GLB_MigratedAs400ClientId__c = record.LegalEntityCode;
+            contratoFilial.GLB_Unique_ID_Generator__c = record.LegalEntityCode;
+            contratoFilial.Migration_Contract__c = true;
+            contratoFilial.MigrationOpportunity__c = mapOpps.get(advKey).Id;
+            if(mapaContratosFialesAnteriores.containsKey(record.LegalEntityCode)){
+           		 contratoFilial.SourceSubaccount__c = mapaContratosFialesAnteriores.get(record.LegalEntityCode).Id;
+            }else if(!isMotherRecordMigration){
+                if(mapaContratosFialesAnteriores.containsKey(record.LegalEntityCodeMother)){
+                    contratoFilial.SourceSubaccount__c = mapaContratosFialesAnteriores.get(record.LegalEntityCodeMother).Id;
+                }
+            }
+              /* modificaciones Televia */
+            contratoFilial.NTT_IsMigratedContF__c = true;
+              if(record.FlagTelevia == '1'){
+                  ContratoFilial__c cfTelevia = DuplicarContratoFilialTelevia(contratoFilial);
+                  cfTelevia.Name  =   record.LegalEntityCode+'-TL';
+                  cfTelevia.Contrato_2__c = contratosTeleviaByLegalEntityCode.containskey(advKey) ? contratosTeleviaByLegalEntityCode.get(advKey).Id : null; //contratoFilial.Contrato_2__c;
+                  cfTeleviaInsert.add(cfTelevia);
+              }
+            /* modificaciones Televia */
+            mapCF.put(advKey, contratoFilial);
+        }
+        List<Opportunity> listOppsToUpdate = new List<Opportunity>();
+        Database.SaveResult[] saveResults = Database.insert(mapCF.values(), false);
+        for (Integer i = 0; i < saveResults.size(); i++) {
+            if (saveResults[i].isSuccess()) {
+                successListglobal.add(mapCF.values()[i].id + ': ' + saveResults[i].getId());
+                listOppsToUpdate.add(new Opportunity (Id = mapCF.values()[i].MigrationOpportunity__c, SubCuentaMigracion__c = mapCF.values()[i].id));
+            } else {
+                for (Database.Error error : saveResults[i].getErrors()) {
+                    errorListglobal.add(error.getMessage());
+                }
+            }
+        }
+        // Update Opps to properly sync Quote
+        // NOTE: Se difiere el update de Opportunity para consolidarlo en un solo DML al final del proceso.
+        if(!listOppsToUpdate.isEmpty()){
+            upsertPendingOppUpdates(listOppsToUpdate);
+        }
+        return mapCF;
+    }
+    private static  Map<String,ContratoFilial__c> getOldsContratosFilialesInfo(Set<String> ids400){
+        Map<String,ContratoFilial__c> mapaContratosFialesAnteriores= new map<String,ContratoFilial__c>();
+        if(!ids400.isEmpty()){
+            List<ContratoFilial__c> contratosFiliales = [SELECT id,Name,GLB_MigratedAs400ClientId__c FROM ContratoFilial__c WHERE Name IN : ids400 OR GLB_MigratedAs400ClientId__c IN:ids400];
+            if(!contratosFiliales.isEmpty()){
+                for(ContratoFilial__c contratoFilial : contratosFiliales){
+                    if(!mapaContratosFialesAnteriores.containsKey(contratoFilial.Name)){
+                        mapaContratosFialesAnteriores.put(contratoFilial.Name,contratoFilial);
+                    }
+                    if(!mapaContratosFialesAnteriores.containsKey(contratoFilial.GLB_MigratedAs400ClientId__c)){
+                        mapaContratosFialesAnteriores.put(contratoFilial.GLB_MigratedAs400ClientId__c,contratoFilial);
+                    }
+                }
+            }
+    	}
+        return mapaContratosFialesAnteriores;
+    }
+    @TestVisible
+    // Consolidación de updates a Opportunity para evitar múltiples DML (y automatizaciones repetidas).
+    private static Map<Id, Opportunity> pendingOppUpdates = new Map<Id, Opportunity>();
+
+    private static void upsertPendingOppUpdates(List<Opportunity> oppUpdates){
+        if(oppUpdates == null || oppUpdates.isEmpty()){
+            return;
+        }
+        for(Opportunity o : oppUpdates){
+            if(o == null || o.Id == null) continue;
+            if(!pendingOppUpdates.containsKey(o.Id)){
+                pendingOppUpdates.put(o.Id, new Opportunity(Id = o.Id));
+            }
+            Opportunity merged = pendingOppUpdates.get(o.Id);
+
+            // Merge de campos (solo asignamos si viene valor)
+            if(o.SyncedQuoteId != null) merged.SyncedQuoteId = o.SyncedQuoteId;
+            if(o.SubCuentaMigracion__c != null) merged.SubCuentaMigracion__c = o.SubCuentaMigracion__c;
+        }
+    }
+
+    private static void flushPendingOppUpdates(){
+        if(pendingOppUpdates == null || pendingOppUpdates.isEmpty()){
+            return;
+        }
+        Database.SaveResult[] results = Database.update(pendingOppUpdates.values(), false);
+        List<Opportunity> updatedList = pendingOppUpdates.values();
+        for(Integer i = 0; i < results.size(); i++){
+            if(results[i].isSuccess()){
+                successListglobal.add(updatedList[i].Id + ': ' + results[i].getId());
+            }else{
+                for(Database.Error err : results[i].getErrors()){
+                    errorListglobal.add(err.getMessage());
+                }
+            }
+        }
+        pendingOppUpdates.clear();
+    }
+
+    @TestVisible
+    private static String createResponseBody(Boolean succeeded, Integer code, List<String> successList, List<String> errorList) {
+        Response res = new Response();
+        res.code = code;
+        res.succeeded = succeeded;
+        res.errors = null;
+        res.success = null;
+        if(successList.size() > 0) {
+            List<Success> successsList = new List<Success>();
+            for(String successString : successList) {
+                Success success = new Success();
+                success.description = successString;
+                successsList.add(success);
+            }
+            res.success = successsList;
+        }
+        if(errorList.size() > 0) {
+            List<Errors> errorsList = new List<Errors>();
+            for(String errorString : errorList) {
+                Errors error = new Errors();
+                error.description = errorString;
+                errorsList.add(error);
+            }
+            res.errors = errorsList;
+        }
+        String jsonResponse = System.JSON.serialize(res);
+        return jsonResponse;
+    }
+    public class Entidades {
+        public Map<String,EntidadLegal__c> entidadesLegales {get;set;}
+        public Map<String,EntidadCuenta__c> entidadesCuenta {get;set;}
+    }
+
+    public class ComercialTerms {
+        public Map<String,ProductoConcepto__c> comTerms {get;set;}
+        public Integer frecuencia {get;set;}
+        public Integer diaEspecifico {get;set;}
+    }
+    public class Response {
+        Integer code;
+        Boolean succeeded;
+        Success[] success;
+        Errors[] errors;
+    }
+    public class Success {
+        String description;
+    }
+    public class Errors {
+        String description;
+    }
+    public class PropestiesRecord {
+        public String rfc;
+        public String billindEntityCode;
+        public PropestiesRecord(String rfc, String billindEntityCode) {
+            this.rfc = rfc;
+            this.billindEntityCode = billindEntityCode;
+        }
+    }
+    // Utils
+    public static Date reformatDate(String dateInput){
+        // Date res;
+        List<String> dateSplitted = new List<String>();
+        String newDateString;
+        if (dateInput == null) {
+			return null;
+		}
+        dateSplitted = dateInput.split('/'); // "29/10/2020" -> "29", "10", "2020"
+        if(!dateSplitted.isEmpty() && dateSplitted.Size() == 3) {
+            newDateString = dateSplitted[2] + '-' + dateSplitted[1] + '-' + dateSplitted[0];
+        }
+        return Date.valueOf(newDateString);
+    }
+    public static String convertDate(DateTime dateInput, Boolean toDateTime, Boolean hasTime, Boolean zeroHour){
+		DateTime fechaOriginal;
+		Integer OFFSET_SIGN = hasTime ? -1 : 1;
+        TimeZone tz = UserInfo.getTimeZone();
+        Integer HORAS_OFFSET = tz.getOffset(DateTime.Now()) * 60000 * OFFSET_SIGN;
+		if (dateInput != null) {
+			fechaOriginal = dateInput;
+		} else {
+			return null;
+		}
+        Long TimeHoras = fechaOriginal.getTime() + HORAS_OFFSET;
+		fechaOriginal = DateTime.newInstance(TimeHoras);
+		Integer year = 0;
+        String nuevaFecha = '';
+        String mes = '';
+        String month = '';
+        String dia = '';
+        String day = '';
+		if (toDateTime) {
+			year = fechaOriginal.year();
+            mes = String.ValueOf(fechaOriginal.Month() + 1);
+			month = '0' + mes;
+            dia = String.ValueOf(fechaOriginal.Day());
+			day = '0' + dia;
+			nuevaFecha = zeroHour ? year + '-' + month + '-' + day + ' 00:00:00Z' : year + '-' + month + '-' + day + ' 23:59:00Z';
+			return nuevaFecha;
+		} else {
+			year = fechaOriginal.year();
+			mes = String.ValueOf(fechaOriginal.Month() + 1);
+			month = '0' + mes;
+			dia = String.ValueOf(fechaOriginal.Day());
+			day = '0' + dia;
+			nuevaFecha = year + '-' + month + '-' + day;
+			return nuevaFecha;
+		}
+	}
+    public static String normaliceString(String cadena){
+		cadena = cadena
+            .replace('á','a')
+            .replace('é','e')
+            .replace('í','i')
+            .replace('ó','o')
+            .replace('ú','u')
+            .replace('ñ','n')
+            .replace('Á','A')
+            .replace('É','E')
+            .replace('Í','I')
+            .replace('Ó','O')
+            .replace('Ú','U')
+        ;
+        return cadena;
+	}
+    public static Map<String, Concepto__c> getConceptosByProduct(Id productId) {
+        Map<String,Concepto__c> res = new Map<String,Concepto__c>(); // getConceptosByProduct(producto33.Id);
+        String conceptoTipoCargo;
+         List<Concepto__c> conceptos = new List<Concepto__c>();
+         /* Modificaciones Televia  */
+        if(productId == productoTelevia.Id){
+            conceptos = [ SELECT Id, Name, TipoCargo__c,Importe__c FROM Concepto__c WHERE Producto__c = :productId AND RecordType.DeveloperName = 'Conceptos' and Activo__c = true ];
+        }else{
+            conceptos=  [ SELECT Id, Name, TipoCargo__c FROM Concepto__c WHERE Producto__c = :productId AND RecordType.DeveloperName = 'Conceptos' ];
+        }
+         /* Modificaciones Televia  */
+        for(Concepto__c con : conceptos){// WHERE TipoCargo__c IN: prodConceptNamesFromAS400
+            conceptoTipoCargo = normaliceString(con.TipoCargo__c);
+            // if(!prodConceptNamesFromAS400.contains(conceptoTipoCargo)) {
+            //     continue;
+            // }
+                 res.put(conceptoTipoCargo.toUpperCase(), con);
+        }
+        return res;
+    }
+    // Catalogues
+    public static Id getSFTypeOfPersonFromCatalogue(String key){
+        Id PersonaFisicaRecordType = Schema.SObjectType.EntidadLegal__c.getRecordTypeInfosByDeveloperName().get('Persona_Fisica').getRecordTypeId();
+    	Id PersonaMoralRecordType = Schema.SObjectType.EntidadLegal__c.getRecordTypeInfosByDeveloperName().get('Persona_Moral').getRecordTypeId();
+        Id result;
+        key = normaliceString(key).toUpperCase();
+        Map <String,Id> mapCatalogue = new Map<String,Id>{
+            'PERSONA FISICA' => PersonaFisicaRecordType,
+            'PERSONA MORAL' => PersonaMoralRecordType //Default
+        };
+        result = mapCatalogue.ContainsKey(key) ? mapCatalogue.get(key) : PersonaMoralRecordType;
+        return result;
+    }
+    public static String getTaxRegimeFromCatalogue(Integer key){
+        String result = '';
+        Map <Integer, String> mapCatalogue = new Map<Integer,String>{
+            601 => '601',
+            603 => '603',
+            605 => '605',
+            606 => '606',
+            610 => '610',
+            611 => '611',
+            612 => '612',
+            614 => '614',
+            620 => '620',
+            621 => '621',
+            622 => '622',
+            623 => '623',
+            624 => '624',
+            625 => '625',
+            626 => '626'
+        };
+        result = mapCatalogue.ContainsKey(key) ? mapCatalogue.get(key) : result;
+        return result;
+    }
+    public static String contactRoleCatalogue(String key){ //Funcion__c
+        // AS400 -> SF (matching values (normalize and upped -> picklist api value))
+        String result = '';
+        key = normaliceString(key).toUpperCase();
+        Map <String,String> mapCatalogue = new Map<String,String>{
+            'ADMINISTRADOR' => 'Administrador de plataforma',
+            'ADMINISTRADOR UNICO' => 'Administrador de plataforma',
+            'RESP ADMINISTRATIVO' => 'Administrador de plataforma',
+            'REPRESENTANTE LEAGL' => 'Representante Legal',
+            'REPRESENTANTE LEGAL' => 'Representante Legal',
+            'REPRESENTANTE LEGALZ' => 'Representante Legal',
+            'REPRESENTANTE LEGAN' => 'Representante Legal',
+            'REPRESENTATE LEGAL' => 'Representante Legal',
+            'REPRESENTATNTE LEGAL' => 'Representante Legal',
+            'REPRESENTNATE LEGAL' => 'Representante Legal',
+            'RECIBE FACTURA 1' => 'Contacto de facturación',
+            'RECIBE FACTURA 2' => 'Contacto de facturación',
+            'RECIBE FACTURA 3' => 'Contacto de facturación',
+            'RECIBE FACTURA 4' => 'Contacto de facturación',
+            'RECIBE FACTURA 5' => 'Contacto de facturación',
+            'RECIBE FACTURA 6' => 'Contacto de facturación',
+            'RECIBE FACTURA 7' => 'Contacto de facturación',
+            'RECIBE FACTURA 8' => 'Contacto de facturación',
+            'RECIBE FACTURA 9' => 'Contacto de facturación',
+            'RECIBE FACTURA 10' => 'Contacto de facturación',
+            'RECIBE FACTURA 11' => 'Contacto de facturación'
+        };
+        result = mapCatalogue.ContainsKey(key) ? mapCatalogue.get(key) : result;
+        return result;
+    }
+    public static String getSFVigenciaCotizacionFromCatalogue(String key){ //VigenciaCotizacion__c
+        // AS400 -> SF (matching values (normalize and upped -> picklist api value))
+        String result = '';
+        key = normaliceString(key).toUpperCase();
+        Map <String,String> mapCatalogue = new Map<String,String>{
+            '7 DIAS' => '7 días', //Default
+			'14 DIAS' => '14 días'
+        };
+        result = mapCatalogue.ContainsKey(key) ? mapCatalogue.get(key) : '7 días';
+        return result;
+    }
+    public static String getSFComoFacturaFromCatalogue(String key){ // ComoFactura__c
+        // AS400 -> SF (matching values (normalize and upped -> picklist api value))
+        String result = '';
+        key = normaliceString(key).toUpperCase();
+        Map<String,String> response = new Map<String,String>();
+        List<String> fields = new list<String>{'Name__c','Identifier__c'};
+        Map<String,List<SObject>> dataDiasMigracion = CatalogUtil.getCatalogByMetadataName('Migracion_Como_factura__mdt ',fields);
+        for(SObject keyMdt : dataDiasMigracion.get('Migracion_Como_factura__mdt ')){
+            String name = (String) keyMdt.get('Name__c');
+            String identifer = (String) keyMdt.get('Identifier__c');
+            //Default
+            if(name == 'Default'){
+                response.put(name, identifer);
+            }else if(name == key){
+                response.put(name,identifer);
+            }
+        }
+        result = response.containsKey(key) ? response.get(key) : response.get('Default');
+        return result;
+    }
+    public static String getSFTipoFactFromCatalogue(String key){ // Tipo_de_Facturacion__c
+        // AS400 -> SF (matching values (normalize and upped -> picklist api value))
+        String result = '';
+        key = normaliceString(key).toUpperCase();
+        Map <String,String> mapCatalogue = new Map<String,String>{
+            'SEPARADA' => 'Separada',
+			'JUNTA' => 'Consolidada',
+			'CONSOLIDADA' => 'Consolidada'
+        };
+        result = mapCatalogue.ContainsKey(key) ? mapCatalogue.get(key) : result;
+        return result;
+    }
+    public static String getSFFrecFactFromCatalogue(String key){  // FrecuenciaFacturacion__c
+        // AS400 -> SF (matching values (normalize and upped -> picklist api value))
+        String result = '';
+        key = normaliceString(key).toUpperCase();
+        Map <String,String> mapCatalogue = new Map<String,String>{
+            'SEMANAL' => 'Semanal',
+            'QUINCENAL' => 'Quincenal',
+            'MENSUAL' => 'Mensual', //Default
+            'DIARIO' => 'Diario',
+            'SEMANAL FRACCIONADO' => 'Semanal Fraccionado',
+            'SEMANAL/ MENSUAL 01' => 'Semanal Fraccionado',
+            'ESPECIAL DIA SEMANA' => 'Semanal'
+        };
+        result = mapCatalogue.containsKey(key) ? mapCatalogue.get(key) : 'Mensual';
+        return result;
+    }
+    public static String getSFFactDiaEspecificoFromCatalogue(String key){// GLB_Facturacion_dia_Especifico__c
+        // AS400 -> SF (matching values (normalize and upped -> picklist api value))
+        String result = '';
+        key = normaliceString(key).toUpperCase();
+        Map<String,String> response = new Map<String,String>();
+        List<String> fields = new list<String>{'Name__c','Identifier__c'};
+        Map<String,List<SObject>> dataDiasMigracion = CatalogUtil.getCatalogByMetadataName('Migracion_Dia_Especifico__mdt ',fields);
+         	for(SObject keyMdt : dataDiasMigracion.get('Migracion_Dia_Especifico__mdt ')){
+                if( (String) keyMdt.get('Name__c') == key)
+                {
+                    response.put((String) keyMdt.get('Name__c'),(String) keyMdt.get('Identifier__c'));
+                }
+            }
+        result = response.containsKey(key) ? response.get(key) : key.trim().toLowerCase().capitalize();
+        return result;
+    }
+    public static String getSFFrecPedidoFromCatalogue(String key){ // Frecuencia_de_Pedido__c
+        // AS400 -> SF (matching values (normalize and upped -> picklist api value))
+        String result = '';
+        key = normaliceString(key).toUpperCase();
+        Map <String,String> mapCatalogue = new Map<String,String>{
+            'PEDIDO DIARIO' => 'Diario',
+            'A DEMANDA' => 'Diario',
+            'PEDIDO SEMANAL' => 'Semanal',
+            'PEDIDO QUINCENAL' => 'Quincenal',
+            'PEDIDO A DIEZ DIAS' => 'Quincenal',
+            'PEDIDO CATORCENAL' => 'Quincenal',
+            'PEDIDO QUINCENAL' => 'Quincenal',
+            'PEDIDO MENSUAL' => 'Mensual' //Default
+        };
+        result = mapCatalogue.containsKey(key) ? mapCatalogue.get(key) : 'Mensual';
+        return result;
+    }
+    public static String getSFConceptFromCatalogue(String key){
+        // AS400 -> SF (comparing values (BOTH normaliced and upped))
+        String result = '';
+        key = normaliceString(key).toUpperCase();
+        Map <String,String> mapCatalogue = new Map<String,String>{
+            'CARGO POR ENVIO' => 'CARGO POR ENVIO ESTANDAR',
+            'TAG REGULAR' => 'TAG REGULAR',
+            'CUENTA ACTIVA' => 'CUENTA ACTIVA',
+            'COMISION' => 'COMISION POR EL SERVICIO',
+            'COBRO POR REFACTURACION' => 'CARGO POR REFACTURACION',
+            'TARJETAS FISICAS' => 'TARJETAS FISICAS' ,
+                 /* Modificaciones Televia  */
+            'COMISION POR SERVICIO TELEPEAJE' => 'COMISION POR SERVICIO TELEPEAJE'
+                 /* Modificaciones Televia  */
+		};
+        result = mapCatalogue.ContainsKey(key) ? mapCatalogue.get(key) : result;
+        return result;
+    }
+    public static String getSFAddressTypeFromCatalogue(String key){
+        // AS400 -> SF (matching values (normalize and upped -> open text field))
+        String result = '';
+        key = normaliceString(key).toUpperCase();
+        Map <String,String> mapCatalogue = new Map<String,String>{
+            'ENTR' => 'Entrega',
+			'FISCAL' => 'Fiscal'
+		};
+        result = mapCatalogue.ContainsKey(key) ? mapCatalogue.get(key) : result;
+        return result;
+    }
+
+     @TestVisible
+    private static List<Grupo_de_facturacion__c> processBillingGroups(
+        GLB_ClientReplicationWrapper payload,
+        Map<String, Account> mapCuentas,
+        Map<String, Opportunity> mapOpps,
+        Entidades entidadesLeg
+    ) {
+        if (payload == null) return new List<Grupo_de_facturacion__c>();
+        if (payload.Records == null || payload.Records.isEmpty()) return new List<Grupo_de_facturacion__c>();
+
+        // Acumular listas desde los Records (por contrato del WS)
+        List<GLB_ClientReplicationWrapper.BillingGroupStructure> allGroups = new List<GLB_ClientReplicationWrapper.BillingGroupStructure>();
+
+        for (GLB_ClientReplicationWrapper.Records r : payload.Records) {
+            if (r == null) continue;
+            if (r.BillingGroupStructure != null) allGroups.addAll(r.BillingGroupStructure);
+        }
+
+        if (allGroups.isEmpty() && entidadesLeg.entidadesLegales.isEmpty()) {
+            return new List<Grupo_de_facturacion__c>();
+        }
+
+        GLB_ClientReplicationWrapper.Records recordPrincipal = payload.Records[0];
+        if (recordPrincipal == null || String.isBlank(recordPrincipal.RFC)) {
+            return new List<Grupo_de_facturacion__c>();
+        }
+
+        // Cuenta para direcciones (según indicación: desde EntidadCuenta / ContratoFilial)
+        Id cuentaId = null;
+        if (entidadesLeg != null && entidadesLeg.entidadesCuenta != null && entidadesLeg.entidadesCuenta.containsKey(recordPrincipal.RFC)) {
+            cuentaId = entidadesLeg.entidadesCuenta.get(recordPrincipal.RFC).Cuenta__c;
+        }
+        if (cuentaId == null && mapCuentas != null && mapCuentas.containsKey(recordPrincipal.RFC)) {
+            cuentaId = mapCuentas.get(recordPrincipal.RFC).Id;
+        }
+        if (cuentaId == null) {
+            return new List<Grupo_de_facturacion__c>();
+        }
+
+        // Opportunity para relacionar grupos
+        Id oppId = null;
+        if (mapOpps != null && mapOpps.containsKey(recordPrincipal.LegalEntityCode)) {
+            oppId = mapOpps.get(recordPrincipal.LegalEntityCode).Id;
+        }
+        // 4) Grupo_de_facturacion__c con flags compatibles (lote/activo)
+        Integer lote = 1;
+        List<Grupo_de_facturacion__c> last = [
+            SELECT Id, NTT_Lote__c
+            FROM Grupo_de_facturacion__c
+            WHERE Account__c = :cuentaId
+            ORDER BY NTT_Lote__c DESC NULLS LAST, CreatedDate DESC
+            LIMIT 1
+        ];
+        if (!last.isEmpty() && last[0].NTT_Lote__c != null) {
+            lote = Integer.valueOf(last[0].NTT_Lote__c);
+        }
+
+        List<Grupo_de_facturacion__c> gruposToInsert = new List<Grupo_de_facturacion__c>();
+        if (!allGroups.isEmpty()) {
+            for (GLB_ClientReplicationWrapper.BillingGroupStructure bg : allGroups) {
+                if (bg == null) continue;
+
+                Grupo_de_facturacion__c g = new Grupo_de_facturacion__c();
+                g.Name = bg.BillingGroupName;
+                g.IDMigracionContrato__c = String.valueOf(bg.IDContractWattsMother);
+                g.CodigoAS400MIgracion__c = bg.LegalEntityCodeMother;
+                g.Account__c = cuentaId;
+                g.Opportunity__c = oppId;
+                g.RFC_Text__c = bg.RFCGrupo;
+                g.Centro_de_Costos__c = String.valueOf(bg.GroupIdtoBilling);
+                g.IsPrincipalMigration__c = bg.ISMother;
+                if (entidadesLeg.entidadesLegales.containsKey(bg.RFCGrupo)){
+                    g.Entidad_Legal__c = entidadesLeg.entidadesLegales.get(bg.RFCGrupo).Id;
+                }
+
+                g.Activo__c = true;
+                g.NTT_Lote__c = lote;
+                g.NTT_Es_Ultimo_Lote__c = true;
+
+                gruposToInsert.add(g);
+            }
+        }
+        return gruposToInsert;
+    }
+
+    @TestVisible
+    private static void enqueueBillingGroupsPhantom(
+        GLB_ClientReplicationWrapper payload,
+        List<Grupo_de_facturacion__c> grupos,
+        Map<String, ContratoFilial__c> contratosFiliales,
+        Map<String, Opportunity> mapOpps
+    ) {
+        if (payload == null || payload.Records == null || payload.Records.isEmpty()
+            || grupos == null || grupos.isEmpty() || contratosFiliales == null) {
+            return;
+        }
+
+        GLB_ClientReplicationWrapper.Records principal = payload.Records[0];
+        if (principal == null || String.isBlank(principal.LegalEntityCode)
+            || !contratosFiliales.containsKey(principal.LegalEntityCode)) {
+            return;
+        }
+
+        ContratoFilial__c contratoFilial = contratosFiliales.get(principal.LegalEntityCode);
+        Id opportunityId = mapOpps != null && mapOpps.containsKey(principal.LegalEntityCode)
+            ? mapOpps.get(principal.LegalEntityCode).Id
+            : null;
+
+        System.enqueueJob(new NTTBillingGroupsPhantomQueueable(
+            grupos,
+            contratoFilial.Id,
+            opportunityId,
+            contratoFilial.GLB_ID_Cuenta__c
+        ));
+    }
+
+    public class NTTBillingGroupsPhantomQueueable implements Queueable, Database.AllowsCallouts {
+        private List<Grupo_de_facturacion__c> grupos;
+        private Id contratoFilialId;
+        private Id opportunityId;
+        private Double glbIdCuentaActual;
+
+        public NTTBillingGroupsPhantomQueueable(
+            List<Grupo_de_facturacion__c> grupos,
+            Id contratoFilialId,
+            Id opportunityId,
+            Decimal glbIdCuentaActual
+        ) {
+            this.grupos = grupos;
+            this.contratoFilialId = contratoFilialId;
+            this.opportunityId = opportunityId;
+            this.glbIdCuentaActual = glbIdCuentaActual == null
+                ? null
+                : Double.valueOf(String.valueOf(glbIdCuentaActual));
+        }
+
+        public void execute(QueueableContext context) {
+            NTTPhantomGrupoFacturacionService.Request request =
+                new NTTPhantomGrupoFacturacionService.Request();
+            request.grupos = grupos;
+            request.contratoFilialId = contratoFilialId;
+            request.opportunityId = opportunityId;
+            request.glbIdCuentaActual = glbIdCuentaActual;
+
+            List<NTTPhantomGrupoFacturacionService.Response> responses =
+                NTTPhantomGrupoFacturacionService.generarPhantomYGuardar(
+                    new List<NTTPhantomGrupoFacturacionService.Request>{ request }
+                );
+
+            if (responses != null && !responses.isEmpty() && !responses[0].success) {
+                System.debug(LoggingLevel.ERROR,
+                    'Error al generar grupos de facturación en Phantom: ' + responses[0].message);
+            }
+        }
+    }
+}
