@@ -171,7 +171,7 @@
                                         ng-if="(cotizacion.Editable || cotizacion.ApprovalStatus__c == 'Ajuste' || cotizacion.ApprovalStatus__c == 'Aprobada') && cotizacion.Editable2" 
                                         type="submit" 
                                         ng-click="cot.preGuardado(cotizacion)" 
-                                        ng-disabled="cotizacion.guardando || cotizacion.formCotiza.$invalid || cotizacion.formCotiza.comision || !cotizacion.productos || cotizacion.productos.length <= 0 || (!cotizacion.modalidadPago && sc.opportunity.RecordType == 'RT_Renegotiation' && sc.opportunity.Familia__c == 'Mantenimiento')">
+                                        ng-disabled="!desactivarBotton && sc.opportunity.RecordType == 'RT_Renegotiation' ? false : ( cotizacion.guardando  || cotizacion.formCotiza.$invalid || cotizacion.formCotiza.comision || !cotizacion.productos || cotizacion.productos.length <= 0 || (!cotizacion.modalidadPago && sc.opportunity.RecordType == 'RT_Renegotiation' && sc.opportunity.Familia__c == 'Mantenimiento'))">
 
                                         <span class="fa fa-spinner fa-pulse fa-fw ng-animate-disabled" ng-if="cotizacion.guardando"></span>
                                         <span class="fa fa-save fa-fw"></span>
@@ -204,7 +204,7 @@
                 var vm = this
              
                 vm.quotes = ctcUtils.app.cots || []
-                console.log('@@ Quote 2 @@ ',vm.quotes)
+                console.log('@@ Quote 2 @@ ',vm.quotes) 
 
                 vm.selectedTab = ctcUtils.app.selectedTab
 					
@@ -229,6 +229,7 @@
                 vm.includesNectar = ctcUtils.app.includesNectar || false //Nectar [3374] SE DESCOMENTA PARA ACTIVAR NECTAR
                 vm.cotizaciones = []
                 vm.tab = 0
+                vm.desactivarBotton=true;
                 vm.urlAddContact = ''
                 // vm.contacts = []
                 vm.loadingContacts = false
@@ -285,7 +286,19 @@
                     }
                     */
                     console.log('tcUtils.app.selectTelepeaje '+JSON.stringify( ctcUtils.selectTelepeaje));
-                   
+                    console.log('tcUtils.app.selectTelepeaje '+JSON.stringify( ctcUtils.app.opportunity.NTT_AltaTelevia__c));
+                    console.log('tcUtils.app.selectTelepeaje '+JSON.stringify( vm.quotes[0].NTT_IsTelepeaje__c));
+                    console.log('tcUtils.app.confirmacionTelepeaje '+JSON.stringify( ctcUtils.app.confirmacionTelepeaje));
+                    console.log('tcUtils.app.confirmacionTelepeaje '+JSON.stringify( ctcUtils.app.renderTelepeaje));                    
+                    
+                    if( (ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ) && vm.quotes[0].NTT_IsTelepeaje__c){
+                       vm.desactivarBotton = false;
+                        console.log('tcUtils.app.desactivarBotton '+JSON.stringify( vm.desactivarBotton));
+                    }
+                    
+                    if(ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ){
+                       vm.desactivarBotton = false;
+                    }
                 }
             
                 vm.activateSaveButton = function() {
@@ -1950,13 +1963,19 @@
                     }
 
                     //Inicio Licitación - Clientes
-                    if(ctcUtils.app.approvalBonification != undefined){
-                        finalApprovalLevels.push(ctcUtils.app.approvalBonification);
+                    if(ctcUtils.app.conceptoBonificacion != undefined){
+                        finalApprovalLevels.push(ctcUtils.app.conceptoBonificacion.PrecioFinal__c__approvalLevel);
+                    }
+                    
+                    if(ctcUtils.app.cobroRefacturacion != undefined){
+                        finalApprovalLevels.push(ctcUtils.app.cobroRefacturacion.PrecioFinal__c__approvalLevel);
                     }
                     //Fin Licitación - Clientes
                     
                     if (finalApprovalLevels != '' && finalApprovalLevels != null) {
-                        ctcUtils.app.finalApprovalLevel = Math.max(...finalApprovalLevels);
+                        //Inicio Licitación clientes, se agrega filtro para omitir valores undefined
+                        ctcUtils.app.finalApprovalLevel = Math.max(...finalApprovalLevels.filter(e => e !== undefined));
+                        //Fin Licitación clientes
                     } else {
                         ctcUtils.app.finalApprovalLevel = 0;
                     }
@@ -2746,10 +2765,30 @@
                         ctcUtils.app.isMFGSelected = isMFGSelected;
                         // renegociacion - Televia
                         console.log('ctcUtils.app.comisionTelevia  '+JSON.stringify (ctcUtils.app.comisionTelevia));
-                        console.log('ctcUtils.app.formaPagoSnap  '+JSON.stringify (ctcUtils.app.formaPagoSnap));
+                        console.log('ctcUtils.app.formaPagoSnap  '+JSON.stringify (ctcUtils.app.formaPagoSnap));    
+                        console.log('ctcUtils.app.NTT_AltaTelevia__c  '+JSON.stringify (ctcUtils.app.NTT_AltaTelevia__c));    
+                        
+                        
                         if(ctcUtils.app.formaPagoSnap != undefined){
-                            payloadOpportunity.NTT_AltaTelevia__c = (ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP' ||   ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP REFERENCIADO') && ctcUtils.app.comisionTelevia ? ( ctcUtils.app.hasSnap != undefined && ctcUtils.app.hasSnap != null ? false : true) : false;
-                            payloadOpportunity.NTT_ModificacionTelevia__c = (ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP' || ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP REFERENCIADO' ) && ctcUtils.app.comisionTelevia ? ( ctcUtils.app.hasSnap != undefined && ctcUtils.app.hasSnap != null ? true : false) : false;                        
+                         if (cotizacion && cotizacion.productos && (ctcUtils.app.NTT_AltaTelevia__c== true || ctcUtils.app.NTT_AltaTelevia__c == 'true' ))  {
+                            const productos = cotizacion.productos;
+                            for (let producto of productos) {
+                                console.log('Producto: ', producto);
+                                if (producto.conceptosUnicos) {
+                                    for (let concepto of producto.conceptosUnicos) {
+                                        console.log('Concepto: ', concepto);
+                                        if (concepto.TipoCargo__c != 'Comisión por Servicio Telepeaje' && concepto.TipoCargo__c  != 'TAG Dual' && concepto.TipoCargo__c != 'Cuota por Renta Mensual Tag Dual' ) {
+                                            concepto.Render = false;                                                
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        console.log('ctcUtils cotizacion.productos  '+JSON.stringify (cotizacion.productos));
+                            
+                         payloadOpportunity.NTT_AltaTelevia__c = (ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP' ||   ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP REFERENCIADO') && ctcUtils.app.comisionTelevia ? ( ctcUtils.app.hasSnap != undefined && ctcUtils.app.hasSnap != null ? false : true) : false;
+                         payloadOpportunity.NTT_ModificacionTelevia__c = (ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP' || ctcUtils.app.formaPagoSnap.toUpperCase() === 'STP REFERENCIADO' ) && ctcUtils.app.comisionTelevia ? ( ctcUtils.app.hasSnap != undefined && ctcUtils.app.hasSnap != null ? true : false) : false;                        
                          console.log('ctcUtils.app.NTT_ModificacionTelevia__c  '+JSON.stringify (payloadOpportunity.NTT_ModificacionTelevia__c));
                         }
                         ///ASIGNACION CREDITO
