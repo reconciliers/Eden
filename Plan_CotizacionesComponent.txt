@@ -171,7 +171,7 @@
                                         ng-if="(cotizacion.Editable || cotizacion.ApprovalStatus__c == 'Ajuste' || cotizacion.ApprovalStatus__c == 'Aprobada') && cotizacion.Editable2" 
                                         type="submit" 
                                         ng-click="cot.preGuardado(cotizacion)" 
-                                        ng-disabled="!desactivarBotton && sc.opportunity.RecordType == 'RT_Renegotiation' ? false : ( cotizacion.guardando  || cotizacion.formCotiza.$invalid || cotizacion.formCotiza.comision || !cotizacion.productos || cotizacion.productos.length <= 0 || (!cotizacion.modalidadPago && sc.opportunity.RecordType == 'RT_Renegotiation' && sc.opportunity.Familia__c == 'Mantenimiento'))">
+                                        ng-disabled="cotizacion.guardando || !cot.desactivarBotton || cotizacion.formCotiza.$invalid || cotizacion.formCotiza.comision || !cotizacion.productos || cotizacion.productos.length <= 0 || (!cotizacion.modalidadPago && sc.opportunity.RecordType == 'RT_Renegotiation' && sc.opportunity.Familia__c == 'Mantenimiento')">
 
                                         <span class="fa fa-spinner fa-pulse fa-fw ng-animate-disabled" ng-if="cotizacion.guardando"></span>
                                         <span class="fa fa-save fa-fw"></span>
@@ -288,16 +288,10 @@
                     console.log('tcUtils.app.selectTelepeaje '+JSON.stringify( ctcUtils.selectTelepeaje));
                     console.log('tcUtils.app.selectTelepeaje '+JSON.stringify( ctcUtils.app.opportunity.NTT_AltaTelevia__c));
                     console.log('tcUtils.app.selectTelepeaje '+JSON.stringify( vm.quotes[0].NTT_IsTelepeaje__c));
-                    console.log('tcUtils.app.confirmacionTelepeaje '+JSON.stringify( ctcUtils.app.confirmacionTelepeaje));
-                    console.log('tcUtils.app.confirmacionTelepeaje '+JSON.stringify( ctcUtils.app.renderTelepeaje));                    
                     
                     if( (ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ) && vm.quotes[0].NTT_IsTelepeaje__c){
                        vm.desactivarBotton = false;
                         console.log('tcUtils.app.desactivarBotton '+JSON.stringify( vm.desactivarBotton));
-                    }
-                    
-                    if(ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ){
-                       vm.desactivarBotton = false;
                     }
                 }
             
