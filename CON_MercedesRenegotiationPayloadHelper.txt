@@ -1,0 +1,550 @@
+public class CON_MercedesRenegotiationPayloadHelper {
+    private static final Integer ANNUAL_FEE_CHARGE_IDENTIFIER = 42;
+    private static final Integer ANNUAL_APPLICATION_FREQUENCY_ID = 8;
+
+    private static Map<String, Integer> chargeCatalog = new Map<String, Integer>{
+        'ANUALIDAD' => 42,
+        'CUOTA POR RENTA MENSUAL (TAG)' => 41,
+        'CUOTA POR RENTA MENSUAL (TARJETA VIRTUAL)' => 40,
+        'IMPLEMENTACION' => 1,
+        'MENSUALIDAD BASICO' => 2,
+        'MENSUALIDAD PREMIUM' => 2,
+        'MENSUALIDAD AVANZADO' => 3,
+        'MENSUALIDAD PREMIUM PLUS' => 3,
+        'TAG REGULAR' => 4,
+        'TAG DUAL' => 5,
+        'TARJETAS VIRTUALES' => 6,
+        'COMISION POR DEPOSITO' => 7,
+        'CARGO POR ENVIO DISPOSITIVO' => 8,
+        'CUENTA ACTIVA' => 9,
+        'CONSUMO' => 10,
+        'COMISION POR EL SERVICIO' => 7,
+        'TARJETAS FISICAS' => 12,
+        'COMISION PORTAL POR PAGO' => 13,
+        'PARTICIPACION' => 14,
+        'COBRO POR TRANSFERENCIA' => 15,
+        'CARGO POR ENVIO - RECURRENTE' => 8,
+        'CARGO POR ENVIO ESTANDAR' => 8,
+        'CARGO POR REFACTURACION' => 16,
+        'CUOTA POR ORDENAMIENTO Y/O ENTREGA ESPECIAL' => 17,
+        'MOVE FOR GOOD - COMPENSACION DE EMISIONES (50%)' => 38,
+        'MOVE FOR GOOD - COMPENSACION DE EMISIONES (100%)' => 37
+    };
+
+    private static Map<String, Integer> pendingTransactionsHandling = new Map<String, Integer>{
+        'FACTURA DE TRANSACCIONES SEPARADA CON EL PERIODO ORIGINAL' => 31,
+        'AGREGAR TRANSACCIONES EN LA SIGUIENTE FACTURA' => 30
+    };
+
+    private static Map<String, Integer> commissionBilling = new Map<String, Integer>{
+        'JUNTO A LOS CONSUMOS' => 34,
+        'JUNTO A LOS SERVICIOS' => 35
+    };
+
+    private static Map<String, Integer> ivaBilling = new Map<String, Integer>{
+        'JUNTO' => 32,
+        'SEPARADO' => 33
+    };
+        
+    //HU: Facturacion por mercancia    
+    private static Map<String, Integer> merchandiseBilling = new Map<String, Integer>{
+        'JUNTO' => 36,
+        'SEPARADO' => 37
+    };
+    //HU: Facturacion por mercancia
+
+    private static Map<String, Integer> billingFrequency = new Map<String, Integer>{
+        'DIARIO' => 1,
+        'SEMANAL' => 2,
+        'QUINCENAL' => 3,
+        'MENSUAL' => 4,
+        'COBRO UNICO' => 5,
+        'POR EVENTO' => 6,
+        'SEMANAL-MENSUAL' => 7,
+        'SEMANAL FRACCIONADO' => 7,
+        'MENSUAL CON DIA ESPECIFICO' => 4,
+        'ANUAL' => 8,
+        'SEMESTRAL' => 9
+    };
+
+    private static Map<String, String> billingDay = new Map<String, String>{
+        'LUNES' => 'Monday',
+        'MARTES' => 'Tuesday',
+        'MIERCOLES' => 'Wednesday',
+        'JUEVES' => 'Thursday',
+        'VIERNES' => 'Friday',
+        'SABADO' => 'Saturday',
+        'DOMINGO' => 'Sunday',
+        'ULTIMO DIA DEL MES' => 'L',
+        '1 Y 16' => '1,16',
+        'TODOS LOS DIAS' => '1'
+    };
+
+    private static Map<String, String> accents = new Map<String, String>{
+        'á' => 'a',
+        'é' => 'e',
+        'í' => 'i',
+        'ó' => 'o',
+        'ú' => 'u',
+        'Á' => 'A',
+        'É' => 'E',
+        'Í' => 'I',
+        'Ó' => 'O',
+        'Ú' => 'U',
+        'ñ' => 'n',
+        'Ñ' => 'N'
+    };
+
+    public static Integer billingConfigurationItemId(String value) {
+        Integer itemId = pendingTransactionsHandlingItemId(value);
+        if (itemId != null) {
+            return itemId;
+        }
+        itemId = commissionBillingItemId(value);
+        if (itemId != null) {
+            return itemId;
+        }
+        
+        //HU: Facturacion por mercancia
+        itemId = merchandiseBillingItemId(value);        
+        if (itemId != null) {return itemId;}
+        //HU: Facturacion por mercancia
+        
+        return ivaBillingItemId(value);
+    }
+
+    //HU: Facturacion por mercancia
+    public static Integer merchandiseBillingItemId(String value) {
+        return merchandiseBilling.get(normalizeCatalogKey(value));
+    }
+    //HU: Facturacion por mercancia
+    
+    public static Integer pendingTransactionsHandlingItemId(String value) {
+        return pendingTransactionsHandling.get(normalizeCatalogKey(value));
+    }
+
+    public static Integer commissionBillingItemId(String value) {
+        return commissionBilling.get(normalizeCatalogKey(value));
+    }
+
+    public static Integer ivaBillingItemId(String value) {
+        return ivaBilling.get(normalizeCatalogKey(value));
+    }
+
+    public static Integer chargeIdentifier(String conceptName) {
+        return chargeCatalog.get(normalizeCatalogKey(conceptName));
+    }
+
+    public static Decimal chargeAmount(ProductoConcepto__c productConcept) {
+        if (productConcept == null) {
+            return null;
+        }
+        Decimal listPrice = productConcept.PrecioLista__c;
+        Decimal finalPrice = productConcept.PrecioFinal__c;
+        Boolean hasDiscount = productConcept.Bonificacion__c != null && productConcept.Bonificacion__c > 0;
+        if (!hasDiscount && finalPrice != null && (listPrice == null || finalPrice > listPrice)) {
+            return finalPrice;
+        }
+        return listPrice != null ? listPrice : finalPrice;
+    }
+
+    public static Integer billingFrequencyId(String frequencyName) {
+        return billingFrequency.get(normalizeCatalogKey(frequencyName));
+    }
+
+    public static String billingDayRange(String billingDayName) {
+        return billingDay.get(normalizeCatalogKey(billingDayName));
+    }
+
+    public static Boolean applyAnnualChargeFrequency(
+        NTTER_ClientToMercedesWrapper.Charges charge,
+        Integer billingFrequencyIdentifier,
+        String billingRange,
+        DateTime annualReferenceDate
+    ) {
+        if (charge == null || charge.identifier != ANNUAL_FEE_CHARGE_IDENTIFIER) {
+            return false;
+        }
+
+        String currentApplicationDay = charge.frecuency == null
+            ? null
+            : charge.frecuency.application_day;
+        NTTER_ClientToMercedesWrapper.Frecuency annualFrequency =
+            new NTTER_ClientToMercedesWrapper.Frecuency();
+        annualFrequency.identifier = billingFrequencyIdentifier;
+        annualFrequency.range = billingRange;
+        annualFrequency.application_id = ANNUAL_APPLICATION_FREQUENCY_ID;
+        annualFrequency.application_day = isValidAnnualApplicationDay(currentApplicationDay)
+            ? currentApplicationDay
+            : formatAnnualApplicationDay(annualReferenceDate);
+        charge.frecuency = annualFrequency;
+        return true;
+    }
+
+    private static Boolean isValidAnnualApplicationDay(String value) {
+        return !String.isBlank(value) &&
+            Pattern.matches('^(L|[1-9]|1[0-9]|2[0-8]),([1-9]|1[0-2])$', value);
+    }
+
+    private static String formatAnnualApplicationDay(DateTime referenceDate) {
+        if (referenceDate == null) {
+            return null;
+        }
+        Date annualDate = referenceDate.dateGmt();
+        String dayValue = annualDate.day() > 28
+            ? 'L'
+            : String.valueOf(annualDate.day());
+        return dayValue + ',' + String.valueOf(annualDate.month());
+    }
+
+    public static String removeAccents(String text) {
+        if (String.isBlank(text)) {
+            return text;
+        }
+        for (String key : accents.keySet()) {
+            text = text.replaceAll(key, accents.get(key));
+        }
+        return text;
+    }
+
+    public static List<NTTER_ClientToMercedesWrapper.Accounts> cloneMercedesAccounts(
+        List<NTTER_ClientToMercedesWrapper.Accounts> accounts
+    ) {
+        if (accounts == null) {
+            return new List<NTTER_ClientToMercedesWrapper.Accounts>();
+        }
+        return (List<NTTER_ClientToMercedesWrapper.Accounts>) JSON.deserialize(
+            JSON.serialize(accounts),
+            List<NTTER_ClientToMercedesWrapper.Accounts>.class
+        );
+    }
+
+    public static List<NTTER_ClientToMercedesWrapper.Accounts> buildRenegotiationAccountReferences(
+        List<NTTER_ClientToMercedesWrapper.Accounts> sourceAccounts,
+        String conditionRef,
+        String productCode
+    ) {
+        List<NTTER_ClientToMercedesWrapper.Accounts> references = new List<NTTER_ClientToMercedesWrapper.Accounts>();
+        if (sourceAccounts == null || String.isBlank(conditionRef)) {
+            return references;
+        }
+        Integer fallbackProductId = parseMercedesProductCode(productCode);
+        for (NTTER_ClientToMercedesWrapper.Accounts sourceAccount : sourceAccounts) {
+            if (sourceAccount == null || String.isBlank(sourceAccount.identifier)) {
+                continue;
+            }
+            NTTER_ClientToMercedesWrapper.Accounts accountRef = new NTTER_ClientToMercedesWrapper.Accounts();
+            accountRef.identifier = sourceAccount.identifier;
+            accountRef.products = new List<NTTER_ClientToMercedesWrapper.Products>();
+            if (sourceAccount.products != null) {
+                for (NTTER_ClientToMercedesWrapper.Products sourceProduct : sourceAccount.products) {
+                    Integer productId = sourceProduct == null ? null : sourceProduct.identifier;
+                    if (productId == null) {
+                        productId = fallbackProductId;
+                    }
+                    if (productId == null) {
+                        continue;
+                    }
+                    NTTER_ClientToMercedesWrapper.Products productRef = new NTTER_ClientToMercedesWrapper.Products();
+                    productRef.identifier = productId;
+                    productRef.condition_ref = conditionRef;
+                    accountRef.products.add(productRef);
+                }
+            }
+            if (accountRef.products.isEmpty() && fallbackProductId != null) {
+                NTTER_ClientToMercedesWrapper.Products productRef = new NTTER_ClientToMercedesWrapper.Products();
+                productRef.identifier = fallbackProductId;
+                productRef.condition_ref = conditionRef;
+                accountRef.products.add(productRef);
+            }
+            if (!accountRef.products.isEmpty()) {
+                references.add(accountRef);
+            }
+        }
+        return references;
+    }
+
+    public static Boolean hasWrapperAccountProductReference(
+        List<NTTER_ClientToMercedesWrapper.Accounts> accounts
+    ) {
+        if (accounts == null || accounts.isEmpty()) {
+            return false;
+        }
+        Boolean hasProductReference = false;
+        for (NTTER_ClientToMercedesWrapper.Accounts account : accounts) {
+            if (account == null || String.isBlank(account.identifier) || account.products == null || account.products.isEmpty()) {
+                return false;
+            }
+            for (NTTER_ClientToMercedesWrapper.Products product : account.products) {
+                if (
+                    product != null &&
+                    product.identifier != null &&
+                    String.isNotBlank(product.condition_ref)
+                ) {
+                    hasProductReference = true;
+                }
+            }
+        }
+        return hasProductReference;
+    }
+
+    public static Boolean hasActionableWrapperAccountProduct(
+        List<NTTER_ClientToMercedesWrapper.Accounts> accounts
+    ) {
+        if (accounts == null || accounts.isEmpty()) {
+            return false;
+        }
+        Boolean hasActionableProduct = false;
+        for (NTTER_ClientToMercedesWrapper.Accounts account : accounts) {
+            if (account == null || account.action_type == null || account.products == null || account.products.isEmpty()) {
+                return false;
+            }
+            for (NTTER_ClientToMercedesWrapper.Products product : account.products) {
+                if (
+                    product != null &&
+                    product.action_type != null &&
+                    String.isNotBlank(product.condition_ref) &&
+                    product.items != null &&
+                    !product.items.isEmpty()
+                ) {
+                    hasActionableProduct = true;
+                }
+            }
+        }
+        return hasActionableProduct;
+    }
+
+    public static String normalizeRenegotiationAccountsForMercedesUpdate(String requestBody) {
+        System.debug( 'normalizeRenegotiationAccountsForMercedesUpdate test ' +CON_ContractsContainer_CTRL.isMFG);
+        System.debug( 'TratTransacPendientes test ' +CON_ContractsContainer_CTRL.TratTransacPendientes);
+                    System.debug('json comple requestBody '+requestBody);
+         boolean MFG=CON_ContractsContainer_CTRL.isMFG;
+        if (String.isBlank(requestBody)) {
+            return requestBody;
+        }
+        try {
+            Map<String, Object> root = asObjectMap(JSON.deserializeUntyped(requestBody));
+            Map<String, Object> client = asObjectMap(root.get('client'));
+            if (client.isEmpty()) {
+                return requestBody;
+            }
+             // renegociacion - Televia 
+            List<Object> billingAction = (List<Object>) client.get('billings');
+         	List<String> camposBillingDelete = new List<String>{
+                'payment_method_id',
+                'payment_condition_id',
+                'name',
+                'entities'
+            };
+            List<String> camposConditionsDelete = new List<String>{
+                'stepped_tables'                
+            };
+            List<String> camposBillingConditionDelete = new List<String>{
+                'service_plan_type_identifier'                
+            };
+            String razonSocial =''; 
+            boolean ActivacionTelevia=false;
+           List<Object> agreements = (List<Object>) client.get('agreements');
+                 if(agreements != null){
+                    for(Object obj : agreements){
+                        Map<String, Object> agreement =  (Map<String, Object>) obj;
+                        
+                        for(String itemCondi : camposBillingConditionDelete){
+                             agreement.remove(itemCondi);
+                        }
+                        List<Object> conditions = (List<Object>) agreement.get('conditions');
+                        if(conditions != null){
+                            for(Object condObj : conditions){
+                                
+                                Map<String, Object> condition = (Map<String, Object>) condObj;
+                                
+                                for(String itemCondi : camposConditionsDelete){
+                                   condition.remove(itemCondi);
+                                }
+                                List<Object> billings =  (List<Object>) condition.get('billings');
+
+                                if(billings != null){
+                                    for(Object billObj : billings){
+                                        
+                                        Map<String, Object> billing = (Map<String, Object>) billObj;
+                                       	
+                                            for(String item : camposBillingDelete){
+                                                    billing.remove(item);
+                                            }
+                                        
+                                        
+                                        	List<Object> charges = (List<Object>) billing.get('charges');
+ 											if(charges != null){
+                                                for(Object chargeObj : charges){
+                                                    Map<String, Object> charge = (Map<String, Object>) chargeObj;
+                                                    charge.put('action_type', 2);
+                                                }
+                                            }
+                                       		if(!String.isBlank( (String) billing.get('billing_ref') )){
+                                               if(!String.isBlank( (String) billing.get('billing_ref') )){
+                                                String Cadena = (String) billing.get('billing_ref');                                               
+                                                String[] partsCode = Cadena.split('-'); 
+                                                    if(partsCode.size() > 0 ){
+                                                         razonSocial = partsCode[1];
+                                                    }                                                                                                                                               
+                                            	}                                               
+                                            }
+                                        	if((String) condition.get('identifier') != (String) billing.get('identifier')){
+                                                billing.put('identifier', (String) condition.get('identifier'));                                                 
+                                            }
+                                        
+                                        	if( String.isBlank( (String) billing.get('billing_ref') )){                                                
+                                                 billing.put('billing_ref', (String) condition.get('identifier')+'-'+razonSocial);                                                                                                                                             
+                                            }
+                                    }
+                                }
+                            }
+                        }
+                   }
+                }
+            for(Object itemObj : billingAction) {             
+                Map<String, Object> item = (Map<String, Object>) itemObj;
+                String identifier = (String) item.get('identifier');
+                Integer actionType = (Integer) item.get('action_type');
+             
+                if(identifier != null && identifier.contains('-TL') && actionType == 1) {
+                    ActivacionTelevia= true;
+                }
+            }
+            // renegociacion - Televia 
+            if(ActivacionTelevia || MFG || !CON_ContractsContainer_CTRL.TratTransacPendientes.isEmpty()){  
+            }
+            else 
+            if (!hasValidMercedesUpdateAccounts(client.get('accounts'))) {
+                client.put('accounts', null);
+            }
+            root.put('client', client);
+            System.debug('json comple '+json.serialize(root));
+            return JSON.serialize(root);
+        } catch (Exception ex) {
+            return requestBody;
+        }
+    }
+
+    private static Integer parseMercedesProductCode(String productCode) {
+        if (String.isBlank(productCode)) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(productCode);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private static String normalizeCatalogKey(String value) {
+        String normalized = removeAccents(value);
+        return String.isBlank(normalized) ? null : normalized.toUpperCase();
+    }
+
+    private static Boolean hasValidMercedesUpdateAccounts(Object accountsRaw) {
+        Boolean hasValidProduct = false;
+        for (Object accountRaw : asObjectList(accountsRaw)) {
+            Map<String, Object> account = asObjectMap(accountRaw);
+            if (!isValidMercedesUpdateAccount(account)) {
+                return false;
+            }
+            Boolean accountHasAction = hasNonBlankValue(account.get('action_type'));
+            Boolean accountHasProduct = false;
+            for (Object productRaw : asObjectList(account.get('products'))) {
+                Map<String, Object> product = asObjectMap(productRaw);
+                if (isActionableMercedesUpdateProduct(product)) {
+                    if (!accountHasAction) {
+                        return false;
+                    }
+                    accountHasProduct = true;
+                    hasValidProduct = true;
+                } else if (!accountHasAction && isReferenceMercedesUpdateProduct(product)) {
+                    accountHasProduct = true;
+                    hasValidProduct = true;
+                } else {
+                    return false;
+                }
+            }
+            if (!accountHasProduct) {
+                return false;
+            }
+        }
+        return hasValidProduct;
+    }
+
+    private static Boolean isActionableMercedesUpdateProduct(Map<String, Object> product) {
+        Object actionType = product.get('action_type');
+        return
+            actionType != null &&
+            String.isNotBlank(String.valueOf(actionType)) &&
+            hasNonBlankValue(product.get('condition_ref')) &&
+            !asObjectList(product.get('items')).isEmpty();
+    }
+
+    private static Boolean isReferenceMercedesUpdateProduct(Map<String, Object> product) {
+        return
+            product.get('identifier') != null &&
+            hasNonBlankValue(product.get('condition_ref')) &&
+            product.get('action_type') == null;
+    }
+
+    private static Boolean isValidMercedesUpdateAccount(Map<String, Object> account) {
+        if (account.isEmpty()) {
+            return false;
+        }
+        if (!isCanonicalMercedesAccountIdentifier(account.get('identifier'))) {
+            return false;
+        }
+        for (String fieldName : new List<String>{
+            'account_type_id',
+            'brand_id',
+            'business_name',
+            'commercial_name',
+            'country_id',
+            'credit_limit',
+            'economic',
+            'fiscal',
+            'is_fiscal_key',
+            'latitude',
+            'longitude',
+            'segment_type_id',
+            'tax_zone_id',
+            'utc_zone_id'
+        }) {
+            if (account.containsKey(fieldName) && isBlankMercedesAccountValue(account.get(fieldName))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static Boolean isCanonicalMercedesAccountIdentifier(Object rawValue) {
+        if (rawValue == null || String.isBlank(String.valueOf(rawValue))) {
+            return false;
+        }
+        return Pattern.matches('^\\d{3}-\\d{7}-\\d{5}$', String.valueOf(rawValue));
+    }
+
+    private static Boolean isBlankMercedesAccountValue(Object rawValue) {
+        return rawValue == null || (rawValue instanceof String && String.isBlank((String) rawValue));
+    }
+
+    private static Boolean hasNonBlankValue(Object rawValue) {
+        return rawValue != null && String.isNotBlank(String.valueOf(rawValue));
+    }
+
+    private static List<Object> asObjectList(Object rawValue) {
+        if (rawValue instanceof List<Object>) {
+            return (List<Object>) rawValue;
+        }
+        return new List<Object>();
+    }
+
+    private static Map<String, Object> asObjectMap(Object rawValue) {
+        if (rawValue instanceof Map<String, Object>) {
+            return (Map<String, Object>) rawValue;
+        }
+        return new Map<String, Object>();
+    }
+}
