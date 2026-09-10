@@ -1,0 +1,297 @@
+public without sharing class NTT_MercedesSnapshotService {
+    public class SnapshotServiceException extends Exception {}
+
+    private static final Integer MAX_PAYLOAD_LENGTH = 131072;
+    private static final String PAYLOAD_SOURCE_MERCEDES_REQUEST_JSON = 'MercedesRequestJson';
+    private static final String PAYLOAD_SOURCE_SNAPSHOT_PAYLOAD = 'SnapshotPayload';
+    private static final String PAYLOAD_SOURCE_SALESFORCE_DATA = 'SalesforceData';
+
+    private final NTT_MercedesSnapshotSourceLoader sourceLoader;
+    private final NTT_MercedesSnapshotHeaderBuilder headerBuilder;
+    private final NTT_MercedesSnapshotContactBuilder contactBuilder;
+    private final NTT_MercedesSnapshotCommercialBuilder commercialBuilder;
+    private final NTT_MercedesSnapshotBillingBuilder billingBuilder;
+    private final NTT_MercedesSnapshotCreditBuilder creditBuilder;
+    private final NTT_MercedesSnapshotRepository repository;
+
+    public NTT_MercedesSnapshotService() {
+        this(
+            new NTT_MercedesSnapshotSourceLoader(),
+            new NTT_MercedesSnapshotHeaderBuilder(),
+            new NTT_MercedesSnapshotContactBuilder(),
+            new NTT_MercedesSnapshotCommercialBuilder(),
+            new NTT_MercedesSnapshotBillingBuilder(),
+            new NTT_MercedesSnapshotCreditBuilder(),
+            new NTT_MercedesSnapshotRepository()
+        );
+    }
+
+    @TestVisible
+    private NTT_MercedesSnapshotService(
+        NTT_MercedesSnapshotSourceLoader sourceLoader,
+        NTT_MercedesSnapshotHeaderBuilder headerBuilder,
+        NTT_MercedesSnapshotContactBuilder contactBuilder,
+        NTT_MercedesSnapshotCommercialBuilder commercialBuilder,
+        NTT_MercedesSnapshotBillingBuilder billingBuilder,
+        NTT_MercedesSnapshotCreditBuilder creditBuilder,
+        NTT_MercedesSnapshotRepository repository
+    ) {
+        this.sourceLoader = sourceLoader;
+        this.headerBuilder = headerBuilder;
+        this.contactBuilder = contactBuilder;
+        this.commercialBuilder = commercialBuilder;
+        this.billingBuilder = billingBuilder;
+        this.creditBuilder = creditBuilder;
+        this.repository = repository;
+    }
+
+    public NTT_MercedesSnapshot__c saveConfirmedSnapshot(NTT_MercedesSnapshotContext context) {
+        validateContext(context);
+
+        if (!context.supportsCurrentImplementation()) {
+            throw new SnapshotServiceException(
+                'El endpoint ' + context.endpoint + ' aun no esta soportado por la implementacion actual del snapshot.'
+            );
+        }
+
+        NTT_MercedesSnapshotSourceBundle source = sourceLoader.load(context);
+        NTT_MercedesSnapshotPayload payload = NTT_MercedesSnapshotPayload.parse(context.requestBody);
+        String snapshotKey = headerBuilder.buildSnapshotKey(context, source);
+        NTT_MercedesSnapshot__c existingHeader = repository.findCurrentBySnapshotKey(snapshotKey);
+        NTT_MercedesSnapshot__c header = headerBuilder.build(context, source, existingHeader, payload);
+        header = repository.saveHeader(header);
+
+        List<NTT_MercedesSnapshotContact__c> contacts = contactBuilder.build(context, source, header.Id, payload);
+        repository.replaceContacts(header.Id, contacts);
+
+        List<NTT_MercedesSnapshotCommercialItem__c> commercialItems = commercialBuilder.build(context, source, header.Id, payload);
+        repository.replaceCommercialItems(header.Id, commercialItems);
+
+        List<NTT_MercedesSnapshotBilling__c> existingBillings = shouldPreserveExistingChildren(context, existingHeader)
+            ? repository.findBillings(existingHeader.Id)
+            : new List<NTT_MercedesSnapshotBilling__c>();
+        List<NTT_MercedesSnapshotBilling__c> billings = billingBuilder.build(context, source, header.Id, payload, existingBillings);
+        repository.replaceBillings(header.Id, billings);
+
+        List<NTT_MercedesSnapshotCredit__c> credits = creditBuilder.build(context, source, header.Id, payload);
+        repository.replaceCredits(header.Id, credits);
+
+        savePayloadHistory(context, header, existingHeader);
+
+        return header;
+    }
+
+    public void validateSnapshotPreflight(NTT_MercedesSnapshotContext context) {
+        validateContext(context);
+
+        if (!context.supportsCurrentImplementation()) {
+            throw new SnapshotServiceException(
+                'El endpoint ' + context.endpoint + ' aun no esta soportado por la implementacion actual del snapshot.'
+            );
+        }
+   		NTT_MercedesSnapshotSourceBundle source = sourceLoader.load(context);
+        NTT_MercedesSnapshotPayload payload = NTT_MercedesSnapshotPayload.parse(context.requestBody);
+        String snapshotKey = headerBuilder.buildSnapshotKey(context, source);
+        NTT_MercedesSnapshot__c existingHeader = repository.findCurrentBySnapshotKey(snapshotKey);
+        System.debug('validateSnapshotPreflight >> snapshotKey ' + snapshotKey);        
+               
+        if(!String.isblank(snapshotKey) ){
+          if(!snapshotKey.contains('|55')){
+            if (context.isClientsUpdateEndpoint() && (existingHeader == null || String.isBlank(existingHeader.LastConfirmedPayload__c))) {
+                throw new SnapshotServiceException('No existe snapshot Mercedes confirmado para validar la renegociacion.');
+            }
+            if (context.isClientsUpdateEndpoint() && !repository.isConfirmedSnapshot(existingHeader)) {
+                throw new SnapshotServiceException('El snapshot Mercedes no esta confirmado para validar la renegociacion.');
+            }
+    
+            NTT_MercedesSnapshot__c header = headerBuilder.build(context, source, existingHeader, payload);
+            Id headerId = existingHeader != null ? existingHeader.Id : header.Id;
+            if (headerId == null) {
+                throw new SnapshotServiceException('No fue posible resolver el snapshot Mercedes para validar la renegociacion.');
+            }
+    
+            contactBuilder.build(context, source, headerId, payload);
+            commercialBuilder.build(context, source, headerId, payload);
+            List<NTT_MercedesSnapshotBilling__c> existingBillings = shouldPreserveExistingChildren(context, existingHeader)
+                ? repository.findBillings(existingHeader.Id)
+                : new List<NTT_MercedesSnapshotBilling__c>();
+            billingBuilder.build(context, source, headerId, payload, existingBillings);
+            creditBuilder.build(context, source, headerId, payload);
+        }
+	   }
+    }
+
+    private static Boolean shouldPreserveExistingChildren(
+        NTT_MercedesSnapshotContext context,
+        NTT_MercedesSnapshot__c existingHeader
+    ) {
+        return context != null && context.isClientsUpdateEndpoint() && existingHeader != null && existingHeader.Id != null;
+    }
+
+    private static void validateContext(NTT_MercedesSnapshotContext context) {
+        if (context == null) {
+            throw new SnapshotServiceException('El contexto del snapshot es obligatorio.');
+        }
+
+        if (!context.isSuccessful()) {
+            throw new SnapshotServiceException(
+                'El snapshot solo debe persistirse cuando Mercedes responde OK.'
+            );
+        }
+    }
+
+    private void savePayloadHistory(
+        NTT_MercedesSnapshotContext context,
+        NTT_MercedesSnapshot__c header,
+        NTT_MercedesSnapshot__c existingHeader
+    ) {
+        try {
+            NTT_MercedesSnapshotPayloadHistory__c history = buildPayloadHistory(context, header, existingHeader);
+            Database.SaveResult result = repository.savePayloadHistory(history);
+            if (!result.isSuccess()) {
+                NTT_MercedesPayloadTraceService.recordHistoryFailure(
+                    context,
+                    header,
+                    result.getErrors()[0].getMessage()
+                );
+                System.debug(
+                    LoggingLevel.ERROR,
+                    'No fue posible guardar historial de payload snapshot Mercedes: ' +
+                    result.getErrors()[0].getMessage()
+                );
+            }
+        } catch (Exception ex) {
+            NTT_MercedesPayloadTraceService.recordHistoryFailure(context, header, ex.getMessage());
+            System.debug(
+                LoggingLevel.ERROR,
+                'No fue posible guardar historial de payload snapshot Mercedes: ' + ex.getMessage()
+            );
+        }
+    }
+
+    private static NTT_MercedesSnapshotPayloadHistory__c buildPayloadHistory(
+        NTT_MercedesSnapshotContext context,
+        NTT_MercedesSnapshot__c header,
+        NTT_MercedesSnapshot__c existingHeader
+    ) {
+        String payload = resolveHistoryPayload(context);
+        String previousSnapshotPayload = resolvePreviousSnapshotPayload(existingHeader);
+
+        return new NTT_MercedesSnapshotPayloadHistory__c(
+            Snapshot__c = header.Id,
+            SnapshotVersion__c = header.VersionNumber__c,
+            SnapshotKey__c = header.SnapshotKey__c,
+            SourceType__c = header.LastConfirmedSourceType__c,
+            SourceId__c = header.LastConfirmedSourceId__c,
+            Endpoint__c = context.endpoint,
+            MercedesEndpoint__c = firstNonBlank(context.outboundEndpoint, context.endpoint),
+            ContratoFilial__c = header.ContratoFilial__c,
+            Contrato2__c = header.Contrato2__c,
+            Opportunity__c = resolveOpportunityId(context, header.Contrato2__c),
+            Payload__c = payload,
+            PayloadHash__c = buildPayloadHash(payload),
+            PreviousSnapshotPayload__c = previousSnapshotPayload,
+            PayloadSource__c = resolvePayloadSource(context),
+            ConfirmedAt__c = header.LastConfirmedAt__c
+        );
+    }
+
+    private static String resolveHistoryPayload(NTT_MercedesSnapshotContext context) {
+        if (context == null) {
+            return null;
+        }
+
+        String payload = firstNonBlank(context.outboundRequestBody, context.requestBody);
+        if (String.isBlank(payload)) {
+            return null;
+        }
+
+        return payload.length() > MAX_PAYLOAD_LENGTH ? payload.substring(0, MAX_PAYLOAD_LENGTH) : payload;
+    }
+
+    private static String resolvePreviousSnapshotPayload(NTT_MercedesSnapshot__c existingHeader) {
+        if (existingHeader == null || String.isBlank(existingHeader.LastConfirmedPayload__c)) {
+            return null;
+        }
+
+        String payload = existingHeader.LastConfirmedPayload__c;
+        return payload.length() > MAX_PAYLOAD_LENGTH ? payload.substring(0, MAX_PAYLOAD_LENGTH) : payload;
+    }
+
+    private static String resolvePayloadSource(NTT_MercedesSnapshotContext context) {
+        if (context == null) {
+            return PAYLOAD_SOURCE_SALESFORCE_DATA;
+        }
+
+        if (String.isNotBlank(context.outboundRequestBody)) {
+            return PAYLOAD_SOURCE_MERCEDES_REQUEST_JSON;
+        }
+
+        if (String.isNotBlank(context.requestBody)) {
+            return PAYLOAD_SOURCE_SNAPSHOT_PAYLOAD;
+        }
+
+        return PAYLOAD_SOURCE_SALESFORCE_DATA;
+    }
+
+    private static String buildPayloadHash(String payload) {
+        if (String.isBlank(payload)) {
+            return null;
+        }
+
+        return EncodingUtil.convertToHex(Crypto.generateDigest('SHA-256', Blob.valueOf(payload)));
+    }
+
+    private static Id resolveOpportunityId(NTT_MercedesSnapshotContext context, Id contrato2Id) {
+        Id sourceRecordId = toId(context != null ? context.sourceId : null);
+        if (sourceRecordId != null && sourceRecordId.getSObjectType() == Opportunity.SObjectType) {
+            return sourceRecordId;
+        }
+
+        return resolveOpportunityId(contrato2Id);
+    }
+
+    private static Id resolveOpportunityId(Id contrato2Id) {
+        if (contrato2Id == null) {
+            return null;
+        }
+
+        List<Contrato2__c> contratos = [
+            SELECT PartidaPresupuesto__r.Quote.OpportunityId,
+                   PartidaPresupuesto__r.OpportunityLineItem.OpportunityId
+            FROM Contrato2__c
+            WHERE Id = :contrato2Id
+            LIMIT 1
+        ];
+
+        if (contratos.isEmpty() || contratos[0].PartidaPresupuesto__r == null) {
+            return null;
+        }
+
+        if (contratos[0].PartidaPresupuesto__r.Quote != null) {
+            return contratos[0].PartidaPresupuesto__r.Quote.OpportunityId;
+        }
+
+        if (contratos[0].PartidaPresupuesto__r.OpportunityLineItem != null) {
+            return contratos[0].PartidaPresupuesto__r.OpportunityLineItem.OpportunityId;
+        }
+
+        return null;
+    }
+
+    private static Id toId(String rawValue) {
+        if (String.isBlank(rawValue)) {
+            return null;
+        }
+
+        try {
+            return (Id) rawValue.trim();
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private static String firstNonBlank(String firstValue, String fallbackValue) {
+        return String.isNotBlank(firstValue) ? firstValue : fallbackValue;
+    }
+}
