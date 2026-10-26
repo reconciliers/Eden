@@ -6,30 +6,32 @@
   @last modified by  : Geovanny Peimbert
 -->
         <apex:component >
-             <div id="miModal2" class="modal">
-         
-            <div class="modal-contenido">
-         
-                <div class="modal-header">
-                    ⚠️ Advertencia
-                </div>
-         
-                <div class="modal-body">
-                    <strong><p id="mensajeModal2"></p></strong>
-         
-                    <button type="button" onclick="seleccionarRespuesta('SI')">
-                       
-                        <strong><p id="mensajeConfirmacion2"></p> </strong>
-                    </button>
-         
-                    <button id="btonNegativo2" type="button" onclick="seleccionarRespuesta('NO')">
-                        
-                    </button>
-                </div>
-         
-            </div>
-         
+          <div id="miModal2" 
+     style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
+
+    <div style="background-color:white; width:700px; padding:0; margin:10% auto; border-radius:10px; text-align:center; overflow:hidden;">
+
+        <div style="background-color:#fff3cd; color:#856404; padding:20px; font-size:24px; border-bottom:1px solid #ffeeba;">
+            ⚠️ Advertencia
         </div>
+
+        <div style="padding:40px; font-weight:normal;">
+            <strong><p id="mensajeModal2" style="font-size:20px;"></p></strong>
+
+            <button type="button" onclick="seleccionarRespuesta('SI')" 
+                    style="margin-top:30px; margin-left:10px; margin-right:10px; padding:12px 35px; font-size:14px; min-width:120px; cursor:pointer;">
+                <strong><p id="mensajeConfirmacion2" style="font-size:20px;"></p></strong>
+            </button>
+
+            <button id="btonNegativo2" type="button" onclick="seleccionarRespuesta('NO')" 
+                    style="margin-top:30px; margin-left:10px; margin-right:10px; padding:12px 35px; font-size:14px; min-width:120px; cursor:pointer;">
+                No
+            </button>
+        </div>
+
+    </div>
+</div>
+
  
     <div ng-controller="costosCtrl as cos" id="costosCtrl" ng-init="cos.leerParams(producto, cot.schema, cotizacion, sc.opportunity.Owner.Segmento__c)" ng-if="(sc.opportunity.RecordType != 'RT_ChangeParameters' && sc.opportunity.RecordType != 'RT_CreditRenewal') || ((sc.opportunity.RecordType == 'RT_ChangeParameters' || sc.opportunity.RecordType == 'RT_CreditRenewal')&&(sc.opportunity.Familia__c == 'Mantenimiento'))">
         <br/>
@@ -329,14 +331,18 @@
                                 </td>
                                 <td ng-repeat="cf in cotizacion.contracts" style="text-align:center" ng-if="!cf.isRenegotiation"><!--CEAM: 3563 >>>--> 
                                     <div ng-repeat="ctf in cf.CommercialTermsField">
+                                        <div ng-if="cos.desactivarResiduos">
                                         <span ng-bind="'$ '+(ctf.InitPrice)"  ng-if="concepto.TipoCargo__c == ctf.CargoConcept && concepto.TipoCargo__c != 'Comisión por el servicio' && ctf.isInitPrice"></span>
                                         <span ng-bind="(ctf.InitPrice)+' %'"  ng-if="concepto.TipoCargo__c == ctf.CargoConcept && concepto.TipoCargo__c == 'Comisión por el servicio' && ctf.isInitPrice"></span>
-                                        <input ng-click="cos.onKeyDownFinalPrice(ctf,ctf.FinalPrice)"  ng-blur="cos.onChangeFinalPrice(cotizacion.contracts, cf.Id, ctf.FinalPrice, ctf.Id)" class="form-control CurrencyInput" type="text" ctc-form="cotizacion.formCotiza" ng-model="ctf.FinalPrice" name="{{'concepto.TipoCargo__c' + concepto.Id}}" id="{{'concepto.TipoCargo__c' + concepto.Id}}"  ng-disabled="(!cotizacion.Editable)?true:false" ng-min="0" ng-max="18" required="true" 
+                                        
+                                        
+                                        <input ng-click="cos.onKeyDownFinalPrice(ctf,ctf.FinalPrice)"  ng-blur="cos.onChangeFinalPrice(cotizacion.contracts, cf.Id, ctf.FinalPrice, ctf.Id)" class="form-control CurrencyInput" type="text" ctc-form="cotizacion.formCotiza" ng-model="ctf.FinalPrice" name="{{'concepto.TipoCargo__c' + concepto.Id}}" id="{{'concepto.TipoCargo__c' + concepto.Id}}"   ng-disabled="!cos.ActivarGuadarTL ? true : ( (!cotizacion.Editable)?true:false)" ng-min="0" ng-max="18" required="true" 
                                         ng-if="(
                                             concepto.TipoCargo__c == ctf.CargoConcept &&
                                             !ctf.isInitPrice &&
                                             concepto.Render
                                         )"/>
+                                        </div>
                                     </div>
                                 </td><!--CEAM: 3563 <<<-->
                             </tr>
@@ -388,8 +394,13 @@
                                     <div class="checkbox text-center">
                                         <label ng-if="!producto.isFleetRenogotation">
                                             <!--// renegociacion - Televia  -->
+                                            
                                             <div class="checkbox" ng-if="!cos.ActivarGuadarTL" >
-                                               <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-required="conceptoRenegotiation.required" ng-disabled="true"/>
+                                               <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="true" ng-required="conceptoRenegotiation.required" ng-disabled="true"/>
+                                            
+                                                <div ng-if="concepto.TipoCargo__c == 'Cuota por Renta Mensual Tag Dual'">
+   														<input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-required="conceptoRenegotiation.required" ng-disabled="(!cotizacion.Editable)"/>
+                                                </div>
                                             </div>
                                             <div class="checkbox" ng-if="cos.ActivarGuadarTL" >
                                                <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-required="conceptoRenegotiation.required" ng-disabled="(!cotizacion.Editable ||concepto.RenderDisabled)?true:false"/>
@@ -399,6 +410,9 @@
                                             <!--<input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-checked="false" ng-if="(!concepto.PrecioFinal__c || !cotizacion.Id) && !concepto.SinEdicion__c" old-ctc-params="{concepto: concepto}"/>-->
                                         </label>
                                         <label ng-if="producto.isFleetRenogotation">
+                                            <div ng-if="concepto.TipoCargo__c == 'Comisión por Servicio Telepeaje'">
+                                       		     <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, cos.isTelepeaje)" type="checkbox" ng-model="cos.isTelepeaje" ng-required="conceptoRenegotiation.required" ng-disabled="(!cotizacion.Editable)"/>                                       
+                                            </div>
                                             
                                             <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-required="conceptoRenegotiation.required" ng-disabled="(!cotizacion.Editable)"/>
                                         </label>
@@ -558,7 +572,7 @@
                                              <!--Inicio Licitación clientes-->
                                             <!--Se agregó bonificación de consumo al if-->
                                             <ctc-input
-                                                ng-if="!concepto.SinEdicion__c && concepto.Render && (producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por el servicio' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Bonificacion de consumo') && sc.opportunity.Maquilador__c != 'Licitación del Gobierno Federal'"
+                                                ng-if="!concepto.SinEdicion__c && concepto.Render && (producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por el servicio' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Bonificacion de consumo' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Cuota por Renta Mensual Tag Dual' ) && sc.opportunity.Maquilador__c != 'Licitación del Gobierno Federal'"
                                                 ctc-field="cot.schema.ProductoConcepto__c.PrecioFinal2__c"
                                                 ctc-instance="producto.conceptosKey[concepto.key]"
                                                 ctc-form="cotizacion.formCotiza"
@@ -572,7 +586,7 @@
                                         <!--Inicio Licitación clientes-->
                                             <!--Se agregó 35 a la condición y se omite Bonificación de consumo-->
                                             <ctc-input
-                                                ng-if="!concepto.SinEdicion__c && (producto.conceptosKey[concepto.key].Producto__r.ProductCode == '33' || producto.conceptosKey[concepto.key].Producto__r.ProductCode == cos.productLicitacion.clients.code) && concepto.Render && (producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por el servicio' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por servicio piloto' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por Servicio Telepeaje' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Bonificacion de consumo')"
+                                                ng-if="!concepto.SinEdicion__c && (producto.conceptosKey[concepto.key].Producto__r.ProductCode == '33' || producto.conceptosKey[concepto.key].Producto__r.ProductCode == cos.productLicitacion.clients.code) && concepto.Render && (producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por el servicio' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por servicio piloto' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por Servicio Telepeaje' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Cuota por Renta Mensual Tag Dual' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Bonificacion de consumo')"
                                                 ctc-field="cot.schema.ProductoConcepto__c.PrecioFinal__c"
                                                 ctc-instance="producto.conceptosKey[concepto.key]"
                                                 ctc-form="cotizacion.formCotiza"
@@ -582,7 +596,10 @@
                                                 ng-disabled="cos.blockConceptoMensualidad">
                                             </ctc-input>
                                             <!--Fin Licitación clientes-->
-<ctc-input
+                                            <!-- // renegociacion - Televia-->
+                                            <!-- <span ng-if="!cos.ActivarGuadarTL   && (producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por Servicio Telepeaje')" description="Si el concepto no es editable" ng-bind="(producto.conceptosKey[concepto.key].Importe__c | number: 2) + ' %'"></span> -->
+                                            
+											<ctc-input
                                                 ng-if="!concepto.SinEdicion__c && producto.conceptosKey[concepto.key].Producto__r.ProductCode == '33'&&  concepto.Render && (producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por el servicio' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por servicio piloto' && producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por Servicio Telepeaje')"
                                                ctc-field="cot.schema.ProductoConcepto__c.PrecioFinal2__c"
                                                 ctc-instance="producto.conceptosKey[concepto.key]"
@@ -948,6 +965,9 @@
                                 <td description="Contiene el nivel de aprobación">
                                     <div style="text-align:center">
                                         <div ng-if="!cos.isProductArg">
+                                            <!-- // renegociacion - Televia -->
+                                            <span id="approvLevel" ng-if="!cos.ActivarGuadarTL  && !ctcUtils.app.opportunity.GLB_Cambio_Condiciones_Comerciales__c && (producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por Servicio Telepeaje' || producto.conceptosKey[concepto.key].TipoCargo__c == 'TAG Dual'" ><span class="fa fa-circle greenCircle"></span></span>
+                                           
                                             <!--span id="approvLevel" ng-if="!concepto.Libre__c && (producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por el servicio' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Cobro por gestion de vehiculos' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por Servicio Telepeaje' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Mensualidad Avanzado' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Mensualidad Básico' ||  producto.conceptosKey[concepto.key].TipoCargo__c == 'Cargo por Firma Electrónica') && (producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevel == 0 )" ><span class="fa fa-circle greenCircle"></span></span>
                                             <span id="approvLevel" ng-if="!concepto.Libre__c && (producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por el servicio' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Cobro por gestion de vehiculos' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por Servicio Telepeaje' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Mensualidad Avanzado' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Mensualidad Básico') && (producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevel == 1 )" ><span class="fa fa-circle greenCircle"></span></span>
                                             <span id="approvLevel" ng-if="!concepto.Libre__c && (producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por el servicio' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Cobro por gestion de vehiculos' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por Servicio Telepeaje' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Mensualidad Avanzado' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Mensualidad Básico' ||  producto.conceptosKey[concepto.key].TipoCargo__c == 'Cargo por Firma Electrónica') && (producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevel == 2 )"><span class="fa fa-circle yellowCircle"></span></span>
@@ -958,8 +978,8 @@
                                            <span id="approvLevel" ng-if="!concepto.Libre__c && producto.conceptosKey[concepto.key].Producto__r.ProductCode != '33' && (producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por el servicio' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Cobro por gestion de vehiculos' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por Servicio Telepeaje' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Mensualidad Avanzado' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Mensualidad Básico' ||  producto.conceptosKey[concepto.key].TipoCargo__c == 'Cargo por Firma Electrónica') && (producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevel == 0 ) && producto.conceptosKey[concepto.key].Render" ><span class="fa fa-circle greenCircle"></span></span>
                                             
                                             <span id="approvLevel" ng-if="!concepto.Libre__c &&  sc.opportunity.RecordType != 'RT_Renegotiation' && producto.conceptosKey[concepto.key].Producto__r.ProductCode == '33' && ( producto.conceptosKey[concepto.key].TipoCargo__c == 'Comisión por Servicio Telepeaje' || producto.conceptosKey[concepto.key].TipoCargo__c == 'Cuota por Renta Mensual Tag Dual'  )&& (producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevel == 1 )" ></span>
-                                            
-                                            <span id="approvLevel" ng-if="!concepto.Libre__c &&  sc.opportunity.RecordType == 'RT_Renegotiation' && producto.conceptosKey[concepto.key].Producto__r.ProductCode == '33' &&  (producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por Servicio Telepeaje'  && producto.conceptosKey[concepto.key].TipoCargo__c != 'Bonificacion de consumo' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por el servicio') && (producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevel == 1 )" ><span class="fa fa-circle greenCircle"></span></span>
+                                            <!-- // renegociacion - Televia -->
+                                            <span id="approvLevel" ng-if="!concepto.Libre__c &&  sc.opportunity.RecordType == 'RT_Renegotiation' && producto.conceptosKey[concepto.key].Producto__r.ProductCode == '33' &&  (producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por Servicio Telepeaje'  && producto.conceptosKey[concepto.key].TipoCargo__c != 'Bonificacion de consumo' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por el servicio' &&  producto.conceptosKey[concepto.key].TipoCargo__c != 'Cuota por Renta Mensual Tag Dual') && (producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevel == 1 )" ><span class="fa fa-circle greenCircle"></span></span>
                                             <!-- <span id="approvLevel" ng-if="!concepto.Libre__c &&  sc.opportunity.RecordType == 'RT_Renegotiation' && producto.conceptosKey[concepto.key].Producto__r.ProductCode == '33' &&  (producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por Servicio Telepeaje'  && producto.conceptosKey[concepto.key].TipoCargo__c != 'Bonificacion de consumo' && producto.conceptosKey[concepto.key].TipoCargo__c != 'Comisión por el servicio') && (producto.conceptosKey[concepto.key].PrecioFinal__c__approvalLevel == 3 )" ><span class="fa fa-circle grayCircle"></span></span> -->
                                             
 											
@@ -1020,14 +1040,16 @@
                                 </td>
                                 <td ng-repeat="cf in cotizacion.contracts" style="text-align:center" ng-if="!cf.isRenegotiation"><!--CEAM: 3563 >>>--> 
                                     <div ng-repeat="ctf in cf.CommercialTermsField">
+                                       <div ng-if="cos.desactivarResiduos">
                                         <span ng-bind="'$ '+(ctf.InitPrice)"  ng-if="concepto.TipoCargo__c == ctf.CargoConcept && concepto.TipoCargo__c != 'Comisión por el servicio' && ctf.isInitPrice"></span>
                                         <span ng-bind="(ctf.InitPrice)+' %'"  ng-if="concepto.TipoCargo__c == ctf.CargoConcept && concepto.TipoCargo__c == 'Comisión por el servicio' && ctf.isInitPrice"></span>
-                                        <input ng-click="cos.onKeyDownFinalPrice(ctf,ctf.FinalPrice)"  ng-blur="cos.onChangeFinalPrice(cotizacion.contracts, cf.Id, ctf.FinalPrice, ctf.Id)" class="form-control CurrencyInput" type="text" ctc-form="cotizacion.formCotiza" ng-model="ctf.FinalPrice" name="{{'concepto.TipoCargo__c' + concepto.Id}}" id="{{'concepto.TipoCargo__c' + concepto.Id}}"  ng-disabled="(!cotizacion.Editable)?true:false" ng-min="0" ng-max="18" required="true" 
+                                        <input ng-click="cos.onKeyDownFinalPrice(ctf,ctf.FinalPrice)"  ng-blur="cos.onChangeFinalPrice(cotizacion.contracts, cf.Id, ctf.FinalPrice, ctf.Id)" class="form-control CurrencyInput" type="text" ctc-form="cotizacion.formCotiza" ng-model="ctf.FinalPrice" name="{{'concepto.TipoCargo__c' + concepto.Id}}" id="{{'concepto.TipoCargo__c' + concepto.Id}}"  ng-disabled="!cos.ActivarGuadarTL ? true : ( (!cotizacion.Editable)?true:false)" ng-min="0" ng-max="18" required="true" 
                                         ng-if="(
                                             concepto.TipoCargo__c == ctf.CargoConcept &&
                                             !ctf.isInitPrice &&
                                             concepto.Render
                                         )"/>
+                                        </div>
                                     </div>
                                 </td><!--CEAM: 3563 <<<-->
                             </tr>
@@ -1152,7 +1174,7 @@
                                             <!--<input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-disabled="true" ng-if="concepto.SinEdicion__c" old-ctc-params="{concepto: concepto}"/>-->
                                             <!--<input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-checked="false" ng-if="(!concepto.PrecioFinal__c || !cotizacion.Id) && !concepto.SinEdicion__c" old-ctc-params="{concepto: concepto}"/>-->
                                         </label>
-                                        <label ng-if="producto.isFleetRenogotation">
+                                        <label ng-if="producto.isFleetRenogotation">                                            
                                             <input ng-change="cos.activateSaveButtonReg(concepto, concepto.Bonificacion__c, producto, null, concepto.Render)" type="checkbox" ng-model="concepto.Render" ng-required="conceptoRenegotiation.required" ng-disabled="(!cotizacion.Editable)"/>
                                         </label>
                                         
@@ -1451,14 +1473,18 @@
                                 </td>
                                 <td ng-repeat="cf in cotizacion.contracts" style="text-align:center" ng-if="!cf.isRenegotiation"><!--CEAM: 3563 >>>--> 
                                     <div ng-repeat="ctf in cf.CommercialTermsField">
-                                        <span ng-bind="'$ '+(ctf.InitPrice)"  ng-if="concepto.TipoCargo__c == ctf.CargoConcept && concepto.TipoCargo__c != 'Comisión por el servicio' && ctf.isInitPrice"></span>
-                                        <span ng-bind="(ctf.InitPrice)+' %'"  ng-if="concepto.TipoCargo__c == ctf.CargoConcept && concepto.TipoCargo__c == 'Comisión por el servicio' && ctf.isInitPrice"></span>
-                                        <input ng-click="cos.onKeyDownFinalPrice(ctf,ctf.FinalPrice)"  ng-blur="cos.onChangeFinalPrice(cotizacion.contracts, cf.Id, ctf.FinalPrice, ctf.Id)" class="form-control CurrencyInput" type="text" ctc-form="cotizacion.formCotiza" ng-model="ctf.FinalPrice" name="{{'concepto.TipoCargo__c' + concepto.Id}}" id="{{'concepto.TipoCargo__c' + concepto.Id}}"  ng-disabled="(!cotizacion.Editable)?true:false" ng-min="0" ng-max="18" required="true" 
+                                        <div ng-if="cos.desactivarResiduos">
+                                            <span ng-bind="'$ '+(ctf.InitPrice)"  ng-if="concepto.TipoCargo__c == ctf.CargoConcept && concepto.TipoCargo__c != 'Comisión por el servicio' && ctf.isInitPrice"></span>
+                                            <span ng-bind="(ctf.InitPrice)+' %'"  ng-if="concepto.TipoCargo__c == ctf.CargoConcept && concepto.TipoCargo__c == 'Comisión por el servicio' && ctf.isInitPrice"></span>
+                                         
+                                       
+                                        <input ng-click="cos.onKeyDownFinalPrice(ctf,ctf.FinalPrice)"  ng-blur="cos.onChangeFinalPrice(cotizacion.contracts, cf.Id, ctf.FinalPrice, ctf.Id)" class="form-control CurrencyInput" type="text" ctc-form="cotizacion.formCotiza" ng-model="ctf.FinalPrice" name="{{'concepto.TipoCargo__c' + concepto.Id}}" id="{{'concepto.TipoCargo__c' + concepto.Id}}"   ng-disabled="!cos.ActivarGuadarTL ? true : ( (!cotizacion.Editable)?true:false)" ng-min="0" ng-max="18" required="true" 
                                         ng-if="(
                                             concepto.TipoCargo__c == ctf.CargoConcept &&
                                             !ctf.isInitPrice &&
                                             concepto.Render
                                         )"/>
+                                            </div>
                                     </div>
                                 </td><!--CEAM: 3563 <<<-->
                             </tr>
@@ -1471,13 +1497,13 @@
              
                 <div class="row" ng-if="producto.isFleetRenogotation">
                     <div class="col-sm-12">
-                        <input ng-change="cos.activateModalidadPago(producto, sc.opportunity, cot.schema, cotizacion)" type="checkbox" ng-model="cotizacion.modalidadPago" ng-disabled="(!cotizacion.Editable)?true:false" ng-hide="producto.isFleetRenogotation"/>
+                        <input ng-change="cos.activateModalidadPago(producto, sc.opportunity, cot.schema, cotizacion)" type="checkbox" ng-model="cotizacion.modalidadPago"  ng-disabled="!cos.ActivarGuadarTL ? true : ( (!cotizacion.Editable)?true:false)" ng-hide="producto.isFleetRenogotation"/>
                         <label ng-hide="producto.isFleetRenogotation">Modalidad de Pago</label>
                     </div>
                 </div>
                 <div class="row"  ng-if="!producto.isFleetRenogotation">
                     <div class="col-sm-12">
-                        <input ng-change="cos.activateModalidadPago(producto, sc.opportunity, cot.schema, cotizacion)" type="checkbox" ng-model="cotizacion.modalidadPago" ng-disabled="(!cotizacion.Editable)?true:false"/>
+                        <input ng-change="cos.activateModalidadPago(producto, sc.opportunity, cot.schema, cotizacion)" type="checkbox" ng-model="cotizacion.modalidadPago"  ng-disabled="!cos.ActivarGuadarTL ? true : ( (!cotizacion.Editable)?true:false)"/>
                         <label>Modalidad de Pago</label>
                     </div>
                 </div>
@@ -1551,6 +1577,9 @@
                 vm.isInfoValida = false;
                 // renegociacion - Televia  
                 vm.ActivarGuadarTL =true;
+                vm.Condiciones =true;
+                vm.desactivarResiduos=true;
+                
                  // televia add
                 //CambiosHUCPRM (Cambios directos en Parcial)
                 //Si se necesitan agregar más conceptos con Nivel de Aprobación, añadirlos
@@ -1593,6 +1622,8 @@
 
                 console.log('isTelepeaje: '  + vm.isTelepeaje);
                 console.log('isInfoValida: '  + vm.isInfoValida);
+                 console.log('vm.opportunity: '  + ctcUtils.app.opportunity.GLB_Cambio_Condiciones_Comerciales__c);
+                  console.log('vm.isnewQuote: '  + ctcUtils.isnewQuote);
 // Televia fin-->
 
                console.log('sc.opportunityproductCodeMantenimiento : ' + JSON.stringify(ctcUtils.app.opportunity.productCodeMantenimiento));
@@ -1601,12 +1632,18 @@
 					// renegociacion - Televia
                     if( (ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ) && ctcUtils.isnewQuote && ctcUtils.app.opportunity.RecordType === 'RT_Renegotiation'){
                        vm.ActivarGuadarTL =false;
+                       vm.Condiciones = false;
                        ctcUtils.app.confirmacionTelepeaje = true;
                        ctcUtils.app.renderTelepeaje = true;
+                    
                      }// renegociacion - Televia
                      console.log('NVH-cotizacion: ', cotizacion);
                     if(cotizacion.NTT_IsTelepeaje__c == "true" || cotizacion.NTT_IsTelepeaje__c == true /*ctcUtils.app.opportunity.NTT_CheckTelepeaje__c === true*/){
                     	vm.isTelepeaje = true;
+                       if((ctcUtils.app.opportunity.NTT_AltaTelevia__c == true || ctcUtils.app.opportunity.NTT_AltaTelevia__c == 'true' ) && ctcUtils.app.opportunity.RecordType === 'RT_Renegotiation'){
+                          vm.desactivarResiduos = false;
+                          console.log('NVH-desactivarResiduos: ', vm.desactivarResiduos);
+                    	}
                 	}
                      console.log('NVH-schema: ', schema);
                     vm.producto = producto || {};
@@ -2350,7 +2387,7 @@
                     ctcUtils.changeButtonStatus();
                     ctcUtils.changedByUser = true;
                 }
-                                                                                                                      
+                // renegociacion - Televia                                                                                                        
                window.seleccionarRespuesta =  function seleccionarRespuesta(respuesta) {
                       
                       console.log('test '+ctcUtils.app.mensajeModal); 
@@ -2361,7 +2398,7 @@
                                                                                                                      
                       if(ctcUtils.app.mensajeModal == 'Activacion' && respuesta == 'SI'){
                              var aceptarMjs = 'Aceptar';
-                             var mensaje = 'Este cliente ya tiene activa la funcionalidad de Televia, selecciona otro contrato.';
+                             var mensaje = 'Para activar la funcionalidad de Televia, active el check "Alta Telepeaje" en la Oportunidad.';
                              document.getElementById('mensajeModal2').innerHTML = mensaje;  
                              document.getElementById('mensajeConfirmacion2').innerHTML = aceptarMjs;  
                              var botonNo = document.getElementById('btonNegativo2');
